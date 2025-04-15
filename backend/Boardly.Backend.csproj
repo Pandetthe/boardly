@@ -1,17 +1,29 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk.Web">
 	<PropertyGroup>
 		<Title>Boardly backend</Title>
+		<Description>API for managing kanban boards.</Description>
+		<VersionPrefix>0.1.0</VersionPrefix>
+		<VersionSuffix>alpha</VersionSuffix>
 		<PackageLicenseExpression>MIT</PackageLicenseExpression>
 		<Authors>Jakub Jurczyk;Aleksander Grzybek</Authors>
 		<PackageProjectUrl>https://github.com/Pandetthe/boardly</PackageProjectUrl>
 		<RepositoryUrl>https://github.com/Pandetthe/boardly</RepositoryUrl>
 		<RepositoryType>git</RepositoryType>
 	</PropertyGroup>
+
+	<PropertyGroup>
+		<AssemblyTitle>$(Title)</AssemblyTitle>
+		<Version>$(VersionPrefix)-$(VersionSuffix)</Version>
+		<AssemblyVersion>$(VersionPrefix)</AssemblyVersion>
+		<FileVersion>$(VersionPrefix)</FileVersion>
+		<InformationalVersion>$(Version)</InformationalVersion>
+	</PropertyGroup>
 	
 	<PropertyGroup>
 		<TargetFramework>net9.0</TargetFramework>
 		<Nullable>enable</Nullable>
 		<ImplicitUsings>enable</ImplicitUsings>
+		<GenerateAssemblyInfo>true</GenerateAssemblyInfo>
 		<UserSecretsId>4f40902c-c12f-4b8f-90f5-96f47037f5b2</UserSecretsId>
 		<DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
 		<DockerfileContext>.</DockerfileContext>
@@ -25,8 +37,10 @@
 	</ItemGroup>
 
 	<ItemGroup>
+		<PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="9.0.4" />
 		<PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="9.0.4" />
 		<PackageReference Include="Microsoft.VisualStudio.Azure.Containers.Tools.Targets" Version="1.21.2" />
+		<PackageReference Include="Scalar.AspNetCore" Version="2.1.13" />
 		<PackageReference Include="Serilog.AspNetCore" Version="9.0.0" />
 		<PackageReference Include="Swashbuckle.AspNetCore.SwaggerUI" Version="8.1.1" />
 	</ItemGroup>

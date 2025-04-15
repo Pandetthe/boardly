@@ -5,6 +5,7 @@ namespace Boardly.Backend.Controllers
 {
     [ApiController]
     [Route("[controller]")]
+    [Authorize(AuthenticationSchemes = "Bearer")]
     public class WeatherForecastController : ControllerBase
     {
         private static readonly string[] Summaries = new[]
@@ -20,6 +21,7 @@ namespace Boardly.Backend.Controllers
         }
 
         [HttpGet(Name = "GetWeatherForecast")]
+        [AllowAnonymous]
         public IEnumerable<WeatherForecast> Get()
         {
             return Enumerable.Range(1, 5).Select(index => new WeatherForecast
@@ -31,7 +33,6 @@ namespace Boardly.Backend.Controllers
             .ToArray();
         }
         [HttpPost]
-        [Authorize]
         public IEnumerable<WeatherForecast> Test2()
         {
             return Enumerable.Range(1, 5).Select(index => new WeatherForecast

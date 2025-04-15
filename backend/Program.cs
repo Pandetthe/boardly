@@ -1,8 +1,17 @@
-
+using Boardly.Backend.Services.OpenAPI;
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc.ApiExplorer;
+using Microsoft.AspNetCore.OpenApi;
+using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+using Scalar.AspNetCore;
 using Serilog;
 using Serilog.Events;
+using System.Linq;
+using System.Reflection;
+using System.Text;
 
 namespace Boardly.Backend;
 
@@ -12,47 +21,50 @@ public class Program
     {
         Log.Logger = new LoggerConfiguration()
             .MinimumLevel.Override("Microsoft", LogEventLevel.Information)
-            .Enrich.FromLogContext()
             .WriteTo.Console()
             .CreateBootstrapLogger();
 
-        Serilog.ILogger logger = Log.ForContext("SourceContext", "Program");
+        Serilog.ILogger logger = Log.ForContext("SourceContext", typeof(Program).FullName);
         try
         {
-            logger.Information("Starting up");
+            logger.Debug("Building web application...");
             WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 
+            builder.Configuration
+                .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
+                .AddJsonFile($"appsettings.{builder.Environment.EnvironmentName}.json", optional: true)
+                .AddEnvironmentVariables();
+            builder.Services.AddSerilog((services, lc) => lc
+                .ReadFrom.Configuration(builder.Configuration)
+                .ReadFrom.Services(services));
+
+
             builder.Services.AddControllers();
-            builder.Services.AddAuthentication().AddBearerToken();
+
+            builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+                .AddJwtBearer(options =>
+                {
+                    options.TokenValidationParameters = new TokenValidationParameters
+                    {
+                        ValidateIssuer = true,
+                        ValidateAudience = true,
+                        ValidateLifetime = true,
+                        ValidateIssuerSigningKey = true,
+                        ValidIssuer = builder.Configuration["Jwt:Issuer"],
+                        ValidAudience = builder.Configuration["Jwt:Audience"],
+                        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"]
+                            ?? throw new NullReferenceException("Jwt key must be provided!")))
+                    };
+                });
             builder.Services.AddOpenApi(options =>
             {
-                options.AddDocumentTransformer((document, context, cancellationToken) =>
-                {
-                    document.Info = new()
-                    {
-                        Title = "Boardly API",
-                        Version = "v1",
-                        Description = "API for managing kanban boards."
-                    };
-                    Dictionary<string, OpenApiSecurityScheme> requirements = new()
-                    {
-                        ["Bearer"] = new OpenApiSecurityScheme
-                        {
-                            Type = SecuritySchemeType.Http,
-                            Scheme = "bearer", // "bearer" refers to the header name here
-                            In = ParameterLocation.Header,
-                            BearerFormat = "Json Web Token"
-                        }
-                    };
-                    document.Components = new OpenApiComponents();
-                    document.Components.SecuritySchemes = requirements;
-                    return Task.CompletedTask;
-                });
+                options.AddDocumentTransformer<DocumentInfoTransformer>();
+                options.AddDocumentTransformer<BearerSecuritySchemeTransformer>();
             });
 
             WebApplication app = builder.Build();
+            logger.Debug("Web application built successfully");
 
-            // Configure the HTTP request pipeline.
             if (app.Environment.IsDevelopment())
             {
                 app.MapOpenApi();
@@ -60,17 +72,27 @@ public class Program
                 {
                     options.SwaggerEndpoint("/openapi/v1.json", "Boardly API V1");
                 });
+                app.MapScalarApiReference(options =>
+                {
+                    options.WithHttpBearerAuthentication(bearer =>
+                    {
+                        bearer.Token = "your-bearer-token";
+                    });
+                });
             }
 
             app.UseHttpsRedirection();
             app.UseAuthorization();
             app.MapControllers();
 
+            app.Lifetime.ApplicationStarted.Register(() =>
+                logger.Information("Application version {Version}", Assembly.GetExecutingAssembly()?.GetName().Version));
+
             await app.RunAsync();
         }
         catch (Exception ex)
         {
-            logger.Fatal(ex, "Application start-up failed");
+            logger.Fatal(ex, "Application startup failed");
         }
         finally
         {
