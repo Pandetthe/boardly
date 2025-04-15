@@ -1,34 +1,80 @@
 
-namespace Boardly.Backend
-{
-    public class Program
-    {
-        public static void Main(string[] args)
-        {
-            var builder = WebApplication.CreateBuilder(args);
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.OpenApi.Models;
+using Serilog;
+using Serilog.Events;
 
-            // Add services to the container.
+namespace Boardly.Backend;
+
+public class Program
+{
+    public static async Task Main(string[] args)
+    {
+        Log.Logger = new LoggerConfiguration()
+            .MinimumLevel.Override("Microsoft", LogEventLevel.Information)
+            .Enrich.FromLogContext()
+            .WriteTo.Console()
+            .CreateBootstrapLogger();
+
+        Serilog.ILogger logger = Log.ForContext("SourceContext", "Program");
+        try
+        {
+            logger.Information("Starting up");
+            WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 
             builder.Services.AddControllers();
-            // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
-            builder.Services.AddOpenApi();
+            builder.Services.AddAuthentication().AddBearerToken();
+            builder.Services.AddOpenApi(options =>
+            {
+                options.AddDocumentTransformer((document, context, cancellationToken) =>
+                {
+                    document.Info = new()
+                    {
+                        Title = "Boardly API",
+                        Version = "v1",
+                        Description = "API for managing kanban boards."
+                    };
+                    Dictionary<string, OpenApiSecurityScheme> requirements = new()
+                    {
+                        ["Bearer"] = new OpenApiSecurityScheme
+                        {
+                            Type = SecuritySchemeType.Http,
+                            Scheme = "bearer", // "bearer" refers to the header name here
+                            In = ParameterLocation.Header,
+                            BearerFormat = "Json Web Token"
+                        }
+                    };
+                    document.Components = new OpenApiComponents();
+                    document.Components.SecuritySchemes = requirements;
+                    return Task.CompletedTask;
+                });
+            });
 
-            var app = builder.Build();
+            WebApplication app = builder.Build();
 
             // Configure the HTTP request pipeline.
             if (app.Environment.IsDevelopment())
             {
                 app.MapOpenApi();
+                app.UseSwaggerUI(options =>
+                {
+                    options.SwaggerEndpoint("/openapi/v1.json", "Boardly API V1");
+                });
             }
 
             app.UseHttpsRedirection();
-
             app.UseAuthorization();
-
-
             app.MapControllers();
 
-            app.Run();
+            await app.RunAsync();
+        }
+        catch (Exception ex)
+        {
+            logger.Fatal(ex, "Application start-up failed");
+        }
+        finally
+        {
+            Log.CloseAndFlush();
         }
     }
 }
