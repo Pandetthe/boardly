@@ -1,66 +1,77 @@
-﻿using Boardly.Backend.Models;
+﻿using Boardly.Backend.Entities;
+using Boardly.Backend.Exceptions;
+using Boardly.Backend.Models;
+using Boardly.Backend.Models.Auth;
+using Boardly.Backend.Services;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.IdentityModel.Tokens;
-using System.IdentityModel.Tokens.Jwt;
-using System.Reflection;
-using System.Security.Claims;
-using System.Text;
 
-namespace Boardly.Backend.Controllers
+namespace Boardly.Backend.Controllers;
+
+[ApiController]
+[Route("[controller]")]
+public class AuthController : ControllerBase
 {
-    [ApiController]
-    [Route("[controller]")]
-    public class AuthController : ControllerBase
+    private readonly IConfiguration _configuration;
+    private readonly ILogger<AuthController> _logger;
+    private readonly UserService _userService;
+
+    public AuthController(IConfiguration configuration, ILogger<AuthController> logger, UserService userService)
     {
-        private readonly IConfiguration _configuration;
-        private readonly ILogger<AuthController> _logger;
+        _configuration = configuration;
+        _logger = logger;
+        _userService = userService;
+    }
 
-        public AuthController(IConfiguration configuration, ILogger<AuthController> logger)
-        {
-            _configuration = configuration;
-            _logger = logger;
-        }
+    [HttpPost("SignIn")]
+    [Produces("application/json")]
+    [ProducesResponseType(typeof(SignInResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(MessageResponse), StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult>SignIn([FromBody] SignInRequest data, CancellationToken cancellationToken)
+    {
+        if (!ModelState.IsValid)
+            return ValidationProblem(ModelState);
 
-        [HttpPost]
-        public async Task<IActionResult>SignIn()
+        User? user = await _userService.SelectUserAsync(data.Nickname, cancellationToken);
+        if (user != null)
         {
-            return Ok();
-        }
-
-        [HttpPost("SignUp")]
-        public async Task<IActionResult>SignUp([FromBody] SignIn model)
-        {
-            if (model.Username == "admin" && model.Password == "admin")
+            if (await _userService.VerifyHashedPassword(user, data.Password, cancellationToken))
             {
-                var claims = new[]
-        {
-            new Claim(ClaimTypes.Name, model.Username),
-            new Claim(ClaimTypes.Role, "Admin"), 
-            new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
-        };
-
-                var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["Jwt:Key"]!));
-                var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
-
-                var token = new JwtSecurityToken(
-                    issuer: _configuration["Jwt:Issuer"],
-                    audience: _configuration["Jwt:Audience"],
-                    claims: claims,
-                    expires: DateTime.Now.AddMinutes(30),
-                    signingCredentials: creds
-                );
-
-                var tokena = new JwtSecurityTokenHandler().WriteToken(token);
-                return Ok(new { Token = tokena });
+                return Ok(new SignInResponse("example", 10, "example"));
             }
-
-            return Unauthorized("Invalid credentials");
         }
+        return Unauthorized(new MessageResponse("Invalid credentials"));
+    }
 
-        [HttpPost]
-        public async Task<IActionResult>Refresh()
+    [HttpPost("SignUp")]
+    [Produces("application/json")]
+    [ProducesResponseType(typeof(SignUpResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult>SignUp([FromBody] SignUpRequest data, CancellationToken cancellationToken)
+    {
+        if (!ModelState.IsValid)
+            return ValidationProblem(ModelState);
+
+        try
         {
-            return Ok();
+            User user = new()
+            {
+                Nickname = data.Nickname,
+                Password = data.Password
+            };
+            await _userService.InsertUserAsync(user, cancellationToken);
+
+            return Ok(new SignUpResponse("example", 10, "example"));
         }
+        catch (RecordAlreadyExists)
+        {
+            ModelState.AddModelError("Email", "User with provided email already exists!");
+            return ValidationProblem(ModelState);
+        }
+    }
+
+    [HttpPost("Refresh")]
+    public async Task<IActionResult>Refresh()
+    {
+        return Ok();
     }
 }

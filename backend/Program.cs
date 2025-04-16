@@ -1,5 +1,8 @@
+using Boardly.Backend.Entities;
+using Boardly.Backend.Services;
 using Boardly.Backend.Services.OpenAPI;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.IdentityModel.Tokens;
 using Scalar.AspNetCore;
 using Serilog;
@@ -8,6 +11,7 @@ using System.Reflection;
 using System.Text;
 
 namespace Boardly.Backend;
+
 public class Program
 {
     public static async Task Main(string[] args)
@@ -31,6 +35,10 @@ public class Program
                 .ReadFrom.Configuration(builder.Configuration)
                 .ReadFrom.Services(services));
 
+            builder.Services.AddSingleton<IPasswordHasher<User>, PasswordHasher<User>>();
+            builder.Services.AddSingleton<MongoDbProvider>();
+            builder.Services.AddSingleton<UserService>();
+            builder.Services.AddSingleton<IDbInitializator>(sp => sp.GetRequiredService<UserService>());
 
             builder.Services.AddControllers();
 
@@ -57,6 +65,14 @@ public class Program
 
             WebApplication app = builder.Build();
             logger.Debug("Web application built successfully");
+
+            var lifetime = app.Services.GetRequiredService<IHostApplicationLifetime>();
+            CancellationToken appStoppingToken = lifetime.ApplicationStopping;
+            var initializables = app.Services.GetServices<IDbInitializator>();
+            foreach (var service in initializables)
+            {
+                await service.InitAsync(appStoppingToken);
+            }
 
             if (app.Environment.IsDevelopment())
             {
