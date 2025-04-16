@@ -13,5 +13,5 @@ namespace Boardly.Backend.Models.Auth
         public string Password { get; set; } = null!;
     }
 
-    public record SignUpResponse(string AccessToken, int ExpiresIn, string RefreshToken);
+    public record SignUpResponse(string AccessToken, uint AccessTokenExpiresIn, string RefreshToken, uint RefreshTokenExpiresIn);
 }

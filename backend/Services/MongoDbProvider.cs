@@ -6,7 +6,9 @@ namespace Boardly.Backend.Services;
 
 public class MongoDbProvider
 {
-    private readonly IMongoDatabase _database;
+    public readonly IMongoDatabase Database;
+
+    public readonly MongoClient Client;
 
     public MongoDbProvider(IConfiguration configuration)
     {
@@ -17,9 +19,9 @@ public class MongoDbProvider
 
         var camelCaseConvention = new ConventionPack { new CamelCaseElementNameConvention() };
         ConventionRegistry.Register("CamelCaseConvention", camelCaseConvention, t => true);
-        MongoClient client = new(connectionString);
-        _database = client.GetDatabase(databaseName);
+        Client = new(connectionString);
+        Database = Client.GetDatabase(databaseName);
     }
 
-    public IMongoCollection<User> GetUsersCollection() => _database.GetCollection<User>("users");
+    public IMongoCollection<User> GetUsersCollection() => Database.GetCollection<User>("users");
 }

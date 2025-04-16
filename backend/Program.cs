@@ -35,7 +35,6 @@ public class Program
                 .ReadFrom.Configuration(builder.Configuration)
                 .ReadFrom.Services(services));
 
-            builder.Services.AddSingleton<JwtProvider>();
             builder.Services.AddSingleton<IPasswordHasher<User>, PasswordHasher<User>>();
             builder.Services.AddSingleton<MongoDbProvider>();
             builder.Services.AddSingleton<UserService>();
@@ -43,6 +42,7 @@ public class Program
 
             builder.Services.AddControllers();
 
+            builder.Services.AddSingleton<JwtProvider>();
             builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
                 .AddJwtBearer(options =>
                 {

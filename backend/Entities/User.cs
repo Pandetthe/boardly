@@ -16,10 +16,8 @@ public class User
 
 public class RefreshToken
 {
-    public Guid Id { get; set; }
-
     public string Token { get; set; } = null!;
 
     [BsonDateTimeOptions(Kind = DateTimeKind.Utc)]
-    public DateTime ExpiresOnUtc { get; set; }
+    public DateTime ExpiresAtUtc { get; set; }
 }
