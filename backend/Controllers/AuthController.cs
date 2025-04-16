@@ -14,12 +14,14 @@ public class AuthController : ControllerBase
     private readonly IConfiguration _configuration;
     private readonly ILogger<AuthController> _logger;
     private readonly UserService _userService;
+    private readonly JwtProvider _jwtProvider;
 
-    public AuthController(IConfiguration configuration, ILogger<AuthController> logger, UserService userService)
+    public AuthController(IConfiguration configuration, ILogger<AuthController> logger, UserService userService, JwtProvider jwtProvider)
     {
         _configuration = configuration;
         _logger = logger;
         _userService = userService;
+        _jwtProvider = jwtProvider;
     }
 
     [HttpPost("SignIn")]
@@ -36,7 +38,8 @@ public class AuthController : ControllerBase
         {
             if (await _userService.VerifyHashedPassword(user, data.Password, cancellationToken))
             {
-                return Ok(new SignInResponse("example", 10, "example"));
+                string token = _jwtProvider.GenerateToken(user);
+                return Ok(new SignInResponse(token, 3600, "example"));
             }
         }
         return Unauthorized(new MessageResponse("Invalid credentials"));
@@ -59,8 +62,8 @@ public class AuthController : ControllerBase
                 Password = data.Password
             };
             await _userService.InsertUserAsync(user, cancellationToken);
-
-            return Ok(new SignUpResponse("example", 10, "example"));
+            string token = _jwtProvider.GenerateToken(user);
+            return Ok(new SignUpResponse(token, 3600, "example"));
         }
         catch (RecordAlreadyExists)
         {

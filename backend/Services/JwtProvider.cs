@@ -10,7 +10,7 @@ public class JwtProvider(IConfiguration configuration)
 {
     private readonly IConfiguration _configuration = configuration;
 
-    public async Task GenerateToken(User user)
+    public string GenerateToken(User user)
     {
         var claims = new[]
         {
@@ -27,10 +27,11 @@ public class JwtProvider(IConfiguration configuration)
             issuer: _configuration.GetValue<string>("Jwt:Issuer"),
             audience: _configuration.GetValue<string>("Jwt:Audience"),
             claims: claims,
-            expires: DateTime.UtcNow.AddMinutes(30),//_configuration.GetValue<string>("Jwt:AccessTokenExpirationInMinutes")),
+            expires: DateTime.UtcNow.AddMinutes(60),//_configuration.GetValue<string>("Jwt:AccessTokenExpirationInMinutes")),
             signingCredentials: creds
         );
 
         string jwt = new JwtSecurityTokenHandler().WriteToken(token);
+        return jwt;
     }
 }
