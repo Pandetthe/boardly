@@ -1,20 +1,13 @@
 using Boardly.Backend.Services.OpenAPI;
-using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Mvc.ApiExplorer;
-using Microsoft.AspNetCore.OpenApi;
 using Microsoft.IdentityModel.Tokens;
-using Microsoft.OpenApi.Models;
 using Scalar.AspNetCore;
 using Serilog;
 using Serilog.Events;
-using System.Linq;
 using System.Reflection;
 using System.Text;
 
 namespace Boardly.Backend;
-
 public class Program
 {
     public static async Task Main(string[] args)
@@ -74,10 +67,7 @@ public class Program
                 });
                 app.MapScalarApiReference(options =>
                 {
-                    options.WithHttpBearerAuthentication(bearer =>
-                    {
-                        bearer.Token = "your-bearer-token";
-                    });
+                    options.WithHttpBearerAuthentication(new HttpBearerOptions());
                 });
             }
 
