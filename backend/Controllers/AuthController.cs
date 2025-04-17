@@ -34,7 +34,7 @@ public class AuthController : ControllerBase
         if (!ModelState.IsValid)
             return ValidationProblem(ModelState);
 
-        User? user = await _userService.SelectUserAsync(data.Nickname, cancellationToken);
+        User? user = await _userService.GetUserByNicknameAsync(data.Nickname, cancellationToken);
         if (user != null)
         {
             if (await _userService.VerifyHashedPassword(user, data.Password, cancellationToken))
@@ -70,7 +70,7 @@ public class AuthController : ControllerBase
                 Nickname = data.Nickname,
                 Password = data.Password
             };
-            await _userService.InsertUserAsync(user, cancellationToken);
+            await _userService.AddUserAsync(user, cancellationToken);
             (string accessToken, DateTime accessTokenExpiresAt, string refreshToken, DateTime refreshTokenExpiresAt) = _jwtProvider.GenerateTokens(user);
             RefreshToken refreshTokenData = new()
             {

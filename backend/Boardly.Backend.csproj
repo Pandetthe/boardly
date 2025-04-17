@@ -53,4 +53,8 @@
 	<ItemGroup>
 	  <None Include="C:\Users\pande\source\repos\boardly\backend\.editorconfig" />
 	</ItemGroup>
+
+	<ItemGroup>
+	  <Folder Include="Models\User\" />
+	</ItemGroup>
 </Project>

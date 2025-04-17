@@ -11,6 +11,7 @@ public class BoardController : ControllerBase
     [Authorize]
     public async Task<IActionResult> GetAllBoards()
     {
+        var claims = User.Claims;
         return Ok();
     }
 

@@ -1,6 +1,7 @@
 ﻿using Boardly.Backend.Entities;
 using Boardly.Backend.Exceptions;
 using Microsoft.AspNetCore.Identity;
+using MongoDB.Bson;
 using MongoDB.Driver;
 
 namespace Boardly.Backend.Services;
@@ -13,7 +14,7 @@ public class UserService(MongoDbProvider mongoDbProvider, ILogger<UserService> l
     private readonly IMongoCollection<RefreshToken> _refreshTokensCollection = mongoDbProvider.GetRefreshTokensCollection();
     private readonly ILogger<UserService> _logger = logger;
 
-    public async Task InsertUserAsync(User user, CancellationToken cancellationToken = default)
+    public async Task AddUserAsync(User user, CancellationToken cancellationToken = default)
     {
         try
         {
@@ -31,11 +32,24 @@ public class UserService(MongoDbProvider mongoDbProvider, ILogger<UserService> l
         }
     }
 
-    public async Task<User?> SelectUserAsync(string nickname, CancellationToken cancellationToken = default)
+    public async Task<User?> GetUserByNicknameAsync(string nickname, CancellationToken cancellationToken = default)
     {
         try
         {
             return await _usersCollection.Find(u => u.Nickname == nickname, null).FirstOrDefaultAsync(cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "An unexpected error occurred while selecting the user.");
+            throw new InvalidOperationException("An unexpected error occurred while selecting the user.", ex);
+        }
+    }
+
+    public async Task<User?> GetUserByIdAsync(ObjectId id, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            return await _usersCollection.Find(u => u.Id == id, null).FirstOrDefaultAsync(cancellationToken);
         }
         catch (Exception ex)
         {
