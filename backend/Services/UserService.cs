@@ -1,7 +1,6 @@
 ﻿using Boardly.Backend.Entities;
 using Boardly.Backend.Exceptions;
 using Microsoft.AspNetCore.Identity;
-using MongoDB.Bson;
 using MongoDB.Driver;
 
 namespace Boardly.Backend.Services;
@@ -11,6 +10,7 @@ public class UserService(MongoDbProvider mongoDbProvider, ILogger<UserService> l
 {
     private readonly IPasswordHasher<User> _passwordHasher = passwordHasher;
     private readonly IMongoCollection<User> _usersCollection = mongoDbProvider.GetUsersCollection();
+    private readonly IMongoCollection<RefreshToken> _refreshTokensCollection = mongoDbProvider.GetRefreshTokensCollection();
     private readonly ILogger<UserService> _logger = logger;
 
     public async Task InsertUserAsync(User user, CancellationToken cancellationToken = default)
@@ -67,20 +67,22 @@ public class UserService(MongoDbProvider mongoDbProvider, ILogger<UserService> l
         }
     }
 
-    public async Task AddRefreshToken(ObjectId userId, RefreshToken token, CancellationToken cancellationToken = default)
+    public async Task AddRefreshToken(RefreshToken token, CancellationToken cancellationToken = default)
     {
         try
         {
-            var filter = Builders<User>.Filter.Eq(u => u.Id, userId);
-            var removeExpiredUpdate = Builders<User>.Update
-                .PullFilter(u => u.RefreshTokens, rt => rt.ExpiresAtUtc < DateTime.UtcNow);
+            var deleteExpiredFilter = Builders<RefreshToken>.Filter.And(
+                Builders<RefreshToken>.Filter.Eq(rt => rt.UserId, token.UserId),
+                Builders<RefreshToken>.Filter.Lt(rt => rt.ExpiresAt, DateTime.UtcNow)
+            );
 
-            await _usersCollection.UpdateOneAsync(filter, removeExpiredUpdate, null, cancellationToken);
+            await _refreshTokensCollection.DeleteManyAsync(deleteExpiredFilter, cancellationToken);
 
-            var addNewTokenUpdate = Builders<User>.Update
-                .Push(u => u.RefreshTokens, token);
-
-            await _usersCollection.UpdateOneAsync(filter, addNewTokenUpdate, null, cancellationToken);
+            await _refreshTokensCollection.InsertOneAsync(token, null, cancellationToken);
+        }
+        catch (MongoWriteException ex) when (ex.WriteError.Category == ServerErrorCategory.DuplicateKey)
+        {
+            //await _usersCollection.UpdateOneAsync(filter, addNewTokenUpdate, null, cancellationToken);
         }
         catch (Exception ex)
         {
@@ -93,15 +95,20 @@ public class UserService(MongoDbProvider mongoDbProvider, ILogger<UserService> l
     {
         try
         {
-            var filter = Builders<User>.Filter.ElemMatch(u => u.RefreshTokens, rt =>
-                rt.Token == refreshToken && rt.ExpiresAtUtc > DateTime.UtcNow);
+            var tokenFilter = Builders<RefreshToken>.Filter.And(
+                Builders<RefreshToken>.Filter.Eq(rt => rt.Token, refreshToken),
+                Builders<RefreshToken>.Filter.Gt(rt => rt.ExpiresAt, DateTime.UtcNow)
+            );
 
-            var user = await _usersCollection.Find(filter).FirstOrDefaultAsync(cancellationToken);
-            if (user != null) {
-                var pullOldToken = Builders<User>.Update.PullFilter(u => u.RefreshTokens, rt => rt.Token == refreshToken);
-                await _usersCollection.UpdateOneAsync(u => u.Id == user.Id, pullOldToken, cancellationToken: cancellationToken);
-            }
-            return user;
+            var token = await _refreshTokensCollection.Find(tokenFilter).FirstOrDefaultAsync(cancellationToken);
+
+            if (token == null)
+                return null;
+
+            var deleteTokenFilter = Builders<RefreshToken>.Filter.Eq(rt => rt.Token, refreshToken);
+            var result = await _refreshTokensCollection.DeleteOneAsync(deleteTokenFilter, cancellationToken);
+
+            return await _usersCollection.Find(u => u.Id == token.UserId).FirstOrDefaultAsync(cancellationToken);
         }
         catch (Exception ex)
         {
@@ -117,11 +124,13 @@ public class UserService(MongoDbProvider mongoDbProvider, ILogger<UserService> l
             new() { Name = "unique_text_nickname", Unique = true }
         );
 
-        var refreshTokenIndex = new CreateIndexModel<User>(
-            Builders<User>.IndexKeys.Ascending("RefreshTokens.Token"),
-            new CreateIndexOptions { Name = "refresh_token_index" }
+        await _usersCollection.Indexes.CreateOneAsync(textIndex, null, cancellationToken);
+
+        var uniqueTokenIndex = new CreateIndexModel<RefreshToken>(
+            Builders<RefreshToken>.IndexKeys.Ascending(rt => rt.Token),
+            new CreateIndexOptions { Unique = true, Name = "unique_refresh_token" }
         );
 
-        await _usersCollection.Indexes.CreateManyAsync([textIndex, refreshTokenIndex], cancellationToken);
+        await _refreshTokensCollection.Indexes.CreateOneAsync(uniqueTokenIndex, null, cancellationToken);
     }
 }

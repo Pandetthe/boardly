@@ -24,4 +24,6 @@ public class MongoDbProvider
     }
 
     public IMongoCollection<User> GetUsersCollection() => Database.GetCollection<User>("users");
+
+    public IMongoCollection<RefreshToken> GetRefreshTokensCollection() => Database.GetCollection<RefreshToken>("refreshTokens");
 }

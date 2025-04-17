@@ -11,13 +11,9 @@ public class User
 
     public string Password { get; set; } = null!;
 
-    public List<RefreshToken> RefreshTokens { get; set; } = [];
-}
-
-public class RefreshToken
-{
-    public string Token { get; set; } = null!;
+    [BsonDateTimeOptions(Kind = DateTimeKind.Utc)]
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
     [BsonDateTimeOptions(Kind = DateTimeKind.Utc)]
-    public DateTime ExpiresAtUtc { get; set; }
+    public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 }

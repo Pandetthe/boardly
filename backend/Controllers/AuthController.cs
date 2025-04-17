@@ -5,7 +5,6 @@ using Boardly.Backend.Models.Auth;
 using Boardly.Backend.Services;
 using Microsoft.AspNetCore.Identity.Data;
 using Microsoft.AspNetCore.Mvc;
-using MongoDB.Driver;
 
 namespace Boardly.Backend.Controllers;
 
@@ -43,10 +42,11 @@ public class AuthController : ControllerBase
                 (string accessToken, DateTime accessTokenExpiresAt, string refreshToken, DateTime refreshTokenExpiresAt) = _jwtProvider.GenerateTokens(user);
                 RefreshToken refreshTokenData = new()
                 {
-                    ExpiresAtUtc = refreshTokenExpiresAt,
+                    UserId = user.Id,
+                    ExpiresAt = refreshTokenExpiresAt,
                     Token = refreshToken
                 };
-                await _userService.AddRefreshToken(user.Id, refreshTokenData, cancellationToken);
+                await _userService.AddRefreshToken(refreshTokenData, cancellationToken);
     
                 return Ok(new SignInResponse(accessToken, CalculateExpiryInSeconds(accessTokenExpiresAt), refreshToken, CalculateExpiryInSeconds(refreshTokenExpiresAt)));
             }
@@ -74,10 +74,11 @@ public class AuthController : ControllerBase
             (string accessToken, DateTime accessTokenExpiresAt, string refreshToken, DateTime refreshTokenExpiresAt) = _jwtProvider.GenerateTokens(user);
             RefreshToken refreshTokenData = new()
             {
-                ExpiresAtUtc = refreshTokenExpiresAt,
+                UserId = user.Id,
+                ExpiresAt = refreshTokenExpiresAt,
                 Token = refreshToken
             };
-            await _userService.AddRefreshToken(user.Id, refreshTokenData, cancellationToken);
+            await _userService.AddRefreshToken(refreshTokenData, cancellationToken);
             return Ok(new SignUpResponse(accessToken, CalculateExpiryInSeconds(accessTokenExpiresAt), refreshToken, CalculateExpiryInSeconds(refreshTokenExpiresAt)));
         }
         catch (RecordAlreadyExists)
@@ -101,10 +102,11 @@ public class AuthController : ControllerBase
             return Unauthorized(new MessageResponse("Invalid or expired refresh token."));
 
         (string newAccessToken, DateTime accessExpires, string newRefreshToken, DateTime refreshExpires) = _jwtProvider.GenerateTokens(user);
-        await _userService.AddRefreshToken(user.Id, new RefreshToken
+        await _userService.AddRefreshToken(new()
         {
+            UserId = user.Id,
             Token = newRefreshToken,
-            ExpiresAtUtc = refreshExpires
+            ExpiresAt = refreshExpires
         }, cancellationToken);
 
         return Ok(new SignInResponse(
@@ -115,5 +117,5 @@ public class AuthController : ControllerBase
         ));
     }
 
-    private static uint CalculateExpiryInSeconds(DateTime expiresAt) => (uint)Math.Max(0, (expiresAt - DateTime.UtcNow).TotalSeconds);
+    private static uint CalculateExpiryInSeconds(DateTime expiresAt) => (uint)Math.Ceiling(Math.Max(0, (expiresAt - DateTime.UtcNow).TotalSeconds) / 60) * 60;
 }

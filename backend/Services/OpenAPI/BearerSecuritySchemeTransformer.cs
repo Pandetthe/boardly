@@ -34,10 +34,9 @@ public sealed class BearerSecuritySchemeTransformer(
         document.Components.SecuritySchemes ??= new Dictionary<string, OpenApiSecurityScheme>();
         document.Components.SecuritySchemes["Bearer"] = bearerScheme;
 
-        IEnumerable<ApiDescription>? apiDescriptions = apiDescriptionProvider.ApiDescriptionGroups
+        IEnumerable<ApiDescription>? apiDescriptions = [.. apiDescriptionProvider.ApiDescriptionGroups
             .Items
-            .SelectMany(group => group.Items)
-            .ToList();
+            .SelectMany(group => group.Items)];
 
         foreach (var (pathKey, pathItem) in document.Paths)
         {
@@ -62,7 +61,7 @@ public sealed class BearerSecuritySchemeTransformer(
                     .Any();
                 if (!hasAllowAnonymous && hasAuthorize)
                 {
-                    operation.Security ??= new List<OpenApiSecurityRequirement>();
+                    operation.Security ??= [];
                     operation.Security.Add(new OpenApiSecurityRequirement
                     {
                         [bearerScheme] = Array.Empty<string>()

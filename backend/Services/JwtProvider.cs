@@ -27,7 +27,7 @@ public class JwtProvider(IConfiguration configuration)
         int accessTokenExpiresInMinutes = _configuration.GetValue("Jwt:AccessTokenExpiresInMinutes", 15);
         int refreshTokenExpiresInDays = _configuration.GetValue("Jwt:RefreshTokenExpiresInDays", 7);
         DateTime accessTokenExpiresAt = DateTime.UtcNow.AddMinutes(accessTokenExpiresInMinutes);
-        DateTime refreshTokenExpiresAt= DateTime.UtcNow.AddDays(refreshTokenExpiresInDays);
+        DateTime refreshTokenExpiresAt = DateTime.UtcNow.AddDays(refreshTokenExpiresInDays);
 
         // JWT Token
         var token = new JwtSecurityToken(
