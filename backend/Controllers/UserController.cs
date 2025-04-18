@@ -9,20 +9,15 @@ namespace Boardly.Backend.Controllers;
 
 [ApiController]
 [Route("[controller]")]
-public class UserController : ControllerBase
+public class UserController(UserService userService) : ControllerBase
 {
-    private readonly UserService _userService;
-
-    public UserController(UserService userService)
-    {
-        _userService = userService;
-    }
+    private readonly UserService _userService = userService;
 
     [HttpGet("Me")]
     [Authorize]
     public async Task<IActionResult> GetMe()
     {
-        User? user = await _userService.GetUserByIdAsync(new ObjectId(User.FindFirst(ClaimTypes.NameIdentifier)?.Value));
+        User? user = await _userService.GetUserByIdAsync(new ObjectId(User.FindFirst(ClaimTypes.NameIdentifier)!.Value));
         return Ok(user);
     }
 

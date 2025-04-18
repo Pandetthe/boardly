@@ -38,7 +38,7 @@ public class Program
             builder.Services.AddSingleton<IPasswordHasher<User>, PasswordHasher<User>>();
             builder.Services.AddSingleton<MongoDbProvider>();
             builder.Services.AddSingleton<UserService>();
-            builder.Services.AddSingleton<IDbInitializator>(sp => sp.GetRequiredService<UserService>());
+            builder.Services.AddSingleton<BoardService>();
 
             builder.Services.AddControllers();
 

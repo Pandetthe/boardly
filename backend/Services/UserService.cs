@@ -23,7 +23,7 @@ public class UserService(MongoDbProvider mongoDbProvider, ILogger<UserService> l
         }
         catch (MongoWriteException ex) when (ex.WriteError.Category == ServerErrorCategory.DuplicateKey)
         {
-            throw new RecordAlreadyExists();
+            throw new RecordAlreadyExists("User with such nickname exists!");
         }
         catch (Exception ex)
         {
@@ -96,7 +96,7 @@ public class UserService(MongoDbProvider mongoDbProvider, ILogger<UserService> l
         }
         catch (MongoWriteException ex) when (ex.WriteError.Category == ServerErrorCategory.DuplicateKey)
         {
-            //await _usersCollection.UpdateOneAsync(filter, addNewTokenUpdate, null, cancellationToken);
+            throw new RecordAlreadyExists("Duplicate of refresh tokens occured!");
         }
         catch (Exception ex)
         {
@@ -104,6 +104,24 @@ public class UserService(MongoDbProvider mongoDbProvider, ILogger<UserService> l
             throw new InvalidOperationException("An unexpected error occurred while adding refresh token.", ex);
         }
     }
+
+    public async Task DeleteAllRefreshTokens(ObjectId userId, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var deleteExpiredFilter = Builders<RefreshToken>.Filter.And(
+                Builders<RefreshToken>.Filter.Eq(rt => rt.UserId, userId)
+            );
+
+            await _refreshTokensCollection.DeleteManyAsync(deleteExpiredFilter, cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "An unexpected error occurred while deleting refresh tokens.");
+            throw new InvalidOperationException("An unexpected error occurred while adding refresh token.", ex);
+        }
+    }
+
 
     public async Task<User?> GetUserByRefreshTokenAsync(string refreshToken, CancellationToken cancellationToken = default)
     {

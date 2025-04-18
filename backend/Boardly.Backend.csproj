@@ -23,7 +23,6 @@
 		<TargetFramework>net9.0</TargetFramework>
 		<Nullable>enable</Nullable>
 		<ImplicitUsings>enable</ImplicitUsings>
-		<GenerateAssemblyInfo>true</GenerateAssemblyInfo>
 		<UserSecretsId>4f40902c-c12f-4b8f-90f5-96f47037f5b2</UserSecretsId>
 		<DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
 		<DockerfileContext>.</DockerfileContext>
@@ -55,6 +54,6 @@
 	</ItemGroup>
 
 	<ItemGroup>
-	  <Folder Include="Models\User\" />
+	  <Folder Include="Models\Board\" />
 	</ItemGroup>
 </Project>

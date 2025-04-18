@@ -29,7 +29,6 @@ public class JwtProvider(IConfiguration configuration)
         DateTime accessTokenExpiresAt = DateTime.UtcNow.AddMinutes(accessTokenExpiresInMinutes);
         DateTime refreshTokenExpiresAt = DateTime.UtcNow.AddDays(refreshTokenExpiresInDays);
 
-        // JWT Token
         var token = new JwtSecurityToken(
             issuer: _configuration["Jwt:Issuer"],
             audience: _configuration["Jwt:Audience"],
@@ -40,10 +39,7 @@ public class JwtProvider(IConfiguration configuration)
 
         string accessToken = new JwtSecurityTokenHandler().WriteToken(token);
 
-        var randomBytes = new byte[64];
-        using var rng = RandomNumberGenerator.Create();
-        rng.GetBytes(randomBytes);
-        string refreshToken = Convert.ToBase64String(randomBytes);
+        string refreshToken = Convert.ToBase64String(RandomNumberGenerator.GetBytes(64));
 
         return (accessToken, accessTokenExpiresAt, refreshToken, refreshTokenExpiresAt);
     }
