@@ -37,12 +37,13 @@ public class Program
 
             builder.Services.AddSingleton<IPasswordHasher<User>, PasswordHasher<User>>();
             builder.Services.AddSingleton<MongoDbProvider>();
+            builder.Services.AddHostedService<MongoDbMigrationService>();
             builder.Services.AddSingleton<UserService>();
             builder.Services.AddSingleton<BoardService>();
 
             builder.Services.AddControllers();
 
-            builder.Services.AddSingleton<JwtProvider>();
+            builder.Services.AddSingleton<TokenService>();
             builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
                 .AddJwtBearer(options =>
                 {
@@ -66,14 +67,6 @@ public class Program
 
             WebApplication app = builder.Build();
             logger.Debug("Web application built successfully");
-
-            var lifetime = app.Services.GetRequiredService<IHostApplicationLifetime>();
-            CancellationToken appStoppingToken = lifetime.ApplicationStopping;
-            var initializables = app.Services.GetServices<IDbInitializator>();
-            foreach (var service in initializables)
-            {
-                await service.InitAsync(appStoppingToken);
-            }
 
             if (app.Environment.IsDevelopment())
             {

@@ -17,7 +17,8 @@ public class UserController(UserService userService) : ControllerBase
     [Authorize]
     public async Task<IActionResult> GetMe()
     {
-        User? user = await _userService.GetUserByIdAsync(new ObjectId(User.FindFirst(ClaimTypes.NameIdentifier)!.Value));
+        User user = await _userService.GetUserByIdAsync(new ObjectId(User.FindFirst(ClaimTypes.NameIdentifier)!.Value))
+            ?? throw new InvalidOperationException("User not found");
         return Ok(user);
     }
 
@@ -25,6 +26,7 @@ public class UserController(UserService userService) : ControllerBase
     [Authorize]
     public async Task<IActionResult> GetUserById(string userId)
     {
-        return Ok();
+        User? user = await _userService.GetUserByIdAsync(new ObjectId(userId));
+        return Ok(user);
     }
 }

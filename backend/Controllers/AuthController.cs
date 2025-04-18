@@ -12,11 +12,11 @@ namespace Boardly.Backend.Controllers;
 
 [ApiController]
 [Route("[controller]")]
-public class AuthController(ILogger<AuthController> logger, UserService userService, JwtProvider jwtProvider) : ControllerBase
+public class AuthController(ILogger<AuthController> logger, UserService userService, TokenService tokenService) : ControllerBase
 {
     private readonly ILogger<AuthController> _logger = logger;
     private readonly UserService _userService = userService;
-    private readonly JwtProvider _jwtProvider = jwtProvider;
+    private readonly TokenService _tokenService = tokenService;
 
     [HttpPost("SignIn")]
     [Produces("application/json")]
@@ -85,7 +85,7 @@ public class AuthController(ILogger<AuthController> logger, UserService userServ
         if (!ModelState.IsValid)
             return ValidationProblem(ModelState);
 
-        var user = await _userService.GetUserByRefreshTokenAsync(data.RefreshToken, cancellationToken);
+        var user = await _tokenService.GetUserByRefreshTokenAsync(data.RefreshToken, cancellationToken);
         if (user == null)
             return Unauthorized(new MessageResponse("Invalid or expired refresh token."));
 
@@ -105,7 +105,7 @@ public class AuthController(ILogger<AuthController> logger, UserService userServ
     [ProducesResponseType(typeof(MessageResponse), StatusCodes.Status401Unauthorized)]
     public async Task<IActionResult> RevokeAsync(CancellationToken cancellationToken)
     {
-        await _userService.DeleteAllRefreshTokens(new ObjectId(User.FindFirst(ClaimTypes.NameIdentifier)!.Value), cancellationToken);
+        await _tokenService.DeleteAllRefreshTokens(new ObjectId(User.FindFirst(ClaimTypes.NameIdentifier)!.Value), cancellationToken);
         return Ok(new MessageResponse("Successfully revoked all refresh tokens."));
     }
 
@@ -115,14 +115,14 @@ public class AuthController(ILogger<AuthController> logger, UserService userServ
         {
             try
             {
-                (string accessToken, DateTime accessTokenExpiresAt, string refreshToken, DateTime refreshTokenExpiresAt) = _jwtProvider.GenerateTokens(user);
+                (string accessToken, DateTime accessTokenExpiresAt, string refreshToken, DateTime refreshTokenExpiresAt) = _tokenService.GenerateTokens(user);
                 RefreshToken refreshTokenData = new()
                 {
                     UserId = user.Id,
                     ExpiresAt = refreshTokenExpiresAt,
                     Token = refreshToken
                 };
-                await _userService.AddRefreshToken(refreshTokenData, cancellationToken);
+                await _tokenService.AddRefreshToken(refreshTokenData, cancellationToken);
                 return (accessToken, accessTokenExpiresAt, refreshToken, refreshTokenExpiresAt);
             }
             catch (RecordAlreadyExists) { /* RETRY */ }

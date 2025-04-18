@@ -7,11 +7,10 @@ using MongoDB.Driver;
 namespace Boardly.Backend.Services;
 
 public class UserService(MongoDbProvider mongoDbProvider, ILogger<UserService> logger,
-    IPasswordHasher<User> passwordHasher) : IDbInitializator
+    IPasswordHasher<User> passwordHasher)
 {
     private readonly IPasswordHasher<User> _passwordHasher = passwordHasher;
     private readonly IMongoCollection<User> _usersCollection = mongoDbProvider.GetUsersCollection();
-    private readonly IMongoCollection<RefreshToken> _refreshTokensCollection = mongoDbProvider.GetRefreshTokensCollection();
     private readonly ILogger<UserService> _logger = logger;
 
     public async Task AddUserAsync(User user, CancellationToken cancellationToken = default)
@@ -67,7 +66,9 @@ public class UserService(MongoDbProvider mongoDbProvider, ILogger<UserService> l
             {
                 await _usersCollection.UpdateOneAsync(
                     u => u.Id == user.Id,
-                    Builders<User>.Update.Set(u => u.Password, _passwordHasher.HashPassword(user, providedPassword)),
+                    Builders<User>.Update
+                        .Set(u => u.Password, _passwordHasher.HashPassword(user, providedPassword))
+                        .Set(u => u.UpdatedAt, DateTime.UtcNow),
                     null,
                     cancellationToken
                 );
@@ -79,90 +80,5 @@ public class UserService(MongoDbProvider mongoDbProvider, ILogger<UserService> l
             _logger.LogError(ex, "An unexpected error occurred while verifying hashed password.");
             throw new InvalidOperationException("An unexpected error occurred while verifying hashed password.", ex);
         }
-    }
-
-    public async Task AddRefreshToken(RefreshToken token, CancellationToken cancellationToken = default)
-    {
-        try
-        {
-            var deleteExpiredFilter = Builders<RefreshToken>.Filter.And(
-                Builders<RefreshToken>.Filter.Eq(rt => rt.UserId, token.UserId),
-                Builders<RefreshToken>.Filter.Lt(rt => rt.ExpiresAt, DateTime.UtcNow)
-            );
-
-            await _refreshTokensCollection.DeleteManyAsync(deleteExpiredFilter, cancellationToken);
-
-            await _refreshTokensCollection.InsertOneAsync(token, null, cancellationToken);
-        }
-        catch (MongoWriteException ex) when (ex.WriteError.Category == ServerErrorCategory.DuplicateKey)
-        {
-            throw new RecordAlreadyExists("Duplicate of refresh tokens occured!");
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "An unexpected error occurred while adding refresh token.");
-            throw new InvalidOperationException("An unexpected error occurred while adding refresh token.", ex);
-        }
-    }
-
-    public async Task DeleteAllRefreshTokens(ObjectId userId, CancellationToken cancellationToken = default)
-    {
-        try
-        {
-            var deleteExpiredFilter = Builders<RefreshToken>.Filter.And(
-                Builders<RefreshToken>.Filter.Eq(rt => rt.UserId, userId)
-            );
-
-            await _refreshTokensCollection.DeleteManyAsync(deleteExpiredFilter, cancellationToken);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "An unexpected error occurred while deleting refresh tokens.");
-            throw new InvalidOperationException("An unexpected error occurred while adding refresh token.", ex);
-        }
-    }
-
-
-    public async Task<User?> GetUserByRefreshTokenAsync(string refreshToken, CancellationToken cancellationToken = default)
-    {
-        try
-        {
-            var tokenFilter = Builders<RefreshToken>.Filter.And(
-                Builders<RefreshToken>.Filter.Eq(rt => rt.Token, refreshToken),
-                Builders<RefreshToken>.Filter.Gt(rt => rt.ExpiresAt, DateTime.UtcNow)
-            );
-
-            var token = await _refreshTokensCollection.Find(tokenFilter).FirstOrDefaultAsync(cancellationToken);
-
-            if (token == null)
-                return null;
-
-            var deleteTokenFilter = Builders<RefreshToken>.Filter.Eq(rt => rt.Token, refreshToken);
-            var result = await _refreshTokensCollection.DeleteOneAsync(deleteTokenFilter, cancellationToken);
-
-            return await _usersCollection.Find(u => u.Id == token.UserId).FirstOrDefaultAsync(cancellationToken);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "An unexpected error occurred while getting user by refresh token.");
-            throw new InvalidOperationException("An unexpected error occurred while validating refresh token.", ex);
-        }
-    }
-
-    public async Task InitAsync(CancellationToken cancellationToken = default)
-    {
-        CreateIndexModel<User> textIndex = new(
-            Builders<User>.IndexKeys.Text(u => u.Nickname),
-            new() { Name = "unique_text_nickname", Unique = true }
-        );
-
-        await _usersCollection.Indexes.CreateOneAsync(textIndex, null, cancellationToken);
-
-        var uniqueTokenIndex = new CreateIndexModel<RefreshToken>(
-            Builders<RefreshToken>.IndexKeys.Ascending(rt => rt.Token),
-            new CreateIndexOptions { Unique = true, Name = "unique_refresh_token" }
-        );
-
-        await _refreshTokensCollection.Indexes.CreateOneAsync(uniqueTokenIndex, null, cancellationToken);
     }
 }
