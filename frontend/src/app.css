@@ -1,0 +1,87 @@
+@import "tailwindcss";
+@plugin "@tailwindcss/typography";
+
+@theme {
+    --color-background: #000000;
+    --color-background-secondary: #0A0A0A;
+    --color-component: #1A1A1A;
+    --color-component-hover: #292929;
+    --color-component-active: #2E2E2E;
+    --color-border: #454545;
+    --color-border-hover: #878787;
+    --color-border-active: #8F8F8F;
+    --color-text: #EDEDED;
+    --color-text-secondary: #A0A0A0;
+
+    --color-blue: #0091FF;
+    --color-blue-bg: #10243E;
+    --color-blue-text: #EAF6FF;
+    --color-blue-shadow: #0091FF50;
+
+    --color-red: #E5484D;
+    --color-red-bg: #3D1719;
+    --color-red-text: #FEECEE;
+    --color-red-shadow: #E5484D50;
+
+    --color-yellow: #E79C13;
+    --color-yellow-bg: #4A2900;
+    --color-yellow-text: #FEF3DD;
+    --color-yellow-shadow: #E79C1350;
+
+    --color-green: #63C174;
+    --color-green-bg: #052814;
+    --color-green-shadow: #17C96450;
+
+    --color-teal: #0AC5B3;
+    --color-teal-bg: #083A33;
+    --color-teal-shadow: #0AC5B350;
+
+    --color-purple: #8E4EC6;
+    --color-purple-bg: #221527;
+    --color-purple-shadow: #8E4EC650;
+
+    --color-pink: #E93D82;
+    --color-pink-bg: #4F1C31;
+    --color-pink-shadow: #E93D8250;
+}
+
+@plugin "daisyui" {
+    themes: theme --default;
+}
+
+@plugin "daisyui/theme" {
+    name: "theme";
+    default: true;
+    prefersdark: false;
+
+    --color-base-100: var(--color-component);
+    --color-base-200: var(--color-background);
+    --color-base-300: var(--color-background);
+    --color-base-content: oklch(97.807% 0.029 256.847);
+    --color-primary: var(--color-blue);
+    --color-primary-content: oklch(96% 0.018 272.314);
+    --color-secondary: --color-purple;
+    --color-secondary-content: oklch(94% 0.028 342.258);
+    --color-accent: oklch(77% 0.152 181.912);
+    --color-accent-content: oklch(38% 0.063 188.416);
+    --color-neutral: oklch(14% 0.005 285.823);
+    --color-neutral-content: oklch(92% 0.004 286.32);
+    --color-info: oklch(74% 0.16 232.661);
+    --color-info-content: oklch(29% 0.066 243.157);
+    --color-success: oklch(76% 0.177 163.223);
+    --color-success-content: oklch(37% 0.077 168.94);
+    --color-warning: var(--color-yellow);
+    --color-warning-content: var(--color-yellow-text);
+    --color-error: var(--color-red);
+    --color-error-content: var(--color-red-text);
+    --radius-selector: 0.5rem;
+    --radius-field: 0.25rem;
+    --radius-box: 0.5rem;
+    --size-selector: 0.25rem;
+    --size-field: 0.25rem;
+    --border: 1px;
+    --depth: 1;
+    --noise: 0;
+  }
+
+  @source inline("{,checked:}{bg,text,border,drop-shadow}-{blue,red,yellow,green,teal,purple,pink}{,-bg,-text,-shadow}");
