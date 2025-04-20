@@ -50,17 +50,31 @@ public class TokenService(MongoDbProvider mongoDbProvider, IConfiguration config
         return (accessToken, accessTokenExpiresAt, refreshToken, refreshTokenExpiresAt);
     }
 
+    public async Task<(string, DateTime, string, DateTime)> GenerateAndStoreTokensAsync(User user, CancellationToken cancellationToken)
+    {
+        for (int i = 0; i < 3; i++) // Kinda overkill
+        {
+            try
+            {
+                (string accessToken, DateTime accessTokenExpiresAt, string refreshToken, DateTime refreshTokenExpiresAt) = GenerateTokens(user);
+                RefreshToken refreshTokenData = new()
+                {
+                    UserId = user.Id,
+                    ExpiresAt = refreshTokenExpiresAt,
+                    Token = refreshToken
+                };
+                await AddRefreshToken(refreshTokenData, cancellationToken);
+                return (accessToken, accessTokenExpiresAt, refreshToken, refreshTokenExpiresAt);
+            }
+            catch (RecordAlreadyExists) { /* RETRY */ }
+        }
+        throw new Exception("Failed to generate a unique refresh token after 3 attempts.");
+    }
+
     public async Task AddRefreshToken(RefreshToken token, CancellationToken cancellationToken = default)
     {
         try
         {
-            var deleteExpiredFilter = Builders<RefreshToken>.Filter.And(
-                Builders<RefreshToken>.Filter.Eq(rt => rt.UserId, token.UserId),
-                Builders<RefreshToken>.Filter.Lt(rt => rt.ExpiresAt, DateTime.UtcNow)
-            );
-
-            await _refreshTokensCollection.DeleteManyAsync(deleteExpiredFilter, cancellationToken);
-
             await _refreshTokensCollection.InsertOneAsync(token, null, cancellationToken);
         }
         catch (MongoWriteException ex) when (ex.WriteError.Category == ServerErrorCategory.DuplicateKey)
@@ -78,16 +92,16 @@ public class TokenService(MongoDbProvider mongoDbProvider, IConfiguration config
     {
         try
         {
-            var deleteExpiredFilter = Builders<RefreshToken>.Filter.And(
+            var deleteFilter = Builders<RefreshToken>.Filter.And(
                 Builders<RefreshToken>.Filter.Eq(rt => rt.UserId, userId)
             );
 
-            await _refreshTokensCollection.DeleteManyAsync(deleteExpiredFilter, cancellationToken);
+            await _refreshTokensCollection.DeleteManyAsync(deleteFilter, cancellationToken);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "An unexpected error occurred while deleting refresh tokens.");
-            throw new InvalidOperationException("An unexpected error occurred while adding refresh token.", ex);
+            throw new InvalidOperationException("An unexpected error occurred while deleting refresh tokens.", ex);
         }
     }
 
@@ -101,20 +115,17 @@ public class TokenService(MongoDbProvider mongoDbProvider, IConfiguration config
                 Builders<RefreshToken>.Filter.Gt(rt => rt.ExpiresAt, DateTime.UtcNow)
             );
 
-            var token = await _refreshTokensCollection.Find(tokenFilter).FirstOrDefaultAsync(cancellationToken);
+            RefreshToken? token = await _refreshTokensCollection.FindOneAndDeleteAsync(tokenFilter, cancellationToken: cancellationToken);
 
             if (token == null)
                 return null;
-
-            var deleteTokenFilter = Builders<RefreshToken>.Filter.Eq(rt => rt.Token, refreshToken);
-            var result = await _refreshTokensCollection.DeleteOneAsync(deleteTokenFilter, cancellationToken);
 
             return await _userService.GetUserByIdAsync(token.UserId, cancellationToken);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "An unexpected error occurred while getting user by refresh token.");
-            throw new InvalidOperationException("An unexpected error occurred while validating refresh token.", ex);
+            throw new InvalidOperationException("An unexpected error occurred while getting user by refresh tokenn.", ex);
         }
     }
 }

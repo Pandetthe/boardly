@@ -21,7 +21,12 @@ public class MongoDbMigrationService(MongoDbProvider mongoDbProvider) : IHostedS
             new CreateIndexOptions { Unique = true, Name = "unique_refresh_token" }
         );
 
-        await _mongoDbProvider.GetRefreshTokensCollection().Indexes.CreateOneAsync(uniqueTokenIndex, null, cancellationToken);
+        var ttlIndex = new CreateIndexModel<RefreshToken>(
+            Builders<RefreshToken>.IndexKeys.Ascending(rt => rt.ExpiresAt),
+            new CreateIndexOptions { ExpireAfter = TimeSpan.Zero, Name = "ttl" }
+        );
+
+        await _mongoDbProvider.GetRefreshTokensCollection().Indexes.CreateManyAsync([uniqueTokenIndex, ttlIndex], null, cancellationToken);
     }
 
     public Task StopAsync(CancellationToken cancellationToken) => Task.CompletedTask;

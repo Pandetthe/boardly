@@ -12,9 +12,8 @@ namespace Boardly.Backend.Controllers;
 
 [ApiController]
 [Route("[controller]")]
-public class AuthController(ILogger<AuthController> logger, UserService userService, TokenService tokenService) : ControllerBase
+public class AuthController(UserService userService, TokenService tokenService) : ControllerBase
 {
-    private readonly ILogger<AuthController> _logger = logger;
     private readonly UserService _userService = userService;
     private readonly TokenService _tokenService = tokenService;
 
@@ -32,7 +31,8 @@ public class AuthController(ILogger<AuthController> logger, UserService userServ
         {
             if (await _userService.VerifyHashedPassword(user, data.Password, cancellationToken))
             {
-                (string accessToken, DateTime accessTokenExpiresAt, string refreshToken, DateTime refreshTokenExpiresAt) = await AddNewRefreshToken(user, cancellationToken);
+                (string accessToken, DateTime accessTokenExpiresAt, string refreshToken, DateTime refreshTokenExpiresAt)
+                    = await _tokenService.GenerateAndStoreTokensAsync(user, cancellationToken);
                 return Ok(new AuthResponse(
                     accessToken, 
                     CalculateExpiryInSeconds(accessTokenExpiresAt),
@@ -61,7 +61,8 @@ public class AuthController(ILogger<AuthController> logger, UserService userServ
                 Password = data.Password
             };
             await _userService.AddUserAsync(user, cancellationToken);
-            (string accessToken, DateTime accessTokenExpiresAt, string refreshToken, DateTime refreshTokenExpiresAt) = await AddNewRefreshToken(user, cancellationToken);
+            (string accessToken, DateTime accessTokenExpiresAt, string refreshToken, DateTime refreshTokenExpiresAt)
+                = await _tokenService.GenerateAndStoreTokensAsync(user, cancellationToken);
             return Ok(new AuthResponse(
                 accessToken,
                 CalculateExpiryInSeconds(accessTokenExpiresAt),
@@ -71,7 +72,7 @@ public class AuthController(ILogger<AuthController> logger, UserService userServ
         }
         catch (RecordAlreadyExists)
         {
-            ModelState.AddModelError("Email", "User with provided email already exists!");
+            ModelState.AddModelError("Nickname", "User with provided nickname already exists!");
             return ValidationProblem(ModelState);
         }
     }
@@ -80,7 +81,7 @@ public class AuthController(ILogger<AuthController> logger, UserService userServ
     [Produces("application/json")]
     [ProducesResponseType(typeof(AuthResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(MessageResponse), StatusCodes.Status401Unauthorized)]
-    public async Task<IActionResult> RefreshAsync([FromBody] Microsoft.AspNetCore.Identity.Data.RefreshRequest data, CancellationToken cancellationToken)
+    public async Task<IActionResult> RefreshAsync([FromBody] RefreshRequest data, CancellationToken cancellationToken)
     {
         if (!ModelState.IsValid)
             return ValidationProblem(ModelState);
@@ -89,7 +90,8 @@ public class AuthController(ILogger<AuthController> logger, UserService userServ
         if (user == null)
             return Unauthorized(new MessageResponse("Invalid or expired refresh token."));
 
-        (string accessToken, DateTime accessTokenExpiresAt, string refreshToken, DateTime refreshTokenExpiresAt) = await AddNewRefreshToken(user, cancellationToken);
+        (string accessToken, DateTime accessTokenExpiresAt, string refreshToken, DateTime refreshTokenExpiresAt)
+            = await _tokenService.GenerateAndStoreTokensAsync(user, cancellationToken);
 
         return Ok(new AuthResponse(
             accessToken,
@@ -107,27 +109,6 @@ public class AuthController(ILogger<AuthController> logger, UserService userServ
     {
         await _tokenService.DeleteAllRefreshTokens(new ObjectId(User.FindFirst(ClaimTypes.NameIdentifier)!.Value), cancellationToken);
         return Ok(new MessageResponse("Successfully revoked all refresh tokens."));
-    }
-
-    private async Task<(string, DateTime, string, DateTime)> AddNewRefreshToken(User user, CancellationToken cancellationToken)
-    {
-        for (int i = 0; i < 3; i++) // Kinda overkill
-        {
-            try
-            {
-                (string accessToken, DateTime accessTokenExpiresAt, string refreshToken, DateTime refreshTokenExpiresAt) = _tokenService.GenerateTokens(user);
-                RefreshToken refreshTokenData = new()
-                {
-                    UserId = user.Id,
-                    ExpiresAt = refreshTokenExpiresAt,
-                    Token = refreshToken
-                };
-                await _tokenService.AddRefreshToken(refreshTokenData, cancellationToken);
-                return (accessToken, accessTokenExpiresAt, refreshToken, refreshTokenExpiresAt);
-            }
-            catch (RecordAlreadyExists) { /* RETRY */ }
-        }
-        throw new Exception("Failed to generate a unique refresh token after 3 attempts.");
     }
 
     private static uint CalculateExpiryInSeconds(DateTime expiresAt) => (uint)Math.Ceiling(Math.Max(0, (expiresAt - DateTime.UtcNow).TotalMilliseconds) / 1000);
