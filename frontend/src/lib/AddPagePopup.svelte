@@ -58,7 +58,7 @@ let listColorSelection = "blue";
                 </button>
             </div>
         </div>
-      </PopupAccordion>
+    </PopupAccordion>
 
     <PopupAccordion label="Tags" name="card-creation" ready={false}>
         <div class="flex flex-col gap-2">

@@ -9,6 +9,7 @@
     export let cards = [];
     export let cardRefs;
     export let tags;
+    export let users;
 
     let list;
     let popup;
@@ -63,7 +64,7 @@
                 title={card.title}
                 description={card.description}
                 tags={card.tags?.map((tagId: number) => tags.find((tag) => tag.id === tagId))}
-                assignedUsers={card.assignedUsers}
+                assignedUsers={card.assignedUsers?.map((userId: number) => users.find((user) => user.id === userId))}
                 dueDate={card.dueDate}
             />
         {/each}

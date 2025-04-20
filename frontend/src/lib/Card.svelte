@@ -55,7 +55,18 @@
             {/if}
             {#if assignedUsers.length > 0}
             <div>
-                <div class="text-text-secondary flex gap-2 items-center h-5"><User class="h-full"/> {dueDate}</div>
+                <div class="text-text-secondary flex gap-2 items-center h-5">
+                    <User class="h-full"/>
+                    <div class="avatar-group -space-x-4 overflow-visible">
+                        {#each assignedUsers as user}
+                        <div class="tooltip" data-tip={user.name}>
+                            <div class="avatar h-8 w-8">
+                                    <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcThmIFs-N4PT0D3gxuDINqgkKWhSxR6sNwJ6g&s" alt={user.name}/>
+                                </div>
+                            </div>
+                        {/each}
+                    </div>
+                </div>
             </div>
             {/if}
             {#if description.length > 0}

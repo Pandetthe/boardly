@@ -182,7 +182,7 @@
 				</label>
 				<div class="tab-content">
 					<div class="divider mt-0 pt-0"></div>
-					<Page lists={page.lists} tags={page.tags}/>
+					<Page lists={page.lists} tags={page.tags} users={page.users}/>
 				</div>
 			{/each}
 			<button
