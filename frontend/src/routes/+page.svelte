@@ -1,5 +1,5 @@
 <script lang="ts">
-	import AddBoardPopup from "$lib/AddBoardPopup.svelte";
+	import ManageBoardPopup from "$lib/popup/ManageBoardPopup.svelte";
     import BoardCard from "$lib/BoardCard.svelte";
     import SideBar from "$lib/SideBar.svelte";
 
@@ -26,34 +26,25 @@
         }
     ];
 
-    $: boards;
+    let popup: ManageBoardPopup;
 
-    function addBoard(name: string) {
-        boards = [
-            ...boards,
-            {
-                id: boards.length + 1,
-                name: name,
-            }
-        ];
-    }
-
-    let popup: AddBoardPopup;
 </script>
 
 
 <div class="flex bg-background h-full">
-    <AddBoardPopup bind:this={popup} callback={addBoard}/>
+    <ManageBoardPopup bind:boards={boards} bind:this={popup} />
     <SideBar />
+
     <div class="overflow-scroll w-full">
         <div class="w-full p-5 grid grid-cols-[repeat(auto-fill,_minmax(400px,_1fr))] gap-5 h-fit">
             {#each boards as board (board.id)}
-                <BoardCard boardName={board.name} boardId={board.id} />
+                <BoardCard boardName={board.name} boardId={board.id} {popup}/>
             {/each}
         </div>
     </div>
+
     <div class="toast">
-        <button class="btn btn-xl btn-primary rounded-2xl aspect-square " on:click={() => popup.setVisible(true)}>
+        <button class="btn btn-xl btn-primary rounded-2xl aspect-square " on:click={() => popup.show()}>
             +
         </button>
     </div>

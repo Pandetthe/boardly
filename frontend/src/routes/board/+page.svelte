@@ -1,7 +1,10 @@
-<script>
+<script lang="ts">
 	import SideBar from '$lib/SideBar.svelte';
 	import Page from '$lib/Page.svelte';
-	import AddPagePopup from '$lib/AddPagePopup.svelte';
+	import ManagePagePopup from '$lib/popup/ManagePagePopup.svelte';
+	import ManageCardPopup from '$lib/popup/ManageCardPopup.svelte';
+	import { Menu, Plus } from 'lucide-svelte';
+	import ManageBoardPopup from '$lib/popup/ManageBoardPopup.svelte';
 
 	let pages = [
 		{
@@ -135,23 +138,12 @@
 		}
     ];
 
-
-	function addPage(name, lists, tags) {
-		const newPage = {
-			"name": name,
-			"id": pages.length,
-			"lists": lists,
-			"tags": tags,
-		};
-		pages = [...pages, newPage];
-	};
-
-	let addPagePopup;
+	let pagePopup: ManagePagePopup, cardPopup: ManageCardPopup;
 </script>
 
 <div class="bg-background flex h-full">
 	<SideBar />
-	<AddPagePopup bind:this={addPagePopup} callback={addPage} />
+	<ManagePagePopup bind:this={pagePopup} bind:pages={pages} />
 	<div class="w-full overflow-y-scroll">
 		<div class="tabs gap-3 p-3">
 			{#each pages as page}
@@ -161,24 +153,13 @@
 					<input type="radio" name="tabs" checked={page.id === 0} />
 					{page.name}
 					<button
-						class="btn btn-xs btn-ghost z-50 aspect-square p-1"
+						class="btn btn-xs btn-ghost z-50 aspect-square p-0"
 						aria-label="More options"
 						on:click={() => {
-							tabs.splice(page.id, 1);
-							tabs = tabs;
+							pagePopup.show(page.id);
 						}}
 					>
-						<svg
-							viewBox="0 0 16 16"
-							xmlns="http://www.w3.org/2000/svg"
-							fill="#FFFFFF"
-							class="bi bi-three-dots-vertical"
-						>
-							<path
-								d="M9.5 13a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0zm0-5a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0zm0-5a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0z"
-							/>
-						</svg>
-					</button>
+					<Menu />
 				</label>
 				<div class="tab-content">
 					<div class="divider mt-0 pt-0"></div>
@@ -186,10 +167,10 @@
 				</div>
 			{/each}
 			<button
-				class="tab btn btn-md btn-ghost border-border bg-component hover:bg-component-hover hover:border-border-hover rounded-md border-1"
-				on:click={() => addPagePopup.setVisible(true)}
+				class="tab btn btn-md btn-ghost border-border bg-component hover:bg-component-hover hover:border-border-hover rounded-md border-1 w-10 p-1"
+				on:click={() => pagePopup.show()}
 			>
-				+
+				<Plus />
 			</button>
 		</div>
 	</div>

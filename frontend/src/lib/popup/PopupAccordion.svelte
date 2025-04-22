@@ -5,11 +5,14 @@
     export let name;
     export let label;
     export let required = false;
+    export let invalid = false;
 </script>
 
 <div class={[
     {"collapse-arrow": !ready},
-    "collapse z-60 bg-component border border-border hover:border-border-hover hover:bg-component-hover focus:bg-secondary transition-none"
+    "collapse z-60 bg-component border border-border focus:bg-secondary transition-none",
+    {"bg-red-bg border-red": invalid},
+    {"hover:border-border-hover hover:bg-component-hover": !invalid}
     ]}>
     <input type="radio" name={name}/>
     {#if ready}

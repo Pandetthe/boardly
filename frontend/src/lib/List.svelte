@@ -1,18 +1,34 @@
 <script lang="ts">
-    import AddCardPopup from "$lib/AddCardPopup.svelte";
     import Sortable from "sortablejs";
     import { onMount } from "svelte";
     import Card from "$lib/Card.svelte";
+	import { Plus } from "lucide-svelte";
+    import ManageCardPopup from "$lib/popup/ManageCardPopup.svelte";
 
     export let title;
-    export let color;
-    export let cards = [];
-    export let cardRefs;
-    export let tags;
+    export let color: string;
+    export let cards: {
+        id: number;
+        title: string;
+        color: string;
+        description: string;
+        tags: number[];
+        assignedUsers: number[];
+        dueDate: string;
+    }[] = [];
+    export let cardRefs: {
+        [key: number]: {
+            process: (newColor: string) => void;
+        };
+    } = {};
+    export let tags: {
+        id: number;
+        title: string;
+        color: string;
+    }[] = [];
     export let users;
-
-    let list;
-    let popup;
+    let list: HTMLUListElement;
+    let popup: ManageCardPopup;
 
     onMount(() => {
         Sortable.create(list, {
@@ -32,47 +48,35 @@
         });
     });
     
-    function process(evt) {
+    function process(evt: any) {
         cardRefs[evt.item.dataset.id].process(color);
     }
 
-    function addCard(title, description) {
-        const newCard = {
-            id: cardRefs.length + 1,
-            title: title,
-            description: description,
-        };
-        cards = [...cards, newCard];
-        cardRefs[cardRefs.length] = newCard;
-    }
-
-    function showPopup() {
-        popup.setVisible(true);
-    }
 </script>
 
-<div class="w-full rounded-2xl bg-{color}-bg p-5 h-fit">
-    <AddCardPopup callback={addCard} bind:this={popup} tags={tags}/>
+<div class="w-full max-w-150 rounded-2xl bg-{color}-bg p-5 h-fit">
+    <ManageCardPopup bind:this={popup} pageTags={tags} bind:list={cards}/>
     <h1 class="font-bold text-{color}">{title}</h1>
     <div class="divider mb-3 mt-0"></div>
     <ul bind:this={list} class="flex flex-col" data-list-id=1>
         {#each cards as card}
             <Card 
                 bind:this={cardRefs[card.id]}
+                {popup}
                 id={card.id}
                 color={color}
                 title={card.title}
                 description={card.description}
-                tags={card.tags?.map((tagId: number) => tags.find((tag) => tag.id === tagId))}
-                assignedUsers={card.assignedUsers?.map((userId: number) => users.find((user) => user.id === userId))}
+                tags={card.tags?.map((tagId: number) => tags.find((tag) => tag.id === tagId)) || []}
+                assignedUsers={card.assignedUsers?.map((userId: number) => users.find((user:{ id: number }) => user.id === userId))}
                 dueDate={card.dueDate}
             />
         {/each}
     </ul>
     <button 
     class="btn btn-dash h-15 w-full nodrag border-{color} text-{color} hover:bg-transparent border-2 rounded-2xl text-2xl"
-    on:click={showPopup}
+    on:click={() => popup.show()}
     >
-        +
+        <Plus />
     </button>
 </div>
