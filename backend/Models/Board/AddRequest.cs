@@ -2,10 +2,8 @@
 
 namespace Boardly.Backend.Models.Board;
 
-public record CreateRequest
+public record AddRequest
 {
     [Required]
     public string Title { get; init; } = null!;
-
-    public string? Description { get; init; }
 }

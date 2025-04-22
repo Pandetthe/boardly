@@ -1,4 +1,5 @@
 ﻿using Boardly.Backend.Entities;
+using MongoDB.Bson;
 using MongoDB.Bson.Serialization.Conventions;
 using MongoDB.Driver;
 
@@ -19,6 +20,9 @@ public class MongoDbProvider
 
         var camelCaseConvention = new ConventionPack { new CamelCaseElementNameConvention() };
         ConventionRegistry.Register("CamelCaseConvention", camelCaseConvention, t => true);
+        var enumStringConvention = new ConventionPack { new EnumRepresentationConvention(BsonType.String) };
+        ConventionRegistry.Register("EnumStringConvention", enumStringConvention, t => true);
+
         Client = new(connectionString);
         Database = Client.GetDatabase(databaseName);
     }

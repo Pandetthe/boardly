@@ -9,6 +9,8 @@ using Serilog;
 using Serilog.Events;
 using System.Reflection;
 using System.Text;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace Boardly.Backend;
 
@@ -42,6 +44,8 @@ public class Program
             builder.Services.AddSingleton<BoardService>();
 
             builder.Services.AddControllers();
+            builder.Services.ConfigureHttpJsonOptions(options =>
+                options.SerializerOptions.Converters.Add(new JsonStringEnumConverter(JsonNamingPolicy.CamelCase, false)));
 
             builder.Services.AddSingleton<TokenService>();
             builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
@@ -71,10 +75,6 @@ public class Program
             if (app.Environment.IsDevelopment())
             {
                 app.MapOpenApi();
-                app.UseSwaggerUI(options =>
-                {
-                    options.SwaggerEndpoint("/openapi/v1.json", "Boardly API V1");
-                });
                 app.MapScalarApiReference(options =>
                 {
                     options.WithHttpBearerAuthentication(new HttpBearerOptions());
@@ -86,8 +86,14 @@ public class Program
             app.UseAuthorization();
             app.MapControllers();
 
-            app.Lifetime.ApplicationStarted.Register(() =>
-                logger.Information("Application version {Version}", Assembly.GetExecutingAssembly()?.GetName().Version));
+            app.Lifetime.ApplicationStarted.Register(() => {
+                logger.Information("Application version {Version}", Assembly.GetExecutingAssembly()?.GetName().Version);
+                if (app.Environment.IsDevelopment())
+                {
+                    logger.Information("OpenAPI available at {Urls}", string.Join(", ", app.Urls.Select(x => $"{x}/openapi/v1.json")));
+                    logger.Information("Scalar available at {Urls}", string.Join(", ", app.Urls.Select(x => $"{x}/scalar")));
+                }
+            });
 
             await app.RunAsync();
         }
