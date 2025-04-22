@@ -86,8 +86,14 @@ public class Program
             app.UseAuthorization();
             app.MapControllers();
 
-            app.Lifetime.ApplicationStarted.Register(() =>
-                logger.Information("Application version {Version}", Assembly.GetExecutingAssembly()?.GetName().Version));
+            app.Lifetime.ApplicationStarted.Register(() => {
+                logger.Information("Application version {Version}", Assembly.GetExecutingAssembly()?.GetName().Version);
+                if (app.Environment.IsDevelopment())
+                {
+                    logger.Information("OpenAPI available at {Urls}", string.Join(", ", app.Urls.Select(x => $"{x}/openapi/v1.json")));
+                    logger.Information("Scalar available at {Urls}", string.Join(", ", app.Urls.Select(x => $"{x}/scalar")));
+                }
+            });
 
             await app.RunAsync();
         }
