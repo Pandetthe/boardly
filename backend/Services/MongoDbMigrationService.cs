@@ -9,12 +9,12 @@ public class MongoDbMigrationService(MongoDbProvider mongoDbProvider) : IHostedS
 
     public async Task StartAsync(CancellationToken cancellationToken)
     {
-        CreateIndexModel<User> textIndex = new(
+        CreateIndexModel<User> textUserIndex = new(
             Builders<User>.IndexKeys.Text(u => u.Nickname),
             new() { Name = "unique_text_nickname", Unique = true }
         );
 
-        await _mongoDbProvider.GetUsersCollection().Indexes.CreateOneAsync(textIndex, null, cancellationToken);
+        await _mongoDbProvider.GetUsersCollection().Indexes.CreateOneAsync(textUserIndex, null, cancellationToken);
 
         var uniqueTokenIndex = new CreateIndexModel<RefreshToken>(
             Builders<RefreshToken>.IndexKeys.Ascending(rt => rt.Token),
@@ -27,6 +27,13 @@ public class MongoDbMigrationService(MongoDbProvider mongoDbProvider) : IHostedS
         );
 
         await _mongoDbProvider.GetRefreshTokensCollection().Indexes.CreateManyAsync([uniqueTokenIndex, ttlIndex], null, cancellationToken);
+
+        CreateIndexModel<Board> textBoardIndex = new(
+            Builders<Board>.IndexKeys.Text(u => u.Title),
+            new() { Name = "text_title" }
+        );
+
+        await _mongoDbProvider.GetBoardsCollection().Indexes.CreateOneAsync(textBoardIndex, null, cancellationToken);
     }
 
     public Task StopAsync(CancellationToken cancellationToken) => Task.CompletedTask;

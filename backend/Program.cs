@@ -42,9 +42,12 @@ public class Program
             builder.Services.AddSingleton<UserService>();
             builder.Services.AddSingleton<BoardService>();
 
-            builder.Services.AddControllers();
-            builder.Services.ConfigureHttpJsonOptions(options =>
-                options.SerializerOptions.Converters.Add(new JsonStringEnumConverter(JsonNamingPolicy.CamelCase, false)));
+            builder.Services.AddControllers().AddJsonOptions(options =>
+            {
+                options.JsonSerializerOptions.Converters.Add(
+                    new JsonStringEnumConverter(JsonNamingPolicy.CamelCase, false)
+                );
+            });
 
             builder.Services.AddSingleton<TokenService>();
             builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)

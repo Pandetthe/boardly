@@ -9,9 +9,9 @@ public class Board
 
     public string Title { get; set; } = null!;
     
-    public List<Member> Members { get; set; } = [];
+    public HashSet<Member> Members { get; set; } = [];
 
-    public List<Swimlane> Swimlanes { get; set; } = [];
+    public HashSet<Swimlane> Swimlanes { get; set; } = [];
 
     [BsonDateTimeOptions(Kind = DateTimeKind.Utc)]
     public DateTime CreatedAt { get; init; } = DateTime.UtcNow;
@@ -27,6 +27,9 @@ public class Member
     public BoardRole Role { get; set; } = BoardRole.Viewer;
 
     public bool IsActive { get; set; }
+
+    public override int GetHashCode() => UserId.GetHashCode();
+
 }
 
 public enum BoardRole
@@ -48,6 +51,8 @@ public class Swimlane
     public List<Tag> Tags { get; set; } = [];
 
     public List<List> Lists { get; set; } = [];
+
+    public override int GetHashCode() => Id.GetHashCode();
 }
 
 public class List
@@ -58,16 +63,22 @@ public class List
 
     public string? Description { get; set; }
 
-    public List<ObjectId> Cards { get; set; } = [];
+    public HashSet<ObjectId> Cards { get; set; } = [];
 
     public int? MaxWIP { get; set; }
+
+    public override int GetHashCode() => Id.GetHashCode();
 }
 
 public class Tag
 {
+    public ObjectId Id { get; init; } = ObjectId.GenerateNewId();
+
     public string Title { get; set; } = null!;
 
     public Color? Color { get; set; }
+
+    public override int GetHashCode() => Id.GetHashCode();
 }
 
 public enum Color
