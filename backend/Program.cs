@@ -13,7 +13,6 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 
 namespace Boardly.Backend;
-
 public class Program
 {
     public static async Task Main(string[] args)
@@ -86,7 +85,8 @@ public class Program
             app.UseAuthorization();
             app.MapControllers();
 
-            app.Lifetime.ApplicationStarted.Register(() => {
+            app.Lifetime.ApplicationStarted.Register(() =>
+            {
                 logger.Information("Application version {Version}", Assembly.GetExecutingAssembly()?.GetName().Version);
                 if (app.Environment.IsDevelopment())
                 {
@@ -94,12 +94,12 @@ public class Program
                     logger.Information("Scalar available at {Urls}", string.Join(", ", app.Urls.Select(x => $"{x}/scalar")));
                 }
             });
-
             await app.RunAsync();
         }
         catch (Exception ex)
         {
             logger.Fatal(ex, "Application startup failed");
+            throw;
         }
         finally
         {

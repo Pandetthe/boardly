@@ -26,7 +26,7 @@ public class TokenService(MongoDbProvider mongoDbProvider, IConfiguration config
             new Claim(JwtRegisteredClaimNames.Nickname, user.Nickname)
         };
 
-        var key = new SymmetricSecurityKey( Encoding.UTF8.GetBytes(_configuration["Jwt:Key"]
+        var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["Jwt:Key"]
                 ?? throw new NullReferenceException("Jwt key must be provided!")));
         var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 

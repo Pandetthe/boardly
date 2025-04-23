@@ -11,7 +11,7 @@ public class MongoDbProvider
 
     public readonly MongoClient Client;
 
-    public MongoDbProvider(IConfiguration configuration)
+    public MongoDbProvider(IConfiguration configuration, ILoggerFactory loggerFactory)
     {
         string connectionString = configuration.GetValue<string>("MongoDb:ConnectionString")
             ?? throw new NullReferenceException("MongoDb's connection string configuration is missing.");
@@ -23,7 +23,10 @@ public class MongoDbProvider
         var enumStringConvention = new ConventionPack { new EnumRepresentationConvention(BsonType.String) };
         ConventionRegistry.Register("EnumStringConvention", enumStringConvention, t => true);
 
-        Client = new(connectionString);
+        MongoClientSettings settings = MongoClientSettings.FromConnectionString(connectionString);
+        settings.LoggingSettings = new(loggerFactory);
+
+        Client = new(settings);
         Database = Client.GetDatabase(databaseName);
     }
 
