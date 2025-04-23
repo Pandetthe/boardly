@@ -1,4 +1,4 @@
-<script>
+<script lang="ts">
     const users = [
         { id: 1, name: "janpawseltaszek" },
         { id: 2, name: "stawkey" },
@@ -13,7 +13,7 @@
         {#each users as user}
             <tr>
                 <th>
-                    <img src="https://img.daisyui.com/images/stock/photo-1534528741775-53994a69daeb.webp" class="h-1/2 w-1/2 rounded-full"/>
+                    <img src="https://img.daisyui.com/images/stock/photo-1534528741775-53994a69daeb.webp" class="h-1/2 w-1/2 rounded-full" alt="pfp"/>
                 </th>
                 <th>
                     {user.name}

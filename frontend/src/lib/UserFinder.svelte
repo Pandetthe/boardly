@@ -9,13 +9,13 @@
     ]
     let filteredUsers = users;
 
-    let selected;
+    let selected: { id: number; name: string } | null = null;
 
     let input: HTMLInputElement;
 
     $: filteredUsers;
 
-    function search(event) {
+    function search(event: HTMLInputElement) {
         const input = event.target.value.toLowerCase();
         filteredUsers = users.filter(user => user.name.toLowerCase().includes(input));
     }
@@ -36,7 +36,7 @@
         {#each filteredUsers as user}
             <li class="text-sm">
                 <button on:click={() => selected=user} class="font-bold flex gap-3">
-                     <img src="https://img.daisyui.com/images/stock/photo-1534528741775-53994a69daeb.webp" class="h-10 rounded-full"/>
+                     <img src="https://img.daisyui.com/images/stock/photo-1534528741775-53994a69daeb.webp" class="h-10 rounded-full" alt="pfp"/>
                      {user.name}
                 </button>
             </li>

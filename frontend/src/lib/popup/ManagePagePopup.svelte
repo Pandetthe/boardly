@@ -1,43 +1,98 @@
 <script lang="ts">
+    import PopupAccordion from "$lib/popup/PopupAccordion.svelte";
+    import Popup from "$lib/popup/Popup.svelte";
     import { Check } from "lucide-svelte";
-	import PopupAccordion from "./PopupAccordion.svelte";
+	import { page } from "$app/state";
+
+    export let pages: {
+        id: number;
+        name: string;
+        lists: {
+            color: string;
+            title: string;
+        }[];
+        tags: {
+            color: string;
+            title: string;
+        }[];
+    }[];
+
+    $: visible = false;
+    $: isEditMode = false;
+    $: currentPageName = "";
+    let pageLists: { color: string; title: string; }[] = [];
+    let pageTags: { color: string; title: string; }[] = [];
+
+    let currentPageId: number | null = null;
+
+    export function show(id: number|null=null) {
+        visible = true;
+        isEditMode = id !== null;
+        if (!isEditMode) {
+            currentPageName = "";
+            pageLists = [];
+            pageTags = [];
+            currentPageId = null;
+            return;
+        }
+        let curr = pages.find((page) => page.id === id);
+        currentPageName = curr?.name || "";
+        pageLists = curr?.lists || [];
+        pageTags = curr?.tags || [];
+        currentPageId = id;
+    }
+
+    export function onCreate() {
+        pages = [...pages, {
+            id: Math.random()*1000000,
+            name: currentPageName,
+            lists: pageLists,
+            tags: pageTags
+            }];
+        visible = false;
+    }
 
 
-  let visible = false;
-  let pageName = "";
-  $: pageTags = [];
-  $: pageLists = [];
-  let tagName = "";
-  let listName = "";
+    export function onDelete() {
+        pages = pages.filter((page) => page.id !== currentPageId);
+        visible = false;
+    }
 
-  export let callback: () => void;
 
-  export function setVisible(v: boolean) {
-      visible = v;
-  }
+    export function onEdit() {
+        pages = pages.map((page) => {
+            if (page.id === currentPageId) {
+                return {
+                    ...page,
+                    name: currentPageName,
+                    lists: pageLists,
+                    tags: pageTags
+                };
+            }
+            return page;
+        });
+        visible = false;
+    }
 
-  function quitPopup(isCreated: boolean) {
-      setVisible(false);
-      if (isCreated) {
-          callback(pageName, pageLists, pageTags);
-      }
-  }
+    export function onCancel() {
+        visible = false;
+    }
 
-  let tagColorSelection = "blue";
-let listColorSelection = "blue";
+    let pageNameInvalid = false;
+    let listColorSelection = "blue";
+    let tagColorSelection = "blue";
+    let listName = "";
+    let tagName = "";
+
 </script>
 
 
-{#if visible}
-<div class="fixed top-0 left-0 w-full h-full bg-background/30 flex items-center justify-center z-50 backdrop-blur-xs">
-  <div class="bg-background-secondary border-border border-1 p-4 rounded-2xl shadow-lg w-3/4 max-w-xl gap-5 flex flex-col font-bold">
-    <h2 class="text-xl font-bold mb-4">Create Card</h2>
-
-    <PopupAccordion label="Title" name="card-creation" ready={pageName.length != 0} required>
-      <input type="text" class="input w-full bg-background-secondary" placeholder="Enter the page name" bind:value={pageName} />
+<Popup title="Page" {isEditMode} {onCreate} {onDelete} {onCancel} {onEdit} bind:visible>
+    <PopupAccordion label="Title" name="card-creation" ready={currentPageName.length != 0} required invalid={pageNameInvalid && currentPageName.length == 0}>
+      <input type="text" class="input w-full bg-background-secondary" placeholder="Enter the page name" bind:value={currentPageName} required on:invalid|preventDefault={() => pageNameInvalid=true}/>
     </PopupAccordion>
 
-    <PopupAccordion label="Lists" name="card-creation" ready={false} required>
+    <PopupAccordion label="Lists" name="card-creation" ready={pageLists.length !== 0} required>
         <div class="flex flex-col gap-2">
             {#each pageLists as list}
                 <div class="bg-{list.color}-bg border-{list.color} text-{list.color} drop-shadow-xl drop-shadow-{list.color}-shadow w-full p-5">{list.title}</div>
@@ -53,14 +108,14 @@ let listColorSelection = "blue";
                     <option value="pink" class="bg-pink-bg text-pink hover:bg-pink hover:text-pink-bg">Pink</option>
                     <option value="teal" class="bg-teal-bg text-teal hover:bg-teal hover:text-teal-bg">Teal</option>
                 </select>
-                <button class="btn btn-primary join-item" on:click={() => {pageLists = [...pageLists, {color:listColorSelection, title:listName}]}} >
+                <button class="btn btn-primary join-item" on:click={() => {pageLists = [...pageLists, {color:listColorSelection, title:listName}]}} type="button" >
                     <Check />
                 </button>
             </div>
         </div>
     </PopupAccordion>
 
-    <PopupAccordion label="Tags" name="card-creation" ready={false}>
+    <PopupAccordion label="Tags" name="card-creation" ready={pageTags.length != 0}>
         <div class="flex flex-col gap-2">
             {#each pageTags as tag}
                 <div class="bg-{tag.color}-bg border-{tag.color} text-{tag.color} badge drop-shadow-xl drop-shadow-{tag.color}-shadow">{tag.title}</div>
@@ -76,17 +131,10 @@ let listColorSelection = "blue";
                     <option value="pink" class="bg-pink-bg text-pink hover:bg-pink hover:text-pink-bg">Pink</option>
                     <option value="teal" class="bg-teal-bg text-teal hover:bg-teal hover:text-teal-bg">Teal</option>
                 </select>
-                <button class="btn btn-primary join-item" on:click={() => {pageTags = [...pageTags, {color:tagColorSelection, title:tagName}]}} >
+                <button class="btn btn-primary join-item" on:click={() => {pageTags = [...pageTags, {color:tagColorSelection, title:tagName}]}}  type="button" >
                     <Check />
                 </button>
             </div>
         </div>
     </PopupAccordion>
-
-    <div class="flex justify-end mt-4">
-      <button class="btn btn-primary mr-2" on:click={() => quitPopup(true)}>Create</button>
-      <button class="btn btn-primary btn-outline" on:click={() => quitPopup(false)}>Cancel</button>
-    </div>
-  </div>
-</div>
-{/if}
+</Popup>
