@@ -49,6 +49,8 @@ public class Program
                 );
             });
 
+            builder.WebHost.ConfigureKestrel(options => options.AddServerHeader = false);
+
             builder.Services.AddSingleton<TokenService>();
             builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
                 .AddJwtBearer(options =>
