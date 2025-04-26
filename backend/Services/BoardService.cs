@@ -25,66 +25,22 @@ public class BoardService(MongoDbProvider mongoDbProvider, ILogger<BoardService>
         }
     }
 
-    public async Task AddMembersAsync(ObjectId boardId, HashSet<Member> members, CancellationToken cancellationToken = default)
+
+    public async Task<Board?> GetBoardByIdAsync(ObjectId id, ObjectId userId, CancellationToken cancellationToken = default)
     {
+        Board? board;
         try
         {
-            var board = await _boardsCollection.Find(b => b.Id == boardId).FirstOrDefaultAsync(cancellationToken)
-                ?? throw new RecordDoesNotExist("Board not found.");
-
-            if (board.Members.Overlaps(members))
-                throw new RecordAlreadyExists("Some members already exist in the board.");
-
-            board.Members.UnionWith(members);
-
-            var update = Builders<Board>.Update.Set(b => b.Members, board.Members);
-            await _boardsCollection.UpdateOneAsync(b => b.Id == boardId, update, cancellationToken: cancellationToken);
-        }
-        catch (RecordAlreadyExists) { throw; }
-        catch (RecordDoesNotExist) { throw; }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "An unexpected error occurred while adding members.");
-            throw new InvalidOperationException("An unexpected error occurred while adding members.", ex);
-        }
-    }
-
-    public async Task RemoveMembersAsync(ObjectId boardId, HashSet<Member> members, CancellationToken cancellationToken = default)
-    {
-        try
-        {
-            var board = await _boardsCollection.Find(b => b.Id == boardId).FirstOrDefaultAsync(cancellationToken)
-                ?? throw new RecordDoesNotExist("Board not found.");
-
-            var intersection = new HashSet<Member>(board.Members);
-            board.Members.IntersectWith(members);
-            if (intersection.Count <= 0)
-                throw new RecordDoesNotExist("There are not any members to remove.");
-            board.Members.ExceptWith(members);
-            var filter = Builders<Board>.Filter.Eq(b => b.Id, boardId);
-            var update = Builders<Board>.Update.Set(b => b.Members, board.Members);
-            await _boardsCollection.UpdateOneAsync(filter, update, cancellationToken: cancellationToken);
-        }
-        catch (RecordDoesNotExist) { throw; }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "An unexpected error occurred while adding members.");
-            throw new InvalidOperationException("An unexpected error occurred while adding members.", ex);
-        }
-    }
-
-
-    public async Task<Board?> GetBoardByIdAsync(ObjectId id, CancellationToken cancellationToken = default)
-    {
-        try
-        {
-            return await _boardsCollection.Find(b => b.Id == id, null).FirstOrDefaultAsync(cancellationToken);
+            board = await _boardsCollection.Find(b => b.Id == id, null).FirstOrDefaultAsync(cancellationToken);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "An unexpected error occurred while retrieving boards by user ID.");
-            throw new InvalidOperationException("An unexpected error occurred while retrieving boards by user ID.", ex);
+            _logger.LogError(ex, "An unexpected error occurred while retrieving boards by user id.");
+            throw new InvalidOperationException("An unexpected error occurred while retrieving boards by user id.", ex);
         }
+        if (board != null && board.Members.All(x => x.UserId != userId))
+            throw new ForbidenException("User is not a member of this board.");
+        return board;
     }
 
     public async Task<IEnumerable<Board>> GetBoardsByUserIdAsync(ObjectId userId, CancellationToken cancellationToken = default)
@@ -99,18 +55,18 @@ public class BoardService(MongoDbProvider mongoDbProvider, ILogger<BoardService>
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "An unexpected error occurred while retrieving boards by user ID.");
-            throw new InvalidOperationException("An unexpected error occurred while retrieving boards by user ID.", ex);
+            _logger.LogError(ex, "An unexpected error occurred while retrieving boards by user id.");
+            throw new InvalidOperationException("An unexpected error occurred while retrieving boards by user id.", ex);
         }
     }
 
-    public async Task UpdateBoardWithRoleCheckAsync(Board board, ObjectId userId, CancellationToken cancellationToken = default)
+    public async Task UpdateBoardAsync(Board board, ObjectId userId, CancellationToken cancellationToken = default)
     {
         IEnumerable<Member> owners = board.Members.Where(x => x.Role == BoardRole.Owner);
         if (owners.Count() != 1)
             throw new ArgumentException("Board must have at least one member that is an owner.");
-        var existingBoard = await GetBoardByIdAsync(board.Id, cancellationToken) ??
-            throw new RecordDoesNotExist("Board has not been found.");
+        var existingBoard = await _boardsCollection.Find(b => b.Id == board.Id, null).FirstOrDefaultAsync(cancellationToken)
+            ?? throw new RecordDoesNotExist("Board has not been found.");
         BoardRole? role = existingBoard.Members.FirstOrDefault(x => x.UserId == userId)?.Role;
         if (role == null || (role != BoardRole.Owner && role != BoardRole.Admin))
             throw new ForbidenException("User is not authorized to update this board.");
@@ -158,7 +114,7 @@ public class BoardService(MongoDbProvider mongoDbProvider, ILogger<BoardService>
         return members.FirstOrDefault(x => x.UserId == userId)?.Role;
     }
 
-    public async Task DeleteBoardWithRoleCheckAsync(ObjectId id, ObjectId userId, CancellationToken cancellationToken = default)
+    public async Task DeleteBoardAsync(ObjectId id, ObjectId userId, CancellationToken cancellationToken = default)
     {
         BoardRole? role = await CheckUserBoardRoleAsync(id, userId, cancellationToken);
         if (role == null || role != BoardRole.Owner)

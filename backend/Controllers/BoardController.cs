@@ -12,8 +12,8 @@ namespace Boardly.Backend.Controllers;
 
 [ApiController]
 [Route("boards"), Authorize]
-[ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized, "application/json")]
-[ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError, "application/json")]
+[ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized, "application/problem+json")]
+[ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError, "application/problem+json")]
 public class BoardController(BoardService boardService) : ControllerBase
 {
     private readonly BoardService _boardService = boardService;
@@ -30,15 +30,13 @@ public class BoardController(BoardService boardService) : ControllerBase
     [HttpGet("{boardId}")]
     [ProducesResponseType(typeof(DetailedBoardResponse), StatusCodes.Status200OK, "application/json")]
     [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest, "application/problem+json")]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden, "application/problem+json")]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound, "application/problem+json")]
     public async Task<IActionResult> GetBoardByIdAsync(ObjectId boardId)
     {
         ObjectId userId = ObjectId.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
-        Board? board = await _boardService.GetBoardByIdAsync(boardId);
-        if (board == null)
-            throw new RecordDoesNotExist("Board has not beed found.");
-        if (board.Members.All(x => x.UserId != userId))
-            throw new ForbidenException("You are not a member of this board.");
+        Board? board = await _boardService.GetBoardByIdAsync(boardId, userId)
+            ?? throw new RecordDoesNotExist("Board has not beed found.");
         return Ok(new DetailedBoardResponse(board));
     }
 
@@ -98,7 +96,7 @@ public class BoardController(BoardService boardService) : ControllerBase
     [Consumes("application/json")]
     [ProducesResponseType(typeof(MessageResponse), StatusCodes.Status200OK, "application/json")]
     [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest, "application/problem+json")]
-    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden, "application/json")]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden, "application/problem+json")]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound, "application/problem+json")]
     public async Task<IActionResult> UpdateBoardAsync(ObjectId boardId, [FromBody] UpdateBoardRequest data, CancellationToken cancellationToken)
     {
@@ -115,18 +113,19 @@ public class BoardController(BoardService boardService) : ControllerBase
             Members = members,
         };
 
-        await _boardService.UpdateBoardWithRoleCheckAsync(board, userId, cancellationToken);
+        await _boardService.UpdateBoardAsync(board, userId, cancellationToken);
         return Ok(new MessageResponse("Successfully updated board!"));
     }
 
     [HttpDelete("{boardId}")]
     [ProducesResponseType(typeof(MessageResponse), StatusCodes.Status200OK, "application/json")]
     [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest, "application/problem+json")]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden, "application/problem+json")]
     [ProducesResponseType(typeof(MessageResponse), StatusCodes.Status404NotFound, "application/problem+json")]
     public async Task<IActionResult> DeleteBoardAsync(ObjectId boardId, CancellationToken cancellationToken)
     {
         ObjectId userId = ObjectId.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
-        await _boardService.DeleteBoardWithRoleCheckAsync(boardId, userId, cancellationToken);
+        await _boardService.DeleteBoardAsync(boardId, userId, cancellationToken);
         return Ok(new MessageResponse("Board successfully deleted!"));
     }
 }
