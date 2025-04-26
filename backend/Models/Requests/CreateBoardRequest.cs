@@ -4,7 +4,7 @@ using System.ComponentModel.DataAnnotations;
 
 namespace Boardly.Backend.Models.Requests;
 
-public class CreateRequest
+public class CreateBoardRequest
 {
     [Required]
     public string Title { get; init; } = null!;

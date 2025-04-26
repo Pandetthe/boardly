@@ -12,12 +12,13 @@ namespace Boardly.Backend.Controllers;
 
 [ApiController]
 [Route("boards"), Authorize]
+[ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized, "application/json")]
+[ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError, "application/json")]
 public class BoardController(BoardService boardService) : ControllerBase
 {
     private readonly BoardService _boardService = boardService;
 
     [HttpGet]
-    [Consumes("application/json")]
     [ProducesResponseType(typeof(List<BoardResponse>), StatusCodes.Status200OK, "application/json")]
     public async Task<IActionResult> GetAllBoardsAsync(CancellationToken cancellationToken)
     {
@@ -27,9 +28,9 @@ public class BoardController(BoardService boardService) : ControllerBase
     }
 
     [HttpGet("{boardId}")]
-    [Consumes("application/json")]
     [ProducesResponseType(typeof(DetailedBoardResponse), StatusCodes.Status200OK, "application/json")]
-    [ProducesResponseType(typeof(MessageResponse), StatusCodes.Status404NotFound, "application/problem+json")]
+    [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest, "application/problem+json")]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound, "application/problem+json")]
     public async Task<IActionResult> GetBoardByIdAsync(ObjectId boardId)
     {
         ObjectId userId = ObjectId.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
@@ -42,8 +43,10 @@ public class BoardController(BoardService boardService) : ControllerBase
     }
 
     [HttpPost]
+    [Consumes("application/json")]
     [ProducesResponseType(typeof(IdResponse), StatusCodes.Status200OK, "application/json")]
-    public async Task<IActionResult> CreateBoardAsync([FromBody] CreateRequest data, CancellationToken cancellationToken)
+    [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest, "application/problem+json")]
+    public async Task<IActionResult> CreateBoardAsync([FromBody] CreateBoardRequest data, CancellationToken cancellationToken)
     {
         ObjectId userId = ObjectId.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
         var members = new HashSet<Member>();
@@ -91,8 +94,34 @@ public class BoardController(BoardService boardService) : ControllerBase
         return Ok(new IdResponse(board.Id.ToString()));
     }
 
+    [HttpPatch("{boardId}")]
+    [Consumes("application/json")]
+    [ProducesResponseType(typeof(MessageResponse), StatusCodes.Status200OK, "application/json")]
+    [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest, "application/problem+json")]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden, "application/json")]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound, "application/problem+json")]
+    public async Task<IActionResult> UpdateBoardAsync(ObjectId boardId, [FromBody] UpdateBoardRequest data, CancellationToken cancellationToken)
+    {
+        ObjectId userId = ObjectId.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
+        var members = data.Members.Select(x => new Member { UserId =  x.UserId, Role = (BoardRole)x.Role }).ToHashSet();
+
+        if (!ModelState.IsValid)
+            return ValidationProblem(ModelState);
+
+        var board = new Board
+        {
+            Id = boardId,
+            Title = data.Title,
+            Members = members,
+        };
+
+        await _boardService.UpdateBoardWithRoleCheckAsync(board, userId, cancellationToken);
+        return Ok(new MessageResponse("Successfully updated board!"));
+    }
+
     [HttpDelete("{boardId}")]
     [ProducesResponseType(typeof(MessageResponse), StatusCodes.Status200OK, "application/json")]
+    [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest, "application/problem+json")]
     [ProducesResponseType(typeof(MessageResponse), StatusCodes.Status404NotFound, "application/problem+json")]
     public async Task<IActionResult> DeleteBoardAsync(ObjectId boardId, CancellationToken cancellationToken)
     {

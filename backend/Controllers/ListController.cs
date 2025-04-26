@@ -10,7 +10,10 @@ namespace Boardly.Backend.Controllers;
 [ApiController]
 [Authorize]
 [Route("boards/{boardId}/swimlanes/{swimlaneId}/lists")]
-[ProducesResponseType(typeof(MessageResponse), StatusCodes.Status404NotFound)]
+[ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest, "application/problem+json")]
+[ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized, "application/problem+json")]
+[ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound, "application/problem+json")]
+[ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError, "application/problem+json")]
 public class ListController(ListService listService) : ControllerBase
 {
     private readonly ListService _listService = listService;

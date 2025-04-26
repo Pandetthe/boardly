@@ -12,6 +12,8 @@ namespace Boardly.Backend.Controllers;
 
 [ApiController]
 [Route("auth")]
+[ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized, "application/problem+json")]
+[ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError, "application/problem+json")]
 public class AuthController(UserService userService, TokenService tokenService) : ControllerBase
 {
     private readonly UserService _userService = userService;
@@ -20,7 +22,6 @@ public class AuthController(UserService userService, TokenService tokenService) 
     [HttpPost("signin")]
     [Consumes("application/json")]
     [ProducesResponseType(typeof(AuthResponse), StatusCodes.Status200OK, "application/json")]
-    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized, "application/problem+json")]
     [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest, "application/problem+json")]
     public async Task<IActionResult>SignInAsync([FromBody] SignInRequest data, CancellationToken cancellationToken)
     {
@@ -45,7 +46,6 @@ public class AuthController(UserService userService, TokenService tokenService) 
     [HttpPost("signup")]
     [Consumes("application/json")]
     [ProducesResponseType(typeof(AuthResponse), StatusCodes.Status200OK, "application/json")]
-    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized, "application/problem+json")]
     [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest, "application/problem+json")]
     public async Task<IActionResult> SignUpAsync([FromBody] SignUpRequest data, CancellationToken cancellationToken)
     {
@@ -68,7 +68,7 @@ public class AuthController(UserService userService, TokenService tokenService) 
         }
         catch (RecordAlreadyExists)
         {
-            ModelState.AddModelError("Nickname", "User with provided nickname already exists!");
+            ModelState.AddModelError(nameof(SignUpRequest.Nickname), "User with provided nickname already exists!");
             return ValidationProblem(ModelState);
         }
     }
@@ -76,7 +76,6 @@ public class AuthController(UserService userService, TokenService tokenService) 
     [HttpPost("refresh")]
     [Consumes("application/json")]
     [ProducesResponseType(typeof(AuthResponse), StatusCodes.Status200OK, "application/json")]
-    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized, "application/problem+json")]
     [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest, "application/problem+json")]
     public async Task<IActionResult> RefreshAsync([FromBody] RefreshRequest data, CancellationToken cancellationToken)
     {

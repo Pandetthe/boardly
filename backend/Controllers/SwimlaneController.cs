@@ -9,12 +9,13 @@ namespace Boardly.Backend.Controllers;
 [ApiController]
 [Authorize]
 [Route("boards/{boardId}/swimlanes")]
-[ProducesResponseType(typeof(MessageResponse), StatusCodes.Status401Unauthorized)]
-[ProducesResponseType(typeof(MessageResponse), StatusCodes.Status404NotFound)]
+[ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest, "application/problem+json")]
+[ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized, "application/problem+json")]
+[ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound, "application/problem+json")]
+[ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError, "application/problem+json")]
 public class SwimlaneController : ControllerBase
 {
     [HttpGet]
-    [Consumes("application/json")]
     [ProducesResponseType(typeof(List<SwimlaneResponse>), StatusCodes.Status200OK, "application/json")]
     public Task<IActionResult> GetAllSwimlanesAsync(ObjectId boardId, CancellationToken cancellationToken)
     {
@@ -22,7 +23,6 @@ public class SwimlaneController : ControllerBase
     }
 
     [HttpGet("{swimlaneId}")]
-    [Consumes("application/json")]
     [ProducesResponseType(typeof(SwimlaneResponse), StatusCodes.Status200OK, "application/json")]
     public Task<IActionResult> GetSwimlaneByIdAsync(ObjectId boardId, ObjectId swimlaneId, CancellationToken cancellationToken)
     {
