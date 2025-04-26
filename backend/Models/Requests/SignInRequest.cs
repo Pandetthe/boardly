@@ -1,25 +1,25 @@
 ﻿using System.ComponentModel.DataAnnotations;
 
-namespace Boardly.Backend.Models.Auth;
+namespace Boardly.Backend.Models.Requests;
 
 /// <summary>
-/// Represents a request to sign up a new user.
+/// Request model for user sign-in.
 /// </summary>
-public record SignUpRequest
+public class SignInRequest
 {
     /// <summary>
     /// Nickname of the user.
-    /// The nickname must be between 3 and 50 characters.
+    /// This field is required and must be between 3 and 50 characters.
     /// </summary>
-    [Required]
+    [Required(ErrorMessage = "Nickname is required.")]
     [StringLength(50, MinimumLength = 3, ErrorMessage = "Nickname must be between 3 and 50 characters.")]
     public string Nickname { get; init; } = null!;
 
     /// <summary>
     /// Password of the user.
-    /// The password must be at least 8 characters long.
+    /// This field is required and must be at least 8 characters long.
     /// </summary>
-    [Required]
+    [Required(ErrorMessage = "Password is required.")]
     [StringLength(100, MinimumLength = 8, ErrorMessage = "Password must be at least 8 characters.")]
     public string Password { get; init; } = null!;
 }

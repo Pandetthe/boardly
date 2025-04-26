@@ -5,7 +5,7 @@ namespace Boardly.Backend.Entities;
 
 public class Card
 {
-    public ObjectId Id { get; init; }
+    public ObjectId Id { get; init; } = ObjectId.GenerateNewId();
 
     public ObjectId BoardId { get; init; }
 

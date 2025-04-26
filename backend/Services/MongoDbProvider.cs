@@ -5,7 +5,7 @@ using MongoDB.Driver;
 
 namespace Boardly.Backend.Services;
 
-public class MongoDbProvider
+public class MongoDbProvider : IDisposable
 {
     public readonly IMongoDatabase Database;
 
@@ -35,4 +35,10 @@ public class MongoDbProvider
     public IMongoCollection<RefreshToken> GetRefreshTokensCollection() => Database.GetCollection<RefreshToken>("refreshTokens");
 
     public IMongoCollection<Board> GetBoardsCollection() => Database.GetCollection<Board>("boards");
+
+    public void Dispose()
+    {
+        GC.SuppressFinalize(this);
+        Client.Dispose();
+    }
 }

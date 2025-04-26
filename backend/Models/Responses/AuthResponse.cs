@@ -1,4 +1,4 @@
-﻿namespace Boardly.Backend.Models.Auth;
+﻿namespace Boardly.Backend.Models.Responses;
 
 /// <summary>
 /// Response model for user auth.

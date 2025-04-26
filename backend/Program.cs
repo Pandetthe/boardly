@@ -1,6 +1,9 @@
+using Boardly.Backend.Binders;
+using Boardly.Backend.Converters;
 using Boardly.Backend.Entities;
+using Boardly.Backend.Exceptions;
+using Boardly.Backend.OpenAPI;
 using Boardly.Backend.Services;
-using Boardly.Backend.Services.OpenAPI;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.IdentityModel.Tokens;
@@ -41,13 +44,19 @@ public class Program
             builder.Services.AddHostedService<MongoDbMigrationService>();
             builder.Services.AddSingleton<UserService>();
             builder.Services.AddSingleton<BoardService>();
+            builder.Services.AddSingleton<ListService>();
 
-            builder.Services.AddControllers().AddJsonOptions(options =>
+            builder.Services.AddControllers(options =>
             {
-                options.JsonSerializerOptions.Converters.Add(
-                    new JsonStringEnumConverter(JsonNamingPolicy.CamelCase, false)
-                );
-            });
+                options.ModelBinderProviders.Insert(0, new ObjectIdModelBinderProvider());
+            })
+                .AddJsonOptions(options =>
+                {
+                    options.JsonSerializerOptions.Converters.Add(new ObjectIdJsonConverter());
+                    options.JsonSerializerOptions.Converters.Add(
+                        new JsonStringEnumConverter(JsonNamingPolicy.CamelCase, false)
+                    );
+                });
 
             builder.WebHost.ConfigureKestrel(options => options.AddServerHeader = false);
 
@@ -69,13 +78,17 @@ public class Program
                 });
             builder.Services.AddOpenApi(options =>
             {
-                options.AddDocumentTransformer<DocumentInfoTransformer>();
-                options.AddDocumentTransformer<BearerSecuritySchemeTransformer>();
+                options.AddSchemaTransformer<ObjectIdSchemaTransformer>();
+                options.AddDocumentTransformer<BaseInfoDocumentTransformer>();
+                options.AddDocumentTransformer<BearerSecurityDocumentTransformer>();
             });
+            builder.Services.AddProblemDetails();
+            builder.Services.AddExceptionHandler<ExceptionHandler>();
 
             WebApplication app = builder.Build();
             logger.Debug("Web application built successfully");
-
+            app.UseExceptionHandler();
+            app.UseStatusCodePages();
             if (app.Environment.IsDevelopment())
             {
                 app.MapOpenApi();

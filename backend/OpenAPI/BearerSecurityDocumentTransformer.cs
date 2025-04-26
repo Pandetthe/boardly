@@ -1,12 +1,13 @@
 ﻿using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ApiExplorer;
 using Microsoft.AspNetCore.OpenApi;
 using Microsoft.OpenApi.Models;
 
-namespace Boardly.Backend.Services.OpenAPI;
+namespace Boardly.Backend.OpenAPI;
 
-public sealed class BearerSecuritySchemeTransformer(
+internal sealed class BearerSecurityDocumentTransformer(
     IAuthenticationSchemeProvider authenticationSchemeProvider,
     IApiDescriptionGroupCollectionProvider apiDescriptionProvider)
     : IOpenApiDocumentTransformer

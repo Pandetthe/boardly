@@ -2,9 +2,9 @@
 using Microsoft.OpenApi.Models;
 using System.Reflection;
 
-namespace Boardly.Backend.Services.OpenAPI;
+namespace Boardly.Backend.OpenAPI;
 
-public sealed class DocumentInfoTransformer : IOpenApiDocumentTransformer
+internal sealed class BaseInfoDocumentTransformer : IOpenApiDocumentTransformer
 {
     public Task TransformAsync(OpenApiDocument document, OpenApiDocumentTransformerContext context, CancellationToken cancellationToken)
     {

@@ -1,7 +1,7 @@
 ﻿using Boardly.Backend.Entities;
 using Boardly.Backend.Exceptions;
-using Boardly.Backend.Models;
-using Boardly.Backend.Models.Auth;
+using Boardly.Backend.Models.Requests;
+using Boardly.Backend.Models.Responses;
 using Boardly.Backend.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -11,21 +11,19 @@ using System.Security.Claims;
 namespace Boardly.Backend.Controllers;
 
 [ApiController]
-[Route("[controller]")]
+[Route("auth")]
 public class AuthController(UserService userService, TokenService tokenService) : ControllerBase
 {
     private readonly UserService _userService = userService;
     private readonly TokenService _tokenService = tokenService;
 
-    [HttpPost("SignIn")]
-    [Produces("application/json")]
-    [ProducesResponseType(typeof(AuthResponse), StatusCodes.Status200OK)]
-    [ProducesResponseType(typeof(MessageResponse), StatusCodes.Status400BadRequest)]
+    [HttpPost("signin")]
+    [Consumes("application/json")]
+    [ProducesResponseType(typeof(AuthResponse), StatusCodes.Status200OK, "application/json")]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized, "application/problem+json")]
+    [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest, "application/problem+json")]
     public async Task<IActionResult>SignInAsync([FromBody] SignInRequest data, CancellationToken cancellationToken)
     {
-        if (!ModelState.IsValid)
-            return ValidationProblem(ModelState);
-
         User? user = await _userService.GetUserByNicknameAsync(data.Nickname, cancellationToken);
         if (user != null)
         {
@@ -41,18 +39,16 @@ public class AuthController(UserService userService, TokenService tokenService) 
                 ));
             }
         }
-        return Unauthorized(new MessageResponse("Invalid credentials"));
+        throw new UnauthorizedException("Invalid credentials.");
     }
 
-    [HttpPost("SignUp")]
-    [Produces("application/json")]
-    [ProducesResponseType(typeof(AuthResponse), StatusCodes.Status200OK)]
-    [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
+    [HttpPost("signup")]
+    [Consumes("application/json")]
+    [ProducesResponseType(typeof(AuthResponse), StatusCodes.Status200OK, "application/json")]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized, "application/problem+json")]
+    [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest, "application/problem+json")]
     public async Task<IActionResult> SignUpAsync([FromBody] SignUpRequest data, CancellationToken cancellationToken)
     {
-        if (!ModelState.IsValid)
-            return ValidationProblem(ModelState);
-
         try
         {
             User user = new()
@@ -77,18 +73,15 @@ public class AuthController(UserService userService, TokenService tokenService) 
         }
     }
 
-    [HttpPost("Refresh")]
-    [Produces("application/json")]
-    [ProducesResponseType(typeof(AuthResponse), StatusCodes.Status200OK)]
-    [ProducesResponseType(typeof(MessageResponse), StatusCodes.Status401Unauthorized)]
+    [HttpPost("refresh")]
+    [Consumes("application/json")]
+    [ProducesResponseType(typeof(AuthResponse), StatusCodes.Status200OK, "application/json")]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized, "application/problem+json")]
+    [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest, "application/problem+json")]
     public async Task<IActionResult> RefreshAsync([FromBody] RefreshRequest data, CancellationToken cancellationToken)
     {
-        if (!ModelState.IsValid)
-            return ValidationProblem(ModelState);
-
-        var user = await _tokenService.GetUserByRefreshTokenAsync(data.RefreshToken, cancellationToken);
-        if (user == null)
-            return Unauthorized(new MessageResponse("Invalid or expired refresh token."));
+        var user = await _tokenService.GetUserByRefreshTokenAsync(data.RefreshToken, cancellationToken)
+            ?? throw new UnauthorizedException("Invalid or expired refresh token.");
 
         (string accessToken, DateTime accessTokenExpiresAt, string refreshToken, DateTime refreshTokenExpiresAt)
             = await _tokenService.GenerateAndStoreTokensAsync(user, cancellationToken);
@@ -101,13 +94,12 @@ public class AuthController(UserService userService, TokenService tokenService) 
         ));
     }
 
-    [HttpPost("Revoke")]
-    [Authorize]
-    [Produces("application/json")]
-    [ProducesResponseType(typeof(MessageResponse), StatusCodes.Status401Unauthorized)]
+    [HttpPost("revoke"), Authorize]
+    [ProducesResponseType(typeof(MessageResponse), StatusCodes.Status200OK, "application/json")]
     public async Task<IActionResult> RevokeAsync(CancellationToken cancellationToken)
     {
-        await _tokenService.DeleteAllRefreshTokens(new ObjectId(User.FindFirst(ClaimTypes.NameIdentifier)!.Value), cancellationToken);
+        ObjectId userId = ObjectId.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
+        await _tokenService.DeleteAllRefreshTokens(userId, cancellationToken);
         return Ok(new MessageResponse("Successfully revoked all refresh tokens."));
     }
 

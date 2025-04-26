@@ -8,13 +8,12 @@ using System.Security.Claims;
 namespace Boardly.Backend.Controllers;
 
 [ApiController]
-[Route("[controller]")]
+[Route("users"), Authorize]
 public class UserController(UserService userService) : ControllerBase
 {
     private readonly UserService _userService = userService;
 
     [HttpGet("Me")]
-    [Authorize]
     public async Task<IActionResult> GetMe()
     {
         User user = await _userService.GetUserByIdAsync(new ObjectId(User.FindFirst(ClaimTypes.NameIdentifier)!.Value))
@@ -23,10 +22,9 @@ public class UserController(UserService userService) : ControllerBase
     }
 
     [HttpGet("{userId}")]
-    [Authorize]
-    public async Task<IActionResult> GetUserById(string userId)
+    public async Task<IActionResult> GetUserById(ObjectId userId)
     {
-        User? user = await _userService.GetUserByIdAsync(new ObjectId(userId));
+        User? user = await _userService.GetUserByIdAsync(userId);
         return Ok(user);
     }
 }

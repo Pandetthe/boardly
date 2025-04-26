@@ -1,4 +1,4 @@
-﻿namespace Boardly.Backend.Models.Auth;
+﻿namespace Boardly.Backend.Models.Requests;
 
 /// <summary>
 /// Represents a request to refresh an authentication token.

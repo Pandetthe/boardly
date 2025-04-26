@@ -5,7 +5,7 @@ namespace Boardly.Backend.Entities;
 
 public class RefreshToken
 {
-    public ObjectId Id { get; init; }
+    public ObjectId Id { get; init; } = ObjectId.GenerateNewId();
 
     public ObjectId UserId { get; init; }
 

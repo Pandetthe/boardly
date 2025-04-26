@@ -1,4 +1,4 @@
-﻿namespace Boardly.Backend.Models;
+﻿namespace Boardly.Backend.Models.Responses;
 
 /// <summary>
 /// Represents a response message.
