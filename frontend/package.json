@@ -1,7 +1,12 @@
 {
-	"name": "bazy-proj",
+	"name": "boardly-frontend",
+	"contributors": [
+		"Aleksander Grzybek",
+		"Jakub Jurczyk"
+	],
 	"private": true,
 	"version": "0.0.1",
+	"license": "MIT",
 	"type": "module",
 	"scripts": {
 		"dev": "vite dev",
