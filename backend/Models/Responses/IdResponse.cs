@@ -1,3 +1,5 @@
-﻿namespace Boardly.Backend.Models.Responses;
+﻿using MongoDB.Bson;
 
-public record IdResponse(string Id);
+namespace Boardly.Backend.Models.Responses;
+
+public record IdResponse(ObjectId Id);

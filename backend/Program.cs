@@ -44,6 +44,7 @@ public class Program
             builder.Services.AddHostedService<MongoDbMigrationService>();
             builder.Services.AddSingleton<UserService>();
             builder.Services.AddSingleton<BoardService>();
+            builder.Services.AddSingleton<SwimlaneService>();
             builder.Services.AddSingleton<ListService>();
 
             builder.Services.AddControllers(options =>

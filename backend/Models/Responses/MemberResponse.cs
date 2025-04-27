@@ -1,13 +1,14 @@
 ﻿using Boardly.Backend.Entities;
+using MongoDB.Bson;
 
 namespace Boardly.Backend.Models.Responses;
 
 public record MemberResponse(
-    string UserId,
+    ObjectId UserId,
     BoardRole Role)
 {
     public MemberResponse(Member member)
-        : this(member.UserId.ToString(), member.Role)
+        : this(member.UserId, member.Role)
     {
     }
 }

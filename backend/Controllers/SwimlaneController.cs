@@ -1,5 +1,6 @@
 ﻿using Boardly.Backend.Entities;
 using Boardly.Backend.Exceptions;
+using Boardly.Backend.Models.Requests;
 using Boardly.Backend.Models.Responses;
 using Boardly.Backend.Services;
 using Microsoft.AspNetCore.Authorization;
@@ -10,8 +11,7 @@ using System.Security.Claims;
 namespace Boardly.Backend.Controllers;
 
 [ApiController]
-[Authorize]
-[Route("boards/{boardId}/swimlanes")]
+[Route("boards/{boardId}/swimlanes"), Authorize]
 [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest, "application/problem+json")]
 [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized, "application/problem+json")]
 [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden, "application/problem+json")]
@@ -31,22 +31,69 @@ public class SwimlaneController(SwimlaneService swimlaneService) : ControllerBas
     }
 
     [HttpGet("{swimlaneId}")]
-    [ProducesResponseType(typeof(SwimlaneResponse), StatusCodes.Status200OK, "application/json")]
+    [ProducesResponseType(typeof(DetailedSwimlaneResponse), StatusCodes.Status200OK, "application/json")]
     public async Task<IActionResult> GetSwimlaneByIdAsync(ObjectId boardId, ObjectId swimlaneId, CancellationToken cancellationToken)
     {
         ObjectId userId = ObjectId.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
         Swimlane swimlane = await _swimlaneService.GetSwimlaneByIdAsync(boardId, swimlaneId, userId, cancellationToken)
             ?? throw new RecordDoesNotExist("Swimlane has not been found.");
-        return Ok(new SwimlaneResponse(swimlane));
+        return Ok(new DetailedSwimlaneResponse(swimlane));
     }
 
 
-    [HttpPost("{swimlaneId}")]
+    [HttpPost]
     [Consumes("application/json")]
     [ProducesResponseType(typeof(IdResponse), StatusCodes.Status200OK, "application/json")]
-    public Task<IActionResult> CreateSwimlaneAsync(ObjectId boardId, ObjectId swimlaneId, CancellationToken cancellationToken)
+    public async Task<IActionResult> CreateSwimlaneAsync(ObjectId boardId, [FromBody] CreateRequestSwimlane data, CancellationToken cancellationToken)
     {
-        throw new NotImplementedException();
+        ObjectId userId = ObjectId.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
+        var swimlane = new Swimlane
+        {
+            Title = data.Title,
+            Description = data.Description,
+            Tags = data.Tags?.Select(tag => new Tag
+            {
+                Title = tag.Title,
+                Color = tag.Color,
+            }).ToList() ?? [],
+            Lists = data.Lists?.Select(list => new List
+            {
+                Title = list.Title,
+                Description = list.Description,
+                MaxWIP = list.MaxWIP,
+            }).ToList() ?? [],
+        };
+
+        await _swimlaneService.CreateSwimlaneAsync(boardId, userId, swimlane, cancellationToken);
+        return Ok(new IdResponse(swimlane.Id));
+    }
+
+    [HttpPatch("{swimlaneId}")]
+    [Consumes("application/json")]
+    [ProducesResponseType(typeof(MessageResponse), StatusCodes.Status200OK, "application/json")]
+    public async Task<IActionResult> UpdateSwimlaneAsync(ObjectId boardId, ObjectId swimlaneId, [FromBody] CreateRequestSwimlane data, CancellationToken cancellationToken)
+    {
+        ObjectId userId = ObjectId.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
+        var swimlane = new Swimlane
+        {
+            Id = swimlaneId,
+            Title = data.Title,
+            Description = data.Description,
+            Tags = data.Tags?.Select(tag => new Tag
+            {
+                Title = tag.Title,
+                Color = tag.Color,
+            }).ToList() ?? [],
+            Lists = data.Lists?.Select(list => new List
+            {
+                Title = list.Title,
+                Description = list.Description,
+                MaxWIP = list.MaxWIP,
+            }).ToList() ?? [],
+        };
+
+        await _swimlaneService.UpdateSwimlaneAsync(boardId, userId, swimlane, cancellationToken);
+        return Ok(new MessageResponse("Successfully updated swimlane!"));
     }
 
     [HttpDelete("{swimlaneId}")]

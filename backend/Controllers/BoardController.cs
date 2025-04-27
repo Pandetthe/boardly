@@ -89,7 +89,7 @@ public class BoardController(BoardService boardService) : ControllerBase
         };
 
         await _boardService.CreateBoardAsync(board, cancellationToken);
-        return Ok(new IdResponse(board.Id.ToString()));
+        return Ok(new IdResponse(board.Id));
     }
 
     [HttpPatch("{boardId}")]

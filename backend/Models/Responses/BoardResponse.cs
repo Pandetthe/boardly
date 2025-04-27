@@ -1,16 +1,17 @@
 ﻿using Boardly.Backend.Entities;
+using MongoDB.Bson;
 
 namespace Boardly.Backend.Models.Responses;
 
 public record BoardResponse
 (
-    string Id,
+    ObjectId Id,
     string Title,
     DateTime CreatedAt,
     DateTime UpdatedAt
 )
 {
-    public BoardResponse(Board board) : this(board.Id.ToString(), board.Title, board.CreatedAt, board.UpdatedAt)
+    public BoardResponse(Board board) : this(board.Id, board.Title, board.CreatedAt, board.UpdatedAt)
     {
     }
 }

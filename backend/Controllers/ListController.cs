@@ -1,4 +1,7 @@
-﻿using Boardly.Backend.Models.Responses;
+﻿using Boardly.Backend.Entities;
+using Boardly.Backend.Exceptions;
+using Boardly.Backend.Models.Requests;
+using Boardly.Backend.Models.Responses;
 using Boardly.Backend.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -8,8 +11,7 @@ using System.Security.Claims;
 namespace Boardly.Backend.Controllers;
 
 [ApiController]
-[Authorize]
-[Route("boards/{boardId}/swimlanes/{swimlaneId}/lists")]
+[Route("boards/{boardId}/swimlanes/{swimlaneId}/lists"), Authorize]
 [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest, "application/problem+json")]
 [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized, "application/problem+json")]
 [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound, "application/problem+json")]
@@ -21,25 +23,57 @@ public class ListController(ListService listService) : ControllerBase
     [HttpGet]
     [Consumes("application/json")]
     [ProducesResponseType(typeof(List<ListResponse>), StatusCodes.Status200OK, "application/json")]
-    public Task<IActionResult> GetAllListsAsync(ObjectId boardId, ObjectId swimlaneId, CancellationToken cancellationToken)
+    public async Task<IActionResult> GetAllListsAsync(ObjectId boardId, ObjectId swimlaneId, CancellationToken cancellationToken)
     {
-        throw new NotImplementedException();
+        ObjectId userId = ObjectId.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
+        List<List> swimlanes = [.. await _listService.GetListsBySwimlaneIdAsync(boardId, swimlaneId, userId, cancellationToken)];
+        return Ok(swimlanes.Select(x => new ListResponse(x)).ToList());
     }
 
     [HttpGet("{listId}")]
     [Consumes("application/json")]
-    [ProducesResponseType(typeof(ListResponse), StatusCodes.Status200OK, "application/json")]
-    public Task<IActionResult> GetListByIdAsync(ObjectId boardId, ObjectId swimlaneId, ObjectId listId, CancellationToken cancellationToken)
+    [ProducesResponseType(typeof(DetailedListResponse), StatusCodes.Status200OK, "application/json")]
+    public async Task<IActionResult> GetListByIdAsync(ObjectId boardId, ObjectId swimlaneId, ObjectId listId, CancellationToken cancellationToken)
     {
-        throw new NotImplementedException();
+        ObjectId userId = ObjectId.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
+        List list = await _listService.GetListByIdAsync(boardId, swimlaneId, listId, userId, cancellationToken)
+            ?? throw new RecordDoesNotExist("List has not been found.");
+        return Ok(new DetailedListResponse(list));
     }
 
-    [HttpPost("{listId}")]
+    [HttpPost]
     [Consumes("application/json")]
     [ProducesResponseType(typeof(IdResponse), StatusCodes.Status200OK, "application/json")]
-    public Task<IActionResult> CreateListAsync(ObjectId boardId, ObjectId swimlaneId, ObjectId listId, CancellationToken cancellationToken)
+    public async Task<IActionResult> CreateListAsync(ObjectId boardId, ObjectId swimlaneId, CreateUpdateRequestList data, CancellationToken cancellationToken)
     {
-        throw new NotImplementedException();
+        ObjectId userId = ObjectId.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
+        var list = new List
+        {
+            Title = data.Title,
+            Description = data.Description,
+            MaxWIP = data.MaxWIP,
+        };
+
+        await _listService.CreateListAsync(boardId, swimlaneId, userId, list, cancellationToken);
+        return Ok(new IdResponse(list.Id));
+    }
+
+    [HttpPatch("{listId}")]
+    [Consumes("application/json")]
+    [ProducesResponseType(typeof(IdResponse), StatusCodes.Status200OK, "application/json")]
+    public async Task<IActionResult> UpdateListAsync(ObjectId boardId, ObjectId swimlaneId, ObjectId listId, CreateUpdateRequestList data, CancellationToken cancellationToken)
+    {
+        ObjectId userId = ObjectId.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
+        var list = new List
+        {
+            Id = listId,
+            Title = data.Title,
+            Description = data.Description,
+            MaxWIP = data.MaxWIP,
+        };
+
+        await _listService.UpdateListAsync(boardId, swimlaneId, userId, list, cancellationToken);
+        return Ok(new MessageResponse("Successfully updated list!"));
     }
 
     [HttpDelete("{listId}")]
@@ -48,7 +82,7 @@ public class ListController(ListService listService) : ControllerBase
     public async Task<IActionResult> DeleteListAsync(ObjectId boardId, ObjectId swimlaneId, ObjectId listId, CancellationToken cancellationToken)
     {
         ObjectId userId = ObjectId.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
-        await _listService.DeleteListWithRoleCheckAsync(boardId, swimlaneId, listId, userId, cancellationToken);
+        await _listService.DeleteListAsync(boardId, swimlaneId, listId, userId, cancellationToken);
         return Ok(new MessageResponse("List successfully deleted!"));
     }
 }
