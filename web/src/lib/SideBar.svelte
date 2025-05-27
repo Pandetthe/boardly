@@ -10,7 +10,7 @@
       </button>
     <ul class="menu">
         <li>
-          <a class="tooltip tooltip-right" data-tip="Home" href="*">
+          <a class="tooltip tooltip-right" data-tip="Home" href="/">
             Home
           </a>
         </li>

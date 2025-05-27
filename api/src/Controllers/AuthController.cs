@@ -6,6 +6,7 @@ using Boardly.Api.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using MongoDB.Bson;
+using System.Runtime.Intrinsics.Arm;
 using System.Security.Claims;
 
 namespace Boardly.Api.Controllers;
@@ -23,7 +24,7 @@ public class AuthController(UserService userService, TokenService tokenService) 
     [Consumes("application/json")]
     [ProducesResponseType(typeof(AuthResponse), StatusCodes.Status200OK, "application/json")]
     [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest, "application/problem+json")]
-    public async Task<IActionResult>SignInAsync([FromBody] SignInRequest data, CancellationToken cancellationToken)
+    public async Task<IActionResult> SignInAsync([FromBody] SignInRequest data, CancellationToken cancellationToken)
     {
         User? user = await _userService.GetUserByNicknameAsync(data.Nickname, cancellationToken);
         if (user != null)

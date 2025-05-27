@@ -4,8 +4,8 @@
 	import ManageBoardPopup from '$lib/popup/ManageBoardPopup.svelte';
 	import { goto } from '$app/navigation';
 
-    export let boardId: number;
-	export let boardName: string;
+    export let boardId: string;
+	export let boardTitle: string;
 	export let popup: ManageBoardPopup;
 
 	function hashString(str: string) {
@@ -17,7 +17,7 @@
 		return Math.abs(hash);
 	}
 
-	function idToColor(id: number) {
+	function idToColor(id: string) {
 		const colors = [
 			"#0070F3",
 			"#FFB224",
@@ -27,7 +27,7 @@
 			"#8E4EC6",
 			"#E93D82",
 		];
-		const index = hashString(String(id)) % colors.length;
+		const index = hashString(id) % colors.length;
 		return colors[index];
 	}
 
@@ -37,7 +37,7 @@
 	}
 
 	const color = idToColor(boardId);
-    const src = GeoPattern.generate(boardName, {"color": color}).toDataUrl().slice(5, -2);
+    const src = GeoPattern.generate(boardTitle, {"color": color}).toDataUrl().slice(5, -2);
 
 </script>
 
@@ -46,7 +46,7 @@
 		<img {src} alt="Board" class="w-full h-40 object-cover"/>
 	</figure>
 	<div class="card-body">
-		<div class="card-title flex justify-between">{boardName}
+		<div class="card-title flex justify-between">{boardTitle}
 			<button class="btn btn-ghost z-10 w-10 p-0" on:click={showPopup}>
 				<Menu />
 			</button>

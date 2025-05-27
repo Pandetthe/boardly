@@ -5,16 +5,16 @@
   import Popup from "$lib/popup/Popup.svelte";
 
   export let boards: {
-      id: number;
+      id: string;
       name: string;
   }[];
 
   $: visible = false;
   $: isEditMode = false;
   $: currentBoardName = "";
-  let currentBoardId: number | null = null;
+  let currentBoardId: string | null = null;
 
-  export function show(id: number | null = null) {
+  export function show(id: string | null = null) {
     visible = true;
     isEditMode = id !== null;
     if (!isEditMode) {
@@ -30,7 +30,7 @@
         boards = [
             ...boards,
             {
-                id: Math.random() * 1000000,
+                id: 'test',
                 name: currentBoardName,
             }
         ];
