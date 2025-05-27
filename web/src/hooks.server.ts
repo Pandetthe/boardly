@@ -17,20 +17,22 @@ export const handle: Handle = async ({ event, resolve }) => {
 			body: JSON.stringify({ refreshToken: refreshToken })
 		});
         if (res.ok) {
-            const { accessToken, accessTokenExpiresIn, refreshToken, refreshTokenExpiresIn } = await res.json();
-            event.cookies.set('accessToken', accessToken, {
+            const data = await res.json(); // todo set type
+            accessToken = data.accessToken;
+            refreshToken = data.refreshToken;
+            event.cookies.set('accessToken', accessToken!, { // todo
                 httpOnly: true, 
                 secure: true, 
                 sameSite: 'strict', 
-                maxAge: accessTokenExpiresIn,
+                maxAge: data.accessTokenExpiresIn,
                 path: '/',
             });
         
-            event.cookies.set('refreshToken', refreshToken, {
+            event.cookies.set('refreshToken', refreshToken!, { // todo
                 httpOnly: true, 
                 secure: true, 
                 sameSite: 'strict', 
-                maxAge: refreshTokenExpiresIn,
+                maxAge: data.refreshTokenExpiresIn,
                 path: '/',
             });
         }
