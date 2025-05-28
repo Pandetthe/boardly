@@ -38,6 +38,7 @@ public class Program
             builder.Services.AddSerilog((services, lc) => lc
                 .ReadFrom.Configuration(builder.Configuration)
                 .ReadFrom.Services(services));
+            builder.Logging.AddAzureWebAppDiagnostics();
 
             builder.Services.AddSignalR();
             builder.Services.AddSingleton<IPasswordHasher<User>, PasswordHasher<User>>();
