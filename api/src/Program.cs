@@ -38,7 +38,6 @@ public class Program
             builder.Services.AddSerilog((services, lc) => lc
                 .ReadFrom.Configuration(builder.Configuration)
                 .ReadFrom.Services(services));
-            builder.Logging.AddAzureWebAppDiagnostics();
 
             builder.Services.AddSignalR();
             builder.Services.AddSingleton<IPasswordHasher<User>, PasswordHasher<User>>();
@@ -84,6 +83,7 @@ public class Program
                 options.AddSchemaTransformer<ObjectIdSchemaTransformer>();
                 options.AddDocumentTransformer<BaseInfoDocumentTransformer>();
                 options.AddDocumentTransformer<BearerSecurityDocumentTransformer>();
+                options.AddSchemaTransformer<EnumAsStringSchemaTransformer>();
             });
             builder.Services.AddProblemDetails();
             builder.Services.AddExceptionHandler<ExceptionHandler>();
