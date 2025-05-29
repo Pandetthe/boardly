@@ -57,7 +57,7 @@ public class Program
             {
                 options.JsonSerializerOptions.Converters.Add(new ObjectIdJsonConverter());
                 options.JsonSerializerOptions.Converters.Add(
-                    new JsonStringEnumConverter(JsonNamingPolicy.CamelCase, false)
+                    new JsonStringEnumConverter(allowIntegerValues: false)
                 );
             });
 

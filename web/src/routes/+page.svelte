@@ -22,7 +22,7 @@
 <div class="overflow-auto w-full">
     <div class="w-full p-5 grid grid-cols-[repeat(auto-fill,_minmax(400px,_1fr))] gap-5 h-fit">
         {#if data.boards}
-            {#each data.boards as board}
+            {#each data.boards.sort((a, b) => a.title.localeCompare(b.title)) as board (board.id)}
                 <BoardCard board={board} popup={popup}/>
             {/each}
         {/if}

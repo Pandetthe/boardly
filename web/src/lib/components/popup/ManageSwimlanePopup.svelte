@@ -2,74 +2,40 @@
     import PopupAccordion from "$lib/components/popup/PopupAccordion.svelte";
     import Popup from "$lib/components/popup/Popup.svelte";
     import { Check } from "lucide-svelte";
+	import type { CreateSwimlaneRequest, DetailedSwimlane, Swimlane, UpdateSwimlaneRequest } from "$lib/types/api/swimlanes";
 
-    export let pages: {
-        id: number;
-        name: string;
-        lists: {
-            color: string;
-            title: string;
-        }[];
-        tags: {
-            color: string;
-            title: string;
-        }[];
-    }[];
+    let visible: boolean = $state(false);
+    let isEditMode: boolean = $state(false);
+    let currentSwimlane: CreateSwimlaneRequest = $state({ title: '', lists: [] });
+    let currentSwimlaneId: string | null = $state(null);
 
-    $: visible = false;
-    $: isEditMode = false;
-    $: currentPageName = "";
-    let pageLists: { color: string; title: string; }[] = [];
-    let pageTags: { color: string; title: string; }[] = [];
-
-    let currentPageId: number | null = null;
-
-    export function show(id: number|null=null) {
+    export function show(swimlane: DetailedSwimlane | null = null) {
         visible = true;
-        isEditMode = id !== null;
         if (!isEditMode) {
-            currentPageName = "";
-            pageLists = [];
-            pageTags = [];
-            currentPageId = null;
+            currentSwimlane = { title: '', lists: [] };
+            currentSwimlaneId = null;
             return;
         }
-        let curr = pages.find((page) => page.id === id);
-        currentPageName = curr?.name || "";
-        pageLists = curr?.lists || [];
-        pageTags = curr?.tags || [];
-        currentPageId = id;
+        if (!swimlane)
+            throw new Error("Swimlane cannot be null in edit mode");
+        currentSwimlaneId = swimlane.id
+        currentSwimlane = { title: swimlane.title, lists: [] };//swimlane.lists.map(list => ({ title: list.title })) };
     }
 
     export function onCreate() {
-        pages = [...pages, {
-            id: Math.random()*1000000,
-            name: currentPageName,
-            lists: pageLists,
-            tags: pageTags
-            }];
+
         visible = false;
     }
 
 
     export function onDelete() {
-        pages = pages.filter((page) => page.id !== currentPageId);
+
         visible = false;
     }
 
 
     export function onEdit() {
-        pages = pages.map((page) => {
-            if (page.id === currentPageId) {
-                return {
-                    ...page,
-                    name: currentPageName,
-                    lists: pageLists,
-                    tags: pageTags
-                };
-            }
-            return page;
-        });
+
         visible = false;
     }
 
@@ -77,23 +43,38 @@
         visible = false;
     }
 
-    let pageNameInvalid = false;
+    let swimlaneTitleInvalid = false;
     let listColorSelection = "blue";
     let tagColorSelection = "blue";
     let listName = "";
     let tagName = "";
 
+    function addList() {
+        currentSwimlane.lists = [...currentSwimlane.lists, { title: listName, color: listColorSelection }];
+        listName = "";
+    }
+
 </script>
 
 
-<Popup title="Page" {isEditMode} {onCreate} {onDelete} {onCancel} {onEdit} bind:visible>
-    <PopupAccordion label="Title" name="card-creation" ready={currentPageName.length != 0} required invalid={pageNameInvalid && currentPageName.length == 0}>
-      <input type="text" class="input w-full bg-background-secondary" placeholder="Enter the page name" bind:value={currentPageName} required on:invalid|preventDefault={() => pageNameInvalid=true}/>
+<Popup title="swimlane" {isEditMode} {onCreate} {onDelete} {onCancel} {onEdit} bind:visible>
+    <PopupAccordion
+     label="Title"
+     name="card-creation"
+     ready={currentSwimlane.title.length != 0}
+     required
+     invalid={swimlaneTitleInvalid && currentSwimlane.title.length == 0}>
+      <input
+       type="text"
+       class="input w-full bg-background-secondary"
+       placeholder="Enter the swimlane name"
+       bind:value={currentSwimlane.title}
+       required oninvalid="{(e) => { e.preventDefault(); swimlaneTitleInvalid = true; }}" />
     </PopupAccordion>
 
-    <PopupAccordion label="Lists" name="card-creation" ready={pageLists.length !== 0} required>
+    <PopupAccordion label="Lists" name="card-creation" ready={currentSwimlane.lists.length !== 0} required>
         <div class="flex flex-col gap-2">
-            {#each pageLists as list}
+            {#each currentSwimlane.lists as list}
                 <div class="bg-{list.color}-bg border-{list.color} text-{list.color} drop-shadow-xl drop-shadow-{list.color}-shadow w-full p-5">{list.title}</div>
             {/each}
             <div class="join border-border border-1 bg-{listColorSelection}-bg text-{listColorSelection}">
@@ -107,13 +88,13 @@
                     <option value="pink" class="bg-pink-bg text-pink hover:bg-pink hover:text-pink-bg">Pink</option>
                     <option value="teal" class="bg-teal-bg text-teal hover:bg-teal hover:text-teal-bg">Teal</option>
                 </select>
-                <button class="btn btn-primary join-item" on:click={() => {pageLists = [...pageLists, {color:listColorSelection, title:listName}]}} type="button" >
+                <button class="btn btn-primary join-item" onclick={addList} type="button" >
                     <Check />
                 </button>
             </div>
         </div>
     </PopupAccordion>
-
+<!-- 
     <PopupAccordion label="Tags" name="card-creation" ready={pageTags.length != 0}>
         <div class="flex flex-col gap-2">
             {#each pageTags as tag}
@@ -130,10 +111,10 @@
                     <option value="pink" class="bg-pink-bg text-pink hover:bg-pink hover:text-pink-bg">Pink</option>
                     <option value="teal" class="bg-teal-bg text-teal hover:bg-teal hover:text-teal-bg">Teal</option>
                 </select>
-                <button class="btn btn-primary join-item" on:click={() => {pageTags = [...pageTags, {color:tagColorSelection, title:tagName}]}}  type="button" >
+                <button class="btn btn-primary join-item" onclick={() => {pageTags = [...pageTags, {color:tagColorSelection, title:tagName}]}}  type="button" >
                     <Check />
                 </button>
             </div>
         </div>
-    </PopupAccordion>
+    </PopupAccordion> -->
 </Popup>

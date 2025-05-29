@@ -8,7 +8,8 @@
 
     let visible: boolean = $state(false);
     let isEditMode: boolean = $state(false);
-    let currentBoard: Omit<Board, 'createdAt' | 'updatedAt'> = $state({ id: '', title: '' });
+    let currentBoard: CreateBoardRequest | UpdateBoardRequest = $state({ title: '', members: [] });
+    let currentBoardId: string | null = $state(null);
     let boardNameInvalid = $state(false);
 
     export function show(board: Board | null = null) {
@@ -16,12 +17,16 @@
         visible = true;
         isEditMode = board !== null;
         if (!isEditMode) {
-            currentBoard = { id: '', title: '' };
+            currentBoard.title = '';
+            currentBoard.members = [];
+            currentBoardId = null;
             return;
         }
         if (!board)
             throw new Error("Board cannot be null in edit mode");
-        currentBoard = { id: board.id, title: board.title };
+        currentBoard.title = board.title;
+        currentBoard.members = board.members;
+        currentBoardId = board.id;
     }
 
     export async function onCreate() {
@@ -30,7 +35,7 @@
             headers: {
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify({ title: currentBoard.title } as CreateBoardRequest)
+            body: JSON.stringify({ title: currentBoard.title, members: currentBoard.members } as CreateBoardRequest)
         });
         await invalidate('api:boards');
         visible = false;
@@ -38,7 +43,7 @@
 
 
     export async function onDelete() {
-        await fetch(`/api/boards/${currentBoard.id}`, {
+        await fetch(`/api/boards/${currentBoardId}`, {
             method: 'DELETE',
             headers: {
                 'Content-Type': 'application/json'
@@ -50,12 +55,12 @@
 
 
     export async function onEdit() {
-        await fetch(`/api/boards/${currentBoard.id}`, {
+        await fetch(`/api/boards/${currentBoardId}`, {
             method: 'PATCH',
             headers: {
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify({ title: currentBoard.title } as UpdateBoardRequest)
+            body: JSON.stringify({ title: currentBoard.title, members: currentBoard.members } as UpdateBoardRequest)
         });
         await invalidate('api:boards');
         visible = false;
@@ -67,9 +72,20 @@
 </script>
 
 
-<Popup title="Board" {isEditMode} {onCreate} {onDelete} {onCancel} {onEdit} bind:visible>
-    <PopupAccordion label="Title" name="board-creation" ready={currentBoard.title.length != 0} invalid={boardNameInvalid && currentBoard.title.length == 0} required>
-        <input type="text" class="input w-full bg-background-secondary" placeholder="Enter the board name" bind:value={currentBoard.title} oninvalid={(e) => { e.preventDefault(); boardNameInvalid = true; }} required/>
+<Popup title="board" {isEditMode} {onCreate} {onDelete} {onCancel} {onEdit} bind:visible>
+    <PopupAccordion
+     label="Title"
+     name="board-creation"
+     ready={currentBoard.title.length != 0}
+     invalid={boardNameInvalid && currentBoard.title.length == 0}
+     required>
+        <input
+         type="text"
+         class="input w-full bg-background-secondary"
+         placeholder="Enter the board name"
+         bind:value={currentBoard.title}
+         oninvalid={(e) => { e.preventDefault(); boardNameInvalid = true; }}
+         required />
     </PopupAccordion>
     
     <PopupAccordion label="Users" name="board-creation" ready={false}>

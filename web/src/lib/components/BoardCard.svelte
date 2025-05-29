@@ -51,7 +51,19 @@
 		<img src={src} alt="Board" class="w-full h-40 object-cover"/>
 	</figure>
 	<div class="card-body">
-		<div class="card-title flex justify-between">{board.title}
+		<div class="card-title flex justify-between items-center">
+			{board.title}
+			<div class="flex -space-x-2">
+				{#each board.members.filter(x => x.isActive) as member (member.userId)}
+					<div
+						class="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center text-xs font-bold border-2 border-white"
+						title={member.nickname}
+						style="background-color: {idToColor(member.nickname)}"
+					>
+						{member.nickname.slice(0,2)}
+					</div>
+				{/each}
+			</div>
 			<button class="btn btn-ghost z-10 w-10 p-0" onclick={showPopup}>
 				<Menu />
 			</button>

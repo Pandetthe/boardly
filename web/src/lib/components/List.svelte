@@ -67,7 +67,7 @@
                 color={color}
                 title={card.title}
                 description={card.description}
-                tags={card.tags?.map((tagId: number) => tags.find((tag) => tag.id === tagId)) || []}
+     
                 assignedUsers={card.assignedUsers?.map((userId: number) => users.find((user:{ id: number }) => user.id === userId))}
                 dueDate={card.dueDate}
             />

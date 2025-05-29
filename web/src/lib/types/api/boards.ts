@@ -1,19 +1,28 @@
-import type { SwimlaneResponse } from "./swimlanes";
+import type { Member, MemberResponse } from "./members";
+import { parseDetailedSwimlane, type CreateSwimlaneRequest, type DetailedSwimlane, type DetailedSwimlaneResponse } from "./swimlanes";
 
-export type CreateBoardRequest = Omit<Board, 'id' | 'createdAt' | 'updatedAt'>;
+export interface CreateBoardRequest extends UpdateBoardRequest {
+    swimlanes: CreateSwimlaneRequest[];
+}
 
-export type UpdateBoardRequest = Partial<Omit<Board, 'id' | 'createdAt' | 'updatedAt'>>;
+export type UpdateBoardRequest = Omit<Board, 'id' | 'createdAt' | 'updatedAt'>;
 
 export interface Board {
     id: string;
     title: string;
+    members: Member[];
     createdAt: Date;
     updatedAt: Date;
+}
+
+export interface DetailedBoard extends Board {
+    swimlanes: DetailedSwimlane[];
 }
 
 export interface BoardResponse {
     id: string;
     title: string;
+    members: MemberResponse[];
     createdAt: string;
     updatedAt: string;
 }
@@ -26,29 +35,14 @@ export function parseBoard(raw: BoardResponse): Board {
 	};
 }
 
-export interface Member extends MemberResponse {
-    id: string;
-    nickname: string;
-    role: BoardRole;
-}
-
-
-export enum BoardRole {
-    Owner = "Owner",
-    Admin = "Admin",
-    Editor = "Editor",
-    Viewer = "Viewer"
-}
-
 
 export interface DetailedBoardReponse extends BoardResponse {
-    swimlanes: SwimlaneResponse[];
-    members: MemberResponse[];
+    swimlanes: DetailedSwimlaneResponse[];
 }
 
-export interface MemberResponse {
-    id: string;
-    role: BoardRole;
+export function parseDetailedBoard(raw: DetailedBoardReponse): DetailedBoard {
+    return {
+        ...parseBoard(raw),
+        swimlanes: raw.swimlanes.map(s => parseDetailedSwimlane(s)),
+    };
 }
-
-export interface MemberRequest extends MemberResponse {}

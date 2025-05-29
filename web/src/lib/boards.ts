@@ -1,6 +1,6 @@
 import { env } from '$env/dynamic/private';
-import type { Board, BoardResponse, CreateBoardRequest, UpdateBoardRequest } from '$lib/types/api/boards';
-import { parseBoard } from '$lib/types/api/boards';
+import type { Board, BoardResponse, CreateBoardRequest, DetailedBoardReponse, UpdateBoardRequest } from '$lib/types/api/boards';
+import { parseBoard, parseDetailedBoard } from '$lib/types/api/boards';
 
 export const getBoards = (async (accessToken: string | undefined) => {
     if (!accessToken)
@@ -37,13 +37,8 @@ export const getBoard = (async (accessToken: string | undefined, boardId: string
         });
 
         if (res.ok) {
-            // fix
-            const rawBoard = await res.json() as BoardResponse
-            return new Board({
-                ...rawBoard,
-                createdAt: new Date(rawBoard.createdAt),
-                updatedAt: new Date(rawBoard.updatedAt)
-            });
+            const rawBoard = await res.json() as DetailedBoardReponse
+            return parseDetailedBoard(rawBoard);
         }
     } catch (error) {
         console.error('Error while fetching a board:', error);

@@ -4,7 +4,6 @@
 
     let cardRefs: Record<number, Card> = {};
     export let lists;    
-    export let tags;
     export let users;
 </script>
 
@@ -15,7 +14,6 @@
             title={list.title}
             color={list.color}
             cards={list.cards}
-            tags={tags}
             users={users}
         />
     {/each}
