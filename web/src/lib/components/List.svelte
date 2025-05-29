@@ -3,7 +3,7 @@
     import { onMount } from "svelte";
     import Card from "$lib/Card.svelte";
 	import { Plus } from "lucide-svelte";
-    import ManageCardPopup from "$lib/popup/ManageCardPopup.svelte";
+    import ManageCardPopup from "$lib/components/popup/ManageCardPopup.svelte";
 
     export let title;
     export let color: string;

@@ -12,7 +12,7 @@
             alert("Passwords do not match");
             return;
         }
-        const res = await fetch('/auth/signup', {
+        const res = await fetch('/api/auth/signup', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -21,7 +21,7 @@
         });
 
         if (res.ok) {
-            goto('/');
+            goto('/', { invalidateAll: true });
         } else {
             alert(JSON.stringify(await res.json()));
         }
@@ -29,7 +29,7 @@
 </script>
 
 
-<div class="flex bg-gray-700 h-full justify-center items-center">
+<div class="flex bg-gray-700 h-full w-full justify-center items-center">
     <form on:submit|preventDefault={handleSignUp}>
         <fieldset class="fieldset w-md bg-gray-900 p-4 rounded-box">
             <div class="text-xl ">Sign up to Boardly</div>

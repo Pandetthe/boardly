@@ -1,8 +1,7 @@
 <script lang="ts">
-    import PopupAccordion from "$lib/popup/PopupAccordion.svelte";
-    import Popup from "$lib/popup/Popup.svelte";
+    import PopupAccordion from "$lib/components/popup/PopupAccordion.svelte";
+    import Popup from "$lib/components/popup/Popup.svelte";
     import { Check } from "lucide-svelte";
-	import { page } from "$app/state";
 
     export let pages: {
         id: number;

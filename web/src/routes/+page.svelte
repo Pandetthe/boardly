@@ -1,29 +1,36 @@
 <script lang="ts">
-	import ManageBoardPopup from "$lib/popup/ManageBoardPopup.svelte";
-    import BoardCard from "$lib/BoardCard.svelte";
-    import SideBar from "$lib/SideBar.svelte";
+	import ManageBoardPopup from "$lib/components/popup/ManageBoardPopup.svelte";
+    import BoardCard from "$lib/components/BoardCard.svelte";
     import type { PageProps } from './$types';
+	import { onMount } from "svelte";
+	import { invalidate } from "$app/navigation";
 
-    let popup: ManageBoardPopup;
+    let popup: ManageBoardPopup | undefined = $state(undefined);
 	let { data }: PageProps = $props();
+
+    onMount(() => {
+		const interval = setInterval(() => {
+			invalidate('api:boards');
+		}, 60_000);
+
+		return () => clearInterval(interval); 
+	});
 </script>
 
+<ManageBoardPopup bind:this={popup} />
 
-<div class="flex bg-background h-full">
-    <ManageBoardPopup bind:boards={data.boards} bind:this={popup} />
-    <SideBar />
-
-    <div class="overflow-scroll w-full">
-        <div class="w-full p-5 grid grid-cols-[repeat(auto-fill,_minmax(400px,_1fr))] gap-5 h-fit">
-            {#each data.boards as board (board.id)}
-                <BoardCard boardTitle={board.title} boardId={board.id} {popup}/>
+<div class="overflow-auto w-full">
+    <div class="w-full p-5 grid grid-cols-[repeat(auto-fill,_minmax(400px,_1fr))] gap-5 h-fit">
+        {#if data.boards}
+            {#each data.boards as board}
+                <BoardCard board={board} popup={popup}/>
             {/each}
-        </div>
+        {/if}
     </div>
+</div>
 
-    <div class="toast">
-        <button class="btn btn-xl btn-primary rounded-2xl aspect-square " on:click={() => popup.show()}>
-            +
-        </button>
-    </div>
+<div class="toast">
+    <button class="btn btn-xl btn-primary rounded-2xl aspect-square " onclick={() => popup?.show()}>
+        +
+    </button>
 </div>

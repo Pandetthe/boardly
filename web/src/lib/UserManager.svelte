@@ -1,10 +1,5 @@
 <script lang="ts">
-    const users = [
-        { id: 1, name: "janpawseltaszek" },
-        { id: 2, name: "stawkey" },
-        { id: 3, name: "kacper" },
-        { id: 4, name: "adam" }
-    ]
+    const users = [];
 </script>
 
 <div class="h-80 overflow-scroll">

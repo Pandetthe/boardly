@@ -1,8 +1,8 @@
 <script lang="ts">
-    import PopupAccordion from "$lib/popup/PopupAccordion.svelte";
+    import PopupAccordion from "$lib/components/popup/PopupAccordion.svelte";
     import UserFinder from "$lib/UserFinder.svelte";
     import UserManager from "$lib/UserManager.svelte";
-    import Popup from "$lib/popup/Popup.svelte";
+    import Popup from "$lib/components/popup/Popup.svelte";
 	import { page } from "$app/state";
 
     export let pageTags: {

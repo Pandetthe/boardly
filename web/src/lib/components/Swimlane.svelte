@@ -1,7 +1,6 @@
 <script lang="ts">
-    import List from "$lib/List.svelte";
+    import List from "$lib/components/List.svelte";
 	import Card from "$lib/Card.svelte";
-	import ManageCardPopup from "$lib/popup/ManageCardPopup.svelte";
 
     let cardRefs: Record<number, Card> = {};
     export let lists;    
