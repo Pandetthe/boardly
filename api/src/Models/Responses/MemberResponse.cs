@@ -7,15 +7,16 @@ namespace Boardly.Api.Models.Responses;
 public record MemberResponse(
     ObjectId UserId,
     string Nickname,
-    BoardRole Role)
+    BoardRole Role,
+    bool isActive)
 {
     public MemberResponse(MemberWithUser member)
-        : this(member.UserId, member.Nickname, member.Role)
+        : this(member.UserId, member.Nickname, member.Role, member.IsActive)
     {
     }
 
     public MemberResponse(Member member)
-        : this(member.UserId, "", member.Role)
+        : this(member.UserId, "", member.Role, member.IsActive)
     {
     }
 }
