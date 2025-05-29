@@ -39,52 +39,53 @@ public class BoardService
     {
         var pipeline = new[]
         {
-            new BsonDocument("$match", new BsonDocument("Members.UserId", userId)),
-            new BsonDocument("$unwind", "$Members"),
+            new BsonDocument("$unwind", "$members"),
+            new BsonDocument("$match", new BsonDocument("members.userId", userId)),
             new BsonDocument("$lookup", new BsonDocument
             {
                 { "from", "users" },
-                { "localField", "Members.UserId" },
+                { "localField", "members.userId" },
                 { "foreignField", "_id" },
-                { "as", "User" }
+                { "as", "user" }
             }),
-            new BsonDocument("$unwind", "$User"),
+            new BsonDocument("$unwind", "$user"),
             new BsonDocument("$group", new BsonDocument
             {
                 { "_id", "$_id" },
-                { "Title", new BsonDocument("$first", "$Title") },
-                { "Swimlanes", new BsonDocument("$first", "$Swimlanes") },
-                { "CreatedAt", new BsonDocument("$first", "$CreatedAt") },
-                { "UpdatedAt", new BsonDocument("$first", "$UpdatedAt") },
-                { "Members", new BsonDocument("$push", new BsonDocument
+                { "title", new BsonDocument("$first", "$title") },
+                { "swimlanes", new BsonDocument("$first", "$swimlanes") },
+                { "createdAt", new BsonDocument("$first", "$createdAt") },
+                { "updatedAt", new BsonDocument("$first", "$updatedAt") },
+                { "members", new BsonDocument("$push", new BsonDocument
                     {
-                        { "UserId", "$Members.UserId" },
-                        { "Role", "$Members.Role" },
-                        { "IsActive", "$Members.IsActive" },
-                        { "Nickname", "$User.Nickname" }
+                        { "userId", "$members.userId" },
+                        { "role", "$members.role" },
+                        { "isActive", "$members.isActive" },
+                        { "nickname", "$user.nickname" }
                     })
                 }
             })
         };
+
         var documents = await _boardsCollection
             .Aggregate<BsonDocument>(pipeline, cancellationToken: cancellationToken)
             .ToListAsync(cancellationToken);
         return [.. documents.Select(doc => new BoardWithUser
         {
             Id = doc["_id"].AsObjectId,
-            Title = doc["Title"].AsString,
-            Swimlanes = [.. doc["Swimlanes"].AsBsonArray.Select(s => BsonSerializer.Deserialize<Swimlane>(s.AsBsonDocument))],
-            CreatedAt = doc["CreatedAt"].ToUniversalTime(),
-            UpdatedAt = doc["UpdatedAt"].ToUniversalTime(),
-            Members = [.. doc["Members"].AsBsonArray.Select(m =>
+            Title = doc["title"].AsString,
+            Swimlanes = [.. doc["swimlanes"].AsBsonArray.Select(s => BsonSerializer.Deserialize<Swimlane>(s.AsBsonDocument))],
+            CreatedAt = doc["createdAt"].ToUniversalTime(),
+            UpdatedAt = doc["updatedAt"].ToUniversalTime(),
+            Members = [.. doc["members"].AsBsonArray.Select(m =>
             {
                 var member = m.AsBsonDocument;
                 return new MemberWithUser
                 {
-                    UserId = member["UserId"].AsObjectId,
-                    Role = Enum.Parse<BoardRole>(member["Role"].AsString),
-                    IsActive = member["IsActive"].AsBoolean,
-                    Nickname = member["Nickname"].AsString
+                    UserId = member["userId"].AsObjectId,
+                    Role = Enum.Parse<BoardRole>(member["role"].AsString),
+                    IsActive = member["isActive"].AsBoolean,
+                    Nickname = member["nickname"].AsString
                 };
             })]
         })];
