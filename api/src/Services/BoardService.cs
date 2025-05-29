@@ -1,6 +1,8 @@
 ﻿using Boardly.Api.Entities.Board;
 using Boardly.Api.Exceptions;
+using Boardly.Api.Models.Dtos;
 using MongoDB.Bson;
+using MongoDB.Bson.Serialization;
 using MongoDB.Driver;
 
 namespace Boardly.Api.Services;
@@ -33,13 +35,59 @@ public class BoardService
         return board;
     }
 
-    public async Task<IEnumerable<Board>> GetBoardsByUserIdAsync(ObjectId userId, CancellationToken cancellationToken = default)
+    public async Task<IEnumerable<BoardWithUser>> GetBoardsByUserIdAsync(ObjectId userId, CancellationToken cancellationToken = default)
     {
-        var boardsCursor = await _boardsCollection.FindAsync(
-            b => b.Members.Any(x => x.UserId == userId),
-            cancellationToken: cancellationToken
-        );
-        return boardsCursor.ToEnumerable(cancellationToken: cancellationToken);
+        var pipeline = new[]
+        {
+            new BsonDocument("$match", new BsonDocument("Members.UserId", userId)),
+            new BsonDocument("$unwind", "$Members"),
+            new BsonDocument("$lookup", new BsonDocument
+            {
+                { "from", "users" },
+                { "localField", "Members.UserId" },
+                { "foreignField", "_id" },
+                { "as", "User" }
+            }),
+            new BsonDocument("$unwind", "$User"),
+            new BsonDocument("$group", new BsonDocument
+            {
+                { "_id", "$_id" },
+                { "Title", new BsonDocument("$first", "$Title") },
+                { "Swimlanes", new BsonDocument("$first", "$Swimlanes") },
+                { "CreatedAt", new BsonDocument("$first", "$CreatedAt") },
+                { "UpdatedAt", new BsonDocument("$first", "$UpdatedAt") },
+                { "Members", new BsonDocument("$push", new BsonDocument
+                    {
+                        { "UserId", "$Members.UserId" },
+                        { "Role", "$Members.Role" },
+                        { "IsActive", "$Members.IsActive" },
+                        { "Nickname", "$User.Nickname" }
+                    })
+                }
+            })
+        };
+        var documents = await _boardsCollection
+            .Aggregate<BsonDocument>(pipeline, cancellationToken: cancellationToken)
+            .ToListAsync(cancellationToken);
+        return [.. documents.Select(doc => new BoardWithUser
+        {
+            Id = doc["_id"].AsObjectId,
+            Title = doc["Title"].AsString,
+            Swimlanes = [.. doc["Swimlanes"].AsBsonArray.Select(s => BsonSerializer.Deserialize<Swimlane>(s.AsBsonDocument))],
+            CreatedAt = doc["CreatedAt"].ToUniversalTime(),
+            UpdatedAt = doc["UpdatedAt"].ToUniversalTime(),
+            Members = [.. doc["Members"].AsBsonArray.Select(m =>
+            {
+                var member = m.AsBsonDocument;
+                return new MemberWithUser
+                {
+                    UserId = member["UserId"].AsObjectId,
+                    Role = Enum.Parse<BoardRole>(member["Role"].AsString),
+                    IsActive = member["IsActive"].AsBoolean,
+                    Nickname = member["Nickname"].AsString
+                };
+            })]
+        })];
     }
 
     public async Task UpdateBoardAsync(Board board, ObjectId userId, CancellationToken cancellationToken = default)
