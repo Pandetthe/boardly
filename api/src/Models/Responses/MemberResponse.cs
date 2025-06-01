@@ -1,14 +1,22 @@
 ﻿using Boardly.Api.Entities.Board;
+using Boardly.Api.Models.Dtos;
 using MongoDB.Bson;
 
 namespace Boardly.Api.Models.Responses;
 
 public record MemberResponse(
     ObjectId UserId,
-    BoardRole Role)
+    string Nickname,
+    BoardRole Role,
+    bool isActive)
 {
+    public MemberResponse(MemberWithUser member)
+        : this(member.UserId, member.Nickname, member.Role, member.IsActive)
+    {
+    }
+
     public MemberResponse(Member member)
-        : this(member.UserId, member.Role)
+        : this(member.UserId, "", member.Role, member.IsActive)
     {
     }
 }

@@ -11,5 +11,4 @@ public class Member
     public bool IsActive { get; set; }
 
     public override int GetHashCode() => UserId.GetHashCode();
-
 }

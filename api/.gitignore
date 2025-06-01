@@ -6,6 +6,11 @@
 # dotenv files
 .env
 
+# Configuration files
+*.Development.json
+*.Staging.json
+*.Production.json
+
 # User-specific files
 *.rsuser
 *.suo

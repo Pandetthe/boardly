@@ -29,6 +29,7 @@ public class ExceptionHandler(IProblemDetailsService problemDetailsService) : IE
         if (problemDetails.Status == StatusCodes.Status500InternalServerError)
             return false;
 
+        httpContext.Response.StatusCode = problemDetails.Status.Value;
         return await problemDetailsService.TryWriteAsync(new ProblemDetailsContext
         {
             Exception = exception,

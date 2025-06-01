@@ -30,7 +30,7 @@ public class Program
         {
             logger.Debug("Building web application...");
             WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
-
+            
             builder.Configuration
                 .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
                 .AddJsonFile($"appsettings.{builder.Environment.EnvironmentName}.json", optional: true)
@@ -47,22 +47,22 @@ public class Program
             builder.Services.AddSingleton<BoardService>();
             builder.Services.AddSingleton<SwimlaneService>();
             builder.Services.AddSingleton<ListService>();
+            builder.Services.AddSingleton<TokenService>();
 
             builder.Services.AddControllers(options =>
             {
                 options.ModelBinderProviders.Insert(0, new ObjectIdModelBinderProvider());
             })
-                .AddJsonOptions(options =>
-                {
-                    options.JsonSerializerOptions.Converters.Add(new ObjectIdJsonConverter());
-                    options.JsonSerializerOptions.Converters.Add(
-                        new JsonStringEnumConverter(JsonNamingPolicy.CamelCase, false)
-                    );
-                });
+            .AddJsonOptions(options =>
+            {
+                options.JsonSerializerOptions.Converters.Add(new ObjectIdJsonConverter());
+                options.JsonSerializerOptions.Converters.Add(
+                    new JsonStringEnumConverter(allowIntegerValues: false)
+                );
+            });
 
             builder.WebHost.ConfigureKestrel(options => options.AddServerHeader = false);
 
-            builder.Services.AddSingleton<TokenService>();
             builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
                 .AddJwtBearer(options =>
                 {
@@ -83,14 +83,13 @@ public class Program
                 options.AddSchemaTransformer<ObjectIdSchemaTransformer>();
                 options.AddDocumentTransformer<BaseInfoDocumentTransformer>();
                 options.AddDocumentTransformer<BearerSecurityDocumentTransformer>();
+                options.AddSchemaTransformer<EnumAsStringSchemaTransformer>();
             });
             builder.Services.AddProblemDetails();
             builder.Services.AddExceptionHandler<ExceptionHandler>();
 
             WebApplication app = builder.Build();
             logger.Debug("Web application built successfully");
-            app.UseExceptionHandler();
-            app.UseStatusCodePages();
             if (app.Environment.IsDevelopment())
             {
                 app.MapOpenApi();
@@ -99,7 +98,7 @@ public class Program
                     options.AddHttpAuthentication("BearerAuth", scheme => {});
                 });
             }
-
+            app.UseExceptionHandler();
             app.UseHttpsRedirection();
             app.UseAuthentication();
             app.UseAuthorization();

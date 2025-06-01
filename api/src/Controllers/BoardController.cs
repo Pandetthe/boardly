@@ -1,5 +1,6 @@
 ﻿using Boardly.Api.Entities.Board;
 using Boardly.Api.Exceptions;
+using Boardly.Api.Models.Dtos;
 using Boardly.Api.Models.Requests;
 using Boardly.Api.Models.Responses;
 using Boardly.Api.Services;
@@ -23,7 +24,7 @@ public class BoardController(BoardService boardService) : ControllerBase
     public async Task<IActionResult> GetAllBoardsAsync(CancellationToken cancellationToken)
     {
         ObjectId userId = ObjectId.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
-        List<Board> boards = [.. await _boardService.GetBoardsByUserIdAsync(userId, cancellationToken)];
+        List<BoardWithUser> boards = [.. await _boardService.GetBoardsByUserIdAsync(userId, cancellationToken)];
         return Ok(boards.Select(x => new BoardResponse(x)).ToList());
     }
 

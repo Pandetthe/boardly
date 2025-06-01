@@ -1,4 +1,6 @@
-﻿using System.ComponentModel.DataAnnotations;
+﻿using Boardly.Api.Entities.Board;
+using MongoDB.Bson;
+using System.ComponentModel.DataAnnotations;
 
 namespace Boardly.Api.Models.Requests;
 
@@ -8,5 +10,16 @@ public class UpdateBoardRequest
     public string Title { get; init; } = null!;
 
     [Required]
-    public HashSet<CreateRequestMember> Members { get; init; } = [];
+    public HashSet<UpdateRequestMember> Members { get; init; } = [];
+}
+
+public class UpdateRequestMember
+{
+    [Required]
+    public ObjectId UserId { get; init; }
+
+    [Required]
+    public BoardRole Role { get; init; }
+
+    public override int GetHashCode() => UserId.GetHashCode();
 }
