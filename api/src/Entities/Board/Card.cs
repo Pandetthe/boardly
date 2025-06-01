@@ -1,7 +1,7 @@
 ﻿using MongoDB.Bson;
 using MongoDB.Bson.Serialization.Attributes;
 
-namespace Boardly.Api.Entities;
+namespace Boardly.Api.Entities.Board;
 
 public class Card
 {
@@ -17,12 +17,12 @@ public class Card
 
     public string? Description { get; set; }
 
-    [BsonDateTimeOptions(Kind = DateTimeKind.Utc, DateOnly = true)]
-    public DateOnly? DueDate { get; set; }
+    [BsonDateTimeOptions(Kind = DateTimeKind.Utc)]
+    public DateTime? DueDate { get; set; }
 
-    public List<ObjectId> AssignedUsers { get; set; } = [];
+    public HashSet<ObjectId> AssignedUsers { get; set; } = [];
 
-    public List<ObjectId> Tags { get; set; } = [];
+    public HashSet<ObjectId> Tags { get; set; } = [];
 
     [BsonDateTimeOptions(Kind = DateTimeKind.Utc)]
     public DateTime CreatedAt { get; init; } = DateTime.UtcNow;

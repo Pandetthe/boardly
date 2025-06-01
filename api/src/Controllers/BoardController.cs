@@ -1,5 +1,4 @@
 ﻿using Boardly.Api.Entities.Board;
-using Boardly.Api.Entities.Board.Tag;
 using Boardly.Api.Exceptions;
 using Boardly.Api.Models.Requests;
 using Boardly.Api.Models.Responses;
@@ -68,7 +67,6 @@ public class BoardController(BoardService boardService) : ControllerBase
         var swimlanes = data.Swimlanes?.Select(swimlane => new Swimlane
         {
             Title = swimlane.Title,
-            Description = swimlane.Description,
             Tags = swimlane.Tags?.Select(tag => new Tag
             {
                 Title = tag.Title,
@@ -77,7 +75,6 @@ public class BoardController(BoardService boardService) : ControllerBase
             Lists = swimlane.Lists?.Select(list => new List
             {
                 Title = list.Title,
-                Description = list.Description,
                 MaxWIP = list.MaxWIP,
             }).ToList() ?? [],
         }).ToHashSet() ?? [];

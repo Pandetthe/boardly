@@ -1,13 +1,13 @@
-﻿using Boardly.Api.Entities.Board;
-using Boardly.Api.Entities.Board.Tag;
+﻿using Boardly.Api.Entities;
+using Boardly.Api.Entities.Board;
 using System.ComponentModel.DataAnnotations;
 
 namespace Boardly.Api.Models.Requests;
 
-public class CreateRequestTag
+public class CreateTagRequest
 {
     [Required]
     public string Title { get; init; } = null!;
 
-    public TagColor? Color { get; init; }
+    public Color? Color { get; init; }
 }
