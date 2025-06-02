@@ -51,7 +51,7 @@ public class UserService(MongoDbProvider mongoDbProvider, ILogger<UserService> l
             ? Builders<User>.Filter.Empty
             : Builders<User>.Filter.Regex(u => u.Nickname, new BsonRegularExpression($".*{Regex.Escape(nickname)}.*", "i"));
 
-        return await _usersCollection.Find(filter).ToListAsync(cancellationToken);
+        return await _usersCollection.Find(filter).Limit(10).ToListAsync(cancellationToken);
     }
 
     public async Task<User?> GetUserByIdAsync(ObjectId id, CancellationToken cancellationToken = default)
