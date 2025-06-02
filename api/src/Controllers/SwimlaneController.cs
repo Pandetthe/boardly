@@ -1,5 +1,4 @@
 ﻿using Boardly.Api.Entities.Board;
-using Boardly.Api.Entities.Board.Tag;
 using Boardly.Api.Exceptions;
 using Boardly.Api.Models.Requests;
 using Boardly.Api.Models.Responses;
@@ -45,13 +44,12 @@ public class SwimlaneController(SwimlaneService swimlaneService) : ControllerBas
     [HttpPost]
     [Consumes("application/json")]
     [ProducesResponseType(typeof(IdResponse), StatusCodes.Status200OK, "application/json")]
-    public async Task<IActionResult> CreateSwimlaneAsync(ObjectId boardId, [FromBody] CreateRequestSwimlane data, CancellationToken cancellationToken)
+    public async Task<IActionResult> CreateSwimlaneAsync(ObjectId boardId, [FromBody] CreateSwimlaneRequest data, CancellationToken cancellationToken)
     {
         ObjectId userId = ObjectId.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
         var swimlane = new Swimlane
         {
             Title = data.Title,
-            Description = data.Description,
             Tags = data.Tags?.Select(tag => new Tag
             {
                 Title = tag.Title,
@@ -60,7 +58,6 @@ public class SwimlaneController(SwimlaneService swimlaneService) : ControllerBas
             Lists = data.Lists?.Select(list => new List
             {
                 Title = list.Title,
-                Description = list.Description,
                 MaxWIP = list.MaxWIP,
             }).ToList() ?? [],
         };
@@ -72,14 +69,13 @@ public class SwimlaneController(SwimlaneService swimlaneService) : ControllerBas
     [HttpPatch("{swimlaneId}")]
     [Consumes("application/json")]
     [ProducesResponseType(typeof(MessageResponse), StatusCodes.Status200OK, "application/json")]
-    public async Task<IActionResult> UpdateSwimlaneAsync(ObjectId boardId, ObjectId swimlaneId, [FromBody] CreateRequestSwimlane data, CancellationToken cancellationToken)
+    public async Task<IActionResult> UpdateSwimlaneAsync(ObjectId boardId, ObjectId swimlaneId, [FromBody] CreateSwimlaneRequest data, CancellationToken cancellationToken)
     {
         ObjectId userId = ObjectId.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
         var swimlane = new Swimlane
         {
             Id = swimlaneId,
             Title = data.Title,
-            Description = data.Description,
             Tags = data.Tags?.Select(tag => new Tag
             {
                 Title = tag.Title,
@@ -88,7 +84,6 @@ public class SwimlaneController(SwimlaneService swimlaneService) : ControllerBas
             Lists = data.Lists?.Select(list => new List
             {
                 Title = list.Title,
-                Description = list.Description,
                 MaxWIP = list.MaxWIP,
             }).ToList() ?? [],
         };

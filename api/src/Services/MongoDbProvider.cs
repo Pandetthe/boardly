@@ -36,6 +36,8 @@ public class MongoDbProvider : IDisposable
     public IMongoCollection<RefreshToken> GetRefreshTokensCollection() => Database.GetCollection<RefreshToken>("refreshTokens");
 
     public IMongoCollection<Board> GetBoardsCollection() => Database.GetCollection<Board>("boards");
+    
+    public IMongoCollection<Card> GetCardsCollection() => Database.GetCollection<Card>("cards");
 
     public void Dispose()
     {

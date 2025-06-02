@@ -1,5 +1,4 @@
-﻿using Boardly.Api.Entities.Board.Tag;
-using MongoDB.Bson;
+﻿using MongoDB.Bson;
 
 namespace Boardly.Api.Entities.Board;
 
@@ -11,7 +10,7 @@ public class Swimlane
 
     public string? Description { get; set; }
 
-    public List<Tag.Tag> Tags { get; set; } = [];
+    public List<Tag> Tags { get; set; } = [];
 
     public List<List> Lists { get; set; } = [];
 

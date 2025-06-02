@@ -1,11 +1,10 @@
-﻿using System.ComponentModel.DataAnnotations;
-
-namespace Boardly.Api.Models.Requests;
+﻿namespace Boardly.Api.Models.Requests;
 
 public class UpdateSwimlaneRequest
 {
-    [Required]
-    public string Title { get; init; } = null!;
+    public string? Title { get; init; }
 
-    public string? Description { get; init; }
+    public List<UpdateTagRequest>? Tags { get; init; }
+
+    public List<CreateUpdateListRequest>? Lists { get; init; }
 }
