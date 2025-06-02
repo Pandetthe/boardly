@@ -2,6 +2,7 @@ using Boardly.Api.Binders;
 using Boardly.Api.Converters;
 using Boardly.Api.Entities;
 using Boardly.Api.Exceptions;
+using Boardly.Api.Hubs;
 using Boardly.Api.OpenAPI;
 using Boardly.Api.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -103,6 +104,7 @@ public class Program
             app.UseAuthentication();
             app.UseAuthorization();
             app.MapControllers();
+            app.MapHub<ChatHub>("/chathub");
 
             app.Lifetime.ApplicationStarted.Register(() =>
             {
