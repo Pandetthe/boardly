@@ -17,7 +17,7 @@
         <li>
           <button
             class="tooltip tooltip-right"
-            onclick={() => fetch('/auth/signout', { method: 'POST' }).then(() => goto('/signin', { invalidateAll: true }))}
+            onclick={() => fetch('/api/auth/signout', { method: 'POST' }).then(() => goto('/signin', { invalidateAll: true }))}
           >
             Sign out
           </button>

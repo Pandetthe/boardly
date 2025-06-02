@@ -2,7 +2,7 @@
 	import GeoPattern from 'geopattern';
 	import { Menu } from "lucide-svelte";
 	import ManageBoardPopup from '$lib/components/popup/ManageBoardPopup.svelte';
-	import { goto } from '$app/navigation';
+	import { goto, invalidate } from '$app/navigation';
 	import type { Board } from '$lib/types/api/boards';
 
     export let board: Board;
@@ -31,7 +31,8 @@
 		return colors[index];
 	}
 
-	function showPopup(e: MouseEvent) {
+	async function showPopup(e: MouseEvent) {
+		await invalidate('api:boards');
 		popup.show(board);
 		e.stopPropagation();
 	}

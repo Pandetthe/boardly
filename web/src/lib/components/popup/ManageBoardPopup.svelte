@@ -12,7 +12,7 @@
     let currentBoardId: string | null = $state(null);
     let boardNameInvalid = $state(false);
 
-    export function show(board: Board | null = null) {
+    export async function show(board: Board | null = null) {
         boardNameInvalid = false;
         visible = true;
         isEditMode = board !== null;
@@ -35,7 +35,7 @@
             headers: {
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify({ title: currentBoard.title, members: currentBoard.members } as CreateBoardRequest)
+            body: JSON.stringify({ title: currentBoard.title, members: currentBoard.members.map(x => ({ userId: x.userId, role: x.role })) } as CreateBoardRequest)
         });
         await invalidate('api:boards');
         visible = false;
