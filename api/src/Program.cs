@@ -41,6 +41,17 @@ public class Program
                 .ReadFrom.Services(services));
 
             builder.Services.AddSignalR();
+            builder.Services.AddCors(options =>
+            {
+                options.AddDefaultPolicy(policy =>
+                {
+                    policy
+                        .SetIsOriginAllowed(_ => true) 
+                        .AllowAnyHeader()
+                        .AllowAnyMethod()
+                        .AllowCredentials();
+                });
+            });
             builder.Services.AddSingleton<IPasswordHasher<User>, PasswordHasher<User>>();
             builder.Services.AddSingleton<MongoDbProvider>();
             builder.Services.AddHostedService<MongoDbMigrationService>();
@@ -99,6 +110,7 @@ public class Program
                     options.AddHttpAuthentication("BearerAuth", scheme => {});
                 });
             }
+            app.UseCors();
             app.UseExceptionHandler();
             app.UseHttpsRedirection();
             app.UseAuthentication();
