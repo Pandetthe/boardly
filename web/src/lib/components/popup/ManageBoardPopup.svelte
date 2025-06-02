@@ -1,7 +1,7 @@
 <script lang="ts">
-    import UserFinder from "$lib/UserFinder.svelte";
+    import UserFinder from "$lib/components/UserFinder.svelte";
 	import PopupAccordion from "$lib/components/popup/PopupAccordion.svelte";
-	import UserManager from "$lib/UserManager.svelte";
+	import UserManager from "$lib/components/UserManager.svelte";
     import Popup from "$lib/components/popup/Popup.svelte";
 	import type { Board, CreateBoardRequest, UpdateBoardRequest } from "$lib/types/api/boards";
 	import { invalidate } from "$app/navigation";

@@ -1,7 +1,7 @@
 <script lang="ts">
     import PopupAccordion from "$lib/components/popup/PopupAccordion.svelte";
-    import UserFinder from "$lib/UserFinder.svelte";
-    import UserManager from "$lib/UserManager.svelte";
+    import UserFinder from "$lib/components/UserFinder.svelte";
+    import UserManager from "$lib/components/UserManager.svelte";
     import Popup from "$lib/components/popup/Popup.svelte";
 	import { page } from "$app/state";
 

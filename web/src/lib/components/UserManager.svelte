@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { User } from "./types/api/users";
+	import type { User } from "../types/api/users";
 
     const users: User[] = [];
 </script>
