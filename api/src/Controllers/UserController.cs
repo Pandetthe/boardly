@@ -28,6 +28,15 @@ public class UserController(UserService userService) : ControllerBase
         return Ok(new UserResponse(user));
     }
 
+    [HttpGet]
+    [ProducesResponseType(typeof(List<UserResponse>), StatusCodes.Status200OK, "application/json")]
+    public async Task<IActionResult> GetAllUsersAsync([FromQuery] string? username,  CancellationToken cancellationToken)
+    {
+        ObjectId userId = ObjectId.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
+        List<User> users = await _userService.FindUserAsync(username, cancellationToken);
+        return Ok(users.Select(x => new UserResponse(x)));
+    }
+
     [HttpGet("{userId}")]
     [ProducesResponseType(typeof(UserResponse), StatusCodes.Status200OK, "application/json")]
     [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest, "application/problem+json")]
