@@ -96,7 +96,7 @@ public class Program
                             var accessToken = context.Request.Query["access_token"];
                             var path = context.HttpContext.Request.Path;
                             if (!string.IsNullOrEmpty(accessToken) &&
-                                (path.StartsWithSegments("/chathub")))
+                                (path.StartsWithSegments("/hubs")))
                             {
                                 context.Token = accessToken;
                             }
@@ -130,7 +130,8 @@ public class Program
             app.UseAuthentication();
             app.UseAuthorization();
             app.MapControllers();
-            app.MapHub<ChatHub>("/chathub");
+            app.MapHub<ChatHub>("/hubs/chathub");
+            app.MapHub<UnauthChatHub>("/hubs/unauthchathub");
 
             app.Lifetime.ApplicationStarted.Register(() =>
             {
