@@ -11,7 +11,7 @@ public class CreateBoardRequest
 
     public HashSet<CreateRequestMember>? Members { get; init; }
 
-    public List<CreateRequestSwimlane>? Swimlanes { get; init; }
+    public List<CreateSwimlaneRequest>? Swimlanes { get; init; }
 }
 
 public class CreateRequestMember

@@ -44,13 +44,12 @@ public class ListController(ListService listService) : ControllerBase
     [HttpPost]
     [Consumes("application/json")]
     [ProducesResponseType(typeof(IdResponse), StatusCodes.Status200OK, "application/json")]
-    public async Task<IActionResult> CreateListAsync(ObjectId boardId, ObjectId swimlaneId, CreateUpdateRequestList data, CancellationToken cancellationToken)
+    public async Task<IActionResult> CreateListAsync(ObjectId boardId, ObjectId swimlaneId, CreateUpdateListRequest data, CancellationToken cancellationToken)
     {
         ObjectId userId = ObjectId.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
         var list = new List
         {
             Title = data.Title,
-            Description = data.Description,
             MaxWIP = data.MaxWIP,
         };
 
@@ -60,15 +59,14 @@ public class ListController(ListService listService) : ControllerBase
 
     [HttpPatch("{listId}")]
     [Consumes("application/json")]
-    [ProducesResponseType(typeof(IdResponse), StatusCodes.Status200OK, "application/json")]
-    public async Task<IActionResult> UpdateListAsync(ObjectId boardId, ObjectId swimlaneId, ObjectId listId, CreateUpdateRequestList data, CancellationToken cancellationToken)
+    [ProducesResponseType(typeof(MessageResponse), StatusCodes.Status200OK, "application/json")]
+    public async Task<IActionResult> UpdateListAsync(ObjectId boardId, ObjectId swimlaneId, ObjectId listId, CreateUpdateListRequest data, CancellationToken cancellationToken)
     {
         ObjectId userId = ObjectId.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
         var list = new List
         {
             Id = listId,
             Title = data.Title,
-            Description = data.Description,
             MaxWIP = data.MaxWIP,
         };
 

@@ -1,6 +1,6 @@
 ﻿using MongoDB.Bson;
 
-namespace Boardly.Api.Entities.Board.Tag;
+namespace Boardly.Api.Entities.Board;
 
 public class Tag
 {
@@ -8,7 +8,7 @@ public class Tag
 
     public string Title { get; set; } = null!;
 
-    public TagColor? Color { get; set; }
+    public Color? Color { get; set; }
 
     public override int GetHashCode() => Id.GetHashCode();
 }

@@ -1,6 +1,6 @@
-﻿namespace Boardly.Api.Entities.Board.Tag;
+﻿namespace Boardly.Api.Entities;
 
-public enum TagColor
+public enum Color
 {
     Red,
     Green,
