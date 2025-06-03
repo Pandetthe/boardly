@@ -34,6 +34,7 @@ public class BoardHub : Hub
         }
 
         await _boardService.ChangeUserActivity(boardId, userId, true);
+        await Groups.AddToGroupAsync(Context.ConnectionId, boardId.ToString());
         await base.OnConnectedAsync();
     }
 
@@ -42,7 +43,10 @@ public class BoardHub : Hub
         ObjectId userId = ObjectId.Parse(Context.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value);
         string? boardIdString = Context.GetHttpContext()?.Request.Query["boardId"];
         if (ObjectId.TryParse(boardIdString, out ObjectId boardId))
+        {
             await _boardService.ChangeUserActivity(boardId, userId, false);
+            await Groups.RemoveFromGroupAsync(Context.ConnectionId, boardId.ToString());
+        }
 
         await base.OnDisconnectedAsync(exception);
     }

@@ -5,11 +5,26 @@ using MongoDB.Driver;
 
 namespace Boardly.Api.Services;
 
-public class CardService(MongoDbProvider mongoDbProvider, ILogger<BoardService> logger)
+public class CardService
 {
-    private readonly IMongoCollection<Card> _cardsCollection = mongoDbProvider.GetCardsCollection();
-    private readonly IMongoCollection<Board> _boardsCollection = mongoDbProvider.GetBoardsCollection();
-    private readonly ILogger<BoardService> _logger = logger;
+    private readonly IMongoCollection<Card> _cardsCollection;
+    private readonly IMongoCollection<Board> _boardsCollection;
+    
+
+    public CardService(MongoDbProvider mongoDbProvider)
+    {
+        _cardsCollection = mongoDbProvider.GetCardsCollection();
+        _boardsCollection = mongoDbProvider.GetBoardsCollection();
+    }
+
+    public async Task<IEnumerable<Card>> GetCardsByBoardIdAsync(ObjectId boardId, ObjectId userId, CancellationToken cancellationToken = default)
+    {
+        Board board = await _boardsCollection.Find(x => x.Id == boardId).FirstOrDefaultAsync(cancellationToken)
+            ?? throw new RecordDoesNotExist("Board has not been found.");
+        if (board.Members.All(x => x.UserId != userId))
+            throw new ForbidenException("User is not a member of this board.");
+        return await _cardsCollection.Find(x => x.BoardId == boardId).ToListAsync(cancellationToken);
+    }
 
     public async Task<Card?> GetCardByIdAsync(ObjectId cardId, ObjectId userId, CancellationToken cancellationToken = default)
     {

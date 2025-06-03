@@ -1,11 +1,13 @@
 ﻿using Boardly.Api.Entities.Board;
 using Boardly.Api.Exceptions;
+using Boardly.Api.Hubs;
 using Boardly.Api.Models.Dtos;
 using Boardly.Api.Models.Requests;
 using Boardly.Api.Models.Responses;
 using Boardly.Api.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.SignalR;
 using MongoDB.Bson;
 using System.Security.Claims;
 
@@ -15,9 +17,18 @@ namespace Boardly.Api.Controllers;
 [Route("boards"), Authorize]
 [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized, "application/problem+json")]
 [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError, "application/problem+json")]
-public class BoardController(BoardService boardService) : ControllerBase
+public class BoardController : ControllerBase
 {
-    private readonly BoardService _boardService = boardService;
+    private readonly BoardService _boardService;
+    private readonly IHubContext<BoardHub> _hubContext;
+
+    public BoardController(
+        BoardService boardService,
+        IHubContext<BoardHub> hubContext)
+    {
+        _boardService = boardService;
+        _hubContext = hubContext;
+    }
 
     [HttpGet]
     [ProducesResponseType(typeof(List<BoardResponse>), StatusCodes.Status200OK, "application/json")]

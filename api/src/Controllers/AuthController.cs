@@ -6,7 +6,6 @@ using Boardly.Api.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using MongoDB.Bson;
-using System.Runtime.Intrinsics.Arm;
 using System.Security.Claims;
 
 namespace Boardly.Api.Controllers;
@@ -15,10 +14,16 @@ namespace Boardly.Api.Controllers;
 [Route("auth")]
 [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized, "application/problem+json")]
 [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError, "application/problem+json")]
-public class AuthController(UserService userService, TokenService tokenService) : ControllerBase
+public class AuthController : ControllerBase
 {
-    private readonly UserService _userService = userService;
-    private readonly TokenService _tokenService = tokenService;
+    private readonly UserService _userService;
+    private readonly TokenService _tokenService;
+
+    public AuthController(UserService userService, TokenService tokenService)
+    {
+        _userService = userService;
+        _tokenService = tokenService;
+    }
 
     [HttpPost("signin")]
     [Consumes("application/json")]
@@ -34,9 +39,9 @@ public class AuthController(UserService userService, TokenService tokenService) 
                 (string accessToken, DateTime accessTokenExpiresAt, string refreshToken, DateTime refreshTokenExpiresAt)
                     = await _tokenService.GenerateAndStoreTokensAsync(user, cancellationToken);
                 return Ok(new AuthResponse(
-                    accessToken, 
+                    accessToken,
                     CalculateExpiryInSeconds(accessTokenExpiresAt),
-                    refreshToken, 
+                    refreshToken,
                     CalculateExpiryInSeconds(refreshTokenExpiresAt)
                 ));
             }
