@@ -23,6 +23,15 @@ public class CreateRequestMember
     public CreateRequestBoardRole Role { get; init; }
 
     public override int GetHashCode() => UserId.GetHashCode();
+
+    public override bool Equals(object? obj)
+    {
+        if (obj is CreateRequestMember other)
+        {
+            return UserId == other.UserId;
+        }
+        return false;
+    }
 }
 
 public enum CreateRequestBoardRole

@@ -11,4 +11,13 @@ public class Member
     public bool IsActive { get; set; }
 
     public override int GetHashCode() => UserId.GetHashCode();
+
+    public override bool Equals(object? obj)
+    {
+        if (obj is Member other)
+        {
+            return UserId == other.UserId;
+        }
+        return false;
+    }
 }

@@ -15,4 +15,13 @@ public class Swimlane
     public List<List> Lists { get; set; } = [];
 
     public override int GetHashCode() => Id.GetHashCode();
+
+    public override bool Equals(object? obj)
+    {
+        if (obj is Swimlane other)
+        {
+            return Id == other.Id;
+        }
+        return false;
+    }
 }

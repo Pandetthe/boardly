@@ -15,4 +15,13 @@ public class List
     public int? MaxWIP { get; set; }
 
     public override int GetHashCode() => Id.GetHashCode();
+
+    public override bool Equals(object? obj)
+    {
+        if (obj is List other)
+        {
+            return Id == other.Id;
+        }
+        return false;
+    }
 }

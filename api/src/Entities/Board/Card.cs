@@ -29,4 +29,15 @@ public class Card
 
     [BsonDateTimeOptions(Kind = DateTimeKind.Utc)]
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
+
+    public override int GetHashCode() => Id.GetHashCode();
+
+    public override bool Equals(object? obj)
+    {
+        if (obj is Card other)
+        {
+            return Id == other.Id;
+        }
+        return false;
+    }
 }

@@ -22,4 +22,13 @@ public class UpdateRequestMember
     public BoardRole Role { get; init; }
 
     public override int GetHashCode() => UserId.GetHashCode();
+
+    public override bool Equals(object? obj)
+    {
+        if (obj is UpdateRequestMember other)
+        {
+            return UserId == other.UserId;
+        }
+        return false;
+    }
 }

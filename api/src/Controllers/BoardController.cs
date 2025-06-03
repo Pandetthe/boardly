@@ -100,7 +100,7 @@ public class BoardController(BoardService boardService) : ControllerBase
     public async Task<IActionResult> UpdateBoardAsync(ObjectId boardId, [FromBody] UpdateBoardRequest data, CancellationToken cancellationToken)
     {
         ObjectId userId = ObjectId.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
-        var members = data.Members.Select(x => new Member { UserId =  x.UserId, Role = (BoardRole)x.Role }).ToHashSet();
+        var members = data.Members.Select(x => new Member { UserId =  x.UserId, Role = x.Role }).ToHashSet();
 
         if (!ModelState.IsValid)
             return ValidationProblem(ModelState);
