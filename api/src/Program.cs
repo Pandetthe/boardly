@@ -59,6 +59,7 @@ public class Program
             builder.Services.AddSingleton<BoardService>();
             builder.Services.AddSingleton<SwimlaneService>();
             builder.Services.AddSingleton<ListService>();
+            builder.Services.AddSingleton<CardService>();
             builder.Services.AddSingleton<TokenService>();
 
             builder.Services.AddControllers(options =>
