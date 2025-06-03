@@ -7,11 +7,11 @@ const UNAUTH_ONLY_ROUTES: string[] = ['/signin', '/signup'];
 
 export const handle: Handle = async ({ event, resolve }) => {
 	const { pathname, origin } = event.url;
-	if (pathname.startsWith('/api/auth/')) {
+	if (pathname.startsWith('/api')) {
 		return resolve(event);
 	}
-	let accessToken = event.cookies.get('accessToken');
-	let refreshToken = event.cookies.get('refreshToken');
+	let accessToken = event.cookies.get('access_token');
+	let refreshToken = event.cookies.get('refresh_token');
 	if (!accessToken && refreshToken) {
         try {
             const res = await fetch(`${env.API_SERVER}/auth/refresh`, {
@@ -23,14 +23,15 @@ export const handle: Handle = async ({ event, resolve }) => {
                 const data = await res.json() as AuthResponse;
                 accessToken = data.accessToken;
                 refreshToken = data.refreshToken;
-                event.cookies.set('accessToken', accessToken, {
+                event.cookies.set('access_token', accessToken, {
+                    httpOnly: true,
                     secure: true,
                     sameSite: 'strict',
                     maxAge: data.accessTokenExpiresIn,
                     path: '/',
                 });
             
-                event.cookies.set('refreshToken', refreshToken, {
+                event.cookies.set('refresh_token', refreshToken, {
                     httpOnly: true, 
                     secure: true, 
                     sameSite: 'strict', 
@@ -39,13 +40,13 @@ export const handle: Handle = async ({ event, resolve }) => {
                 });
             }
             if (res.status === 401) {
-                event.cookies.delete('accessToken', {
+                event.cookies.delete('access_token', {
                     httpOnly: true,
                     secure: true,
                     sameSite: 'strict',
                     path: '/',
                 });
-                event.cookies.delete('refreshToken', {
+                event.cookies.delete('refresh_token', {
                     httpOnly: true,
                     secure: true,
                     sameSite: 'strict',

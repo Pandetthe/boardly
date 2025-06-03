@@ -2,6 +2,7 @@ using Boardly.Api.Binders;
 using Boardly.Api.Converters;
 using Boardly.Api.Entities;
 using Boardly.Api.Exceptions;
+using Boardly.Api.Hubs;
 using Boardly.Api.OpenAPI;
 using Boardly.Api.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -40,6 +41,17 @@ public class Program
                 .ReadFrom.Services(services));
 
             builder.Services.AddSignalR();
+            builder.Services.AddCors(options =>
+            {
+                options.AddDefaultPolicy(policy =>
+                {
+                    policy
+                        .SetIsOriginAllowed(_ => true) 
+                        .AllowAnyHeader()
+                        .AllowAnyMethod()
+                        .AllowCredentials();
+                });
+            });
             builder.Services.AddSingleton<IPasswordHasher<User>, PasswordHasher<User>>();
             builder.Services.AddSingleton<MongoDbProvider>();
             builder.Services.AddHostedService<MongoDbMigrationService>();
@@ -77,6 +89,20 @@ public class Program
                         IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"]
                             ?? throw new NullReferenceException("Jwt key must be provided!")))
                     };
+                    options.Events = new JwtBearerEvents
+                    {
+                        OnMessageReceived = context =>
+                        {
+                            var accessToken = context.Request.Query["access_token"];
+                            var path = context.HttpContext.Request.Path;
+                            if (!string.IsNullOrEmpty(accessToken) &&
+                                (path.StartsWithSegments("/hubs")))
+                            {
+                                context.Token = accessToken;
+                            }
+                            return Task.CompletedTask;
+                        }
+                    };
                 });
             builder.Services.AddOpenApi(options =>
             {
@@ -98,11 +124,14 @@ public class Program
                     options.AddHttpAuthentication("BearerAuth", scheme => {});
                 });
             }
+            app.UseCors();
             app.UseExceptionHandler();
             app.UseHttpsRedirection();
             app.UseAuthentication();
             app.UseAuthorization();
             app.MapControllers();
+            app.MapHub<ChatHub>("/hubs/chathub");
+            app.MapHub<UnauthChatHub>("/hubs/unauthchathub");
 
             app.Lifetime.ApplicationStarted.Register(() =>
             {

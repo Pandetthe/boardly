@@ -3,6 +3,7 @@ using Boardly.Api.Exceptions;
 using Microsoft.AspNetCore.Identity;
 using MongoDB.Bson;
 using MongoDB.Driver;
+using System.Text.RegularExpressions;
 
 namespace Boardly.Api.Services;
 
@@ -42,6 +43,15 @@ public class UserService(MongoDbProvider mongoDbProvider, ILogger<UserService> l
     public async Task<User?> GetUserByNicknameAsync(string nickname, CancellationToken cancellationToken = default)
     {
         return await _usersCollection.Find(u => u.Nickname == nickname, null).FirstOrDefaultAsync(cancellationToken);
+    }
+
+    public async Task<List<User>> FindUserAsync(string? nickname, CancellationToken cancellationToken = default)
+    {
+        var filter = string.IsNullOrWhiteSpace(nickname)
+            ? Builders<User>.Filter.Empty
+            : Builders<User>.Filter.Regex(u => u.Nickname, new BsonRegularExpression($".*{Regex.Escape(nickname)}.*", "i"));
+
+        return await _usersCollection.Find(filter).Limit(10).ToListAsync(cancellationToken);
     }
 
     public async Task<User?> GetUserByIdAsync(ObjectId id, CancellationToken cancellationToken = default)
