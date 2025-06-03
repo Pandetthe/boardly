@@ -8,7 +8,7 @@ export const load = (async ({ cookies, params }) => {
     if (!accessToken)
         throw new Error('Unauthorized: No access token found');
     try {
-        const res = await fetch(new URL(`boards/${params.board}`, env.API_SERVER), {
+        const res = await fetch(new URL(`boards/${params.board}`, env.VITE_API_SERVER), {
             method: 'GET',
             headers: {
                 'Content-Type': 'application/json',

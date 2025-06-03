@@ -4,7 +4,7 @@ export async function POST({ cookies }) {
     const accessToken = cookies.get('access_token');
     if (!accessToken)
         throw new Error('Unauthorized: No access token found');
-    const res = await fetch(`${env.API_SERVER}/auth/revoke`, {
+    const res = await fetch(new URL('/auth/revoke', env.VITE_API_SERVER), {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
