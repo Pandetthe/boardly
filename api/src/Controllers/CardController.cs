@@ -25,7 +25,7 @@ public class CardController : ControllerBase
     }
 
     [HttpGet]
-    [ProducesResponseType(typeof(CardResponse), StatusCodes.Status200OK, "application/json")]
+    [ProducesResponseType(typeof(List<CardResponse>), StatusCodes.Status200OK, "application/json")]
     public async Task<IActionResult> GetAllCardsAsync(ObjectId boardId, CancellationToken cancellationToken)
     {
         ObjectId userId = ObjectId.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
