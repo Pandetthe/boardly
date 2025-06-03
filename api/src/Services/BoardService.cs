@@ -26,11 +26,64 @@ public class BoardService
     }
 
 
-    public async Task<Board?> GetBoardByIdAsync(ObjectId id, ObjectId userId, CancellationToken cancellationToken = default)
+    public async Task<BoardWithUser?> GetBoardByIdAsync(ObjectId id, ObjectId userId, CancellationToken cancellationToken = default)
     {
-        Board? board;
-        board = await _boardsCollection.Find(b => b.Id == id, null).FirstOrDefaultAsync(cancellationToken);
-        if (board != null && board.Members.All(x => x.UserId != userId))
+        var pipeline = new[]
+        {
+            new BsonDocument("$match", new BsonDocument("_id", id)),
+            new BsonDocument("$unwind", "$members"),
+            new BsonDocument("$match", new BsonDocument("members.userId", userId)),
+            new BsonDocument("$lookup", new BsonDocument
+            {
+                { "from", "users" },
+                { "localField", "members.userId" },
+                { "foreignField", "_id" },
+                { "as", "user" }
+            }),
+            new BsonDocument("$unwind", "$user"),
+            new BsonDocument("$group", new BsonDocument
+            {
+                { "_id", "$_id" },
+                { "title", new BsonDocument("$first", "$title") },
+                { "swimlanes", new BsonDocument("$first", "$swimlanes") },
+                { "createdAt", new BsonDocument("$first", "$createdAt") },
+                { "updatedAt", new BsonDocument("$first", "$updatedAt") },
+                { "members", new BsonDocument("$push", new BsonDocument
+                    {
+                        { "userId", "$members.userId" },
+                        { "role", "$members.role" },
+                        { "isActive", "$members.isActive" },
+                        { "nickname", "$user.nickname" }
+                    })
+                }
+            })
+        };
+
+        var doc = await _boardsCollection
+            .Aggregate<BsonDocument>(pipeline, cancellationToken: cancellationToken)
+            .FirstOrDefaultAsync(cancellationToken) ?? throw new ForbidenException("User is not a member of this board.");
+        if (doc == null)
+            return null;
+        BoardWithUser board = new()
+        {
+            Id = doc["_id"].AsObjectId,
+            Title = doc["title"].AsString,
+            Swimlanes = [.. doc["swimlanes"].AsBsonArray.Select(s => BsonSerializer.Deserialize<Swimlane>(s.AsBsonDocument))],
+            CreatedAt = doc["createdAt"].ToUniversalTime(),
+            UpdatedAt = doc["updatedAt"].ToUniversalTime(),
+            Members = [.. doc["members"].AsBsonArray.Select(m =>
+            {
+                var member = m.AsBsonDocument;
+                return new MemberWithUser
+                {
+                    UserId = member["userId"].AsObjectId,
+                    Role = Enum.Parse<BoardRole>(member["role"].AsString),
+                    IsActive = member["isActive"].AsBoolean,
+                    Nickname = member["nickname"].AsString
+                };
+            })]
+        };
+        if (board.Members.All(x => x.UserId != userId))
             throw new ForbidenException("User is not a member of this board.");
         return board;
     }

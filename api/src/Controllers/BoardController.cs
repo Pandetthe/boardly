@@ -36,7 +36,7 @@ public class BoardController(BoardService boardService) : ControllerBase
     public async Task<IActionResult> GetBoardByIdAsync(ObjectId boardId)
     {
         ObjectId userId = ObjectId.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
-        Board? board = await _boardService.GetBoardByIdAsync(boardId, userId)
+        BoardWithUser? board = await _boardService.GetBoardByIdAsync(boardId, userId)
             ?? throw new RecordDoesNotExist("Board has not beed found.");
         return Ok(new DetailedBoardResponse(board));
     }

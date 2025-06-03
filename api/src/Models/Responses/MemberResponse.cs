@@ -8,7 +8,7 @@ public record MemberResponse(
     ObjectId UserId,
     string Nickname,
     BoardRole Role,
-    bool isActive)
+    bool IsActive)
 {
     public MemberResponse(MemberWithUser member)
         : this(member.UserId, member.Nickname, member.Role, member.IsActive)

@@ -1,5 +1,6 @@
 using Boardly.Api.Entities.Board;
 using Boardly.Api.Exceptions;
+using Boardly.Api.Models.Dtos;
 using Boardly.Api.Models.Requests;
 using Boardly.Api.Models.Responses;
 using Boardly.Api.Services;
@@ -23,7 +24,7 @@ public class CardController(CardService cardService, BoardService boardService) 
     {
         ObjectId userId = ObjectId.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
         Card card = await _cardService.GetCardByIdAsync(cardId, userId, cancellationToken) ?? throw new RecordDoesNotExist("Card has not been found.");
-        Board board = await _boardService.GetBoardByIdAsync(card.BoardId, userId, cancellationToken) ?? throw new RecordDoesNotExist("Board has not been found.");
+        BoardWithUser board = await _boardService.GetBoardByIdAsync(card.BoardId, userId, cancellationToken) ?? throw new RecordDoesNotExist("Board has not been found.");
         Swimlane swimlane = board.Swimlanes.FirstOrDefault(x => x.Id == card.SwimlaneId) ?? throw new RecordDoesNotExist("Swimlane has not been found.");
         return Ok(new CardResponse(card, board, swimlane));
     }
