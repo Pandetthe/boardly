@@ -55,6 +55,7 @@
 
 
     export async function onEdit() {
+        console.log("Updating board", currentBoardId, currentBoard);
         await fetch(`/api/boards/${currentBoardId}`, {
             method: 'PATCH',
             headers: {
@@ -89,7 +90,7 @@
     </PopupAccordion>
     
     <PopupAccordion label="Users" name="board-creation" ready={false}>
-        <UserFinder />
-        <UserManager />
+        <UserFinder onSelect={(user) => currentBoard.members.push(user)} />
+        <UserManager users={currentBoard.members} />
     </PopupAccordion>
 </Popup>

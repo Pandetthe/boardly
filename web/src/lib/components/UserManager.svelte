@@ -1,12 +1,13 @@
 <script lang="ts">
-	import type { User } from "../types/api/users";
-    import { onMount } from "svelte";
+	import { BoardRole, type Member } from "../types/api/members";
+    export let users: Member[];
 
-    let users: User[];
+    function removeUser(e: MouseEvent, user: Member) {
+        e.preventDefault();
+        e.stopPropagation();
+        users = users.filter(u => u.userId !== user.userId);
+    }
 
-    onMount(async () => {
-        users = await fetch("api/finder").then(response => response.json());
-    });
 </script>
 
 <div class="h-80 overflow-scroll">
@@ -22,14 +23,17 @@
                     </th>
                     <th>{user.nickname}</th>
                     <th>
-                        <select class="h-10 p-2 text-text-secondary bg-component font-normal rounded-md">
-                            <option value="1" selected>Viewer</option>
-                            <option value="2">Editor</option>
-                            <option value="3">Admin</option>
+                        <select class="h-10 p-2 text-text-secondary bg-component font-normal rounded-md" disabled={user.role == BoardRole.Owner} bind:value={user.role}>
+                            {#if user.role == BoardRole.Owner}
+                                <option value="0" selected>Owner</option>
+                            {/if}
+                            <option value="1" selected={user.role == BoardRole.Viewer}>Viewer</option>
+                            <option value="2" selected={user.role == BoardRole.Editor}>Editor</option>
+                            <option value="3" selected={user.role == BoardRole.Admin}>Admin</option>
                         </select>
                     </th>
                     <th>
-                        <button class="btn btn-error ml-2 btn-soft">Remove</button>
+                        <button class="btn btn-error ml-2 btn-soft" onclick={(e) => removeUser(e, user)}>*</button>
                     </th>
                 </tr>
             {/each}

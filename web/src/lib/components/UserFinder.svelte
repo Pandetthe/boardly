@@ -1,18 +1,46 @@
 <script lang="ts">
     import { tick } from "svelte";
-    import { env } from "$env/dynamic/public";
 	import type { User } from "$lib/types/api/users";
+    import type { Member } from "$lib/types/api/members";
+    import { BoardRole } from "$lib/types/api/members";
+	import BoardCard from "./BoardCard.svelte";
+
+    export let onSelect: (member: Member) => void = () => {};
+
+    function addMember(e: MouseEvent) {
+        e.preventDefault();
+        e.stopPropagation();
+        if (selected == null) {
+            return;
+        }
+
+        const getRole = () => {
+            switch(role.value) {
+                case "1": return BoardRole.Viewer;  
+                case "2": return BoardRole.Editor;
+                case "3": return BoardRole.Admin;
+                default: return BoardRole.Viewer;      
+            }
+        }
+
+        const member: Member = { 
+            userId: selected.id, nickname: selected.nickname, role: getRole(), isActive: false
+        }
+
+        onSelect(member);
+    }
 
     let filteredUsers: User[] = [];
 
     let selected: User | null = null;
 
     let input: HTMLInputElement;
+    let role: HTMLSelectElement;
 
 
     async function search() {
         filteredUsers = await fetch(
-            `api/finder?q=${encodeURIComponent(input.value)}`,
+            `/api/users?q=${encodeURIComponent(input.value)}`,
         ).then(response => response.json());
     }
 
@@ -44,10 +72,10 @@
         </button>
     {/if}
     </div>
-    <select class="h-10 p-2 text-text-secondary bg-component text-sm rounded-md">
+    <select class="h-10 p-2 text-text-secondary bg-component text-sm rounded-md" bind:this={role}>
         <option value="1" selected>Viewer</option>
         <option value="2">Editor</option>
-        <option value="3">Admininstrator</option>
+        <option value="3">Admin</option>
     </select>
-    <button class="btn btn-primary">Add</button>
+    <button class="btn btn-primary" onclick={(e) => addMember(e)}>Add</button>
 </div>
