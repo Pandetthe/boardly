@@ -45,13 +45,19 @@ public class UserService(MongoDbProvider mongoDbProvider, ILogger<UserService> l
         return await _usersCollection.Find(u => u.Nickname == nickname, null).FirstOrDefaultAsync(cancellationToken);
     }
 
-    public async Task<List<User>> FindUserAsync(string? nickname, CancellationToken cancellationToken = default)
+    public async Task<List<User>> FindUserAsync(string? nickname, List<ObjectId> blacklistIds, CancellationToken cancellationToken = default)
     {
-        var filter = string.IsNullOrWhiteSpace(nickname)
+        var nicknameFilter = string.IsNullOrWhiteSpace(nickname)
             ? Builders<User>.Filter.Empty
             : Builders<User>.Filter.Regex(u => u.Nickname, new BsonRegularExpression($".*{Regex.Escape(nickname)}.*", "i"));
 
-        return await _usersCollection.Find(filter).Limit(10).ToListAsync(cancellationToken);
+        var blacklistFilter = (blacklistIds != null && blacklistIds.Count > 0)
+            ? Builders<User>.Filter.Nin(u => u.Id, blacklistIds)
+            : Builders<User>.Filter.Empty;
+
+        var combinedFilter = Builders<User>.Filter.And(nicknameFilter, blacklistFilter);
+
+        return await _usersCollection.Find(combinedFilter).Limit(10).ToListAsync(cancellationToken);
     }
 
     public async Task<User?> GetUserByIdAsync(ObjectId id, CancellationToken cancellationToken = default)

@@ -35,10 +35,10 @@ public class UserController : ControllerBase
 
     [HttpGet]
     [ProducesResponseType(typeof(List<UserResponse>), StatusCodes.Status200OK, "application/json")]
-    public async Task<IActionResult> GetAllUsersAsync([FromQuery] string? q,  CancellationToken cancellationToken)
+    public async Task<IActionResult> GetAllUsersAsync([FromQuery] string? q, [FromQuery] List<ObjectId> b,  CancellationToken cancellationToken)
     {
         ObjectId userId = ObjectId.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
-        List<User> users = await _userService.FindUserAsync(q, cancellationToken);
+        List<User> users = await _userService.FindUserAsync(q, b, cancellationToken);
         return Ok(users.Select(x => new UserResponse(x)));
     }
 
