@@ -55,13 +55,12 @@
 
 
     export async function onEdit() {
-        console.log("Updating board", currentBoardId, currentBoard);
-        await fetch(`/api/boards/${currentBoardId}`, {
+        const res = await fetch(`/api/boards/${currentBoardId}`, {
             method: 'PATCH',
             headers: {
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify({ title: currentBoard.title, members: currentBoard.members } as UpdateBoardRequest)
+            body: JSON.stringify({ title: currentBoard.title, members: currentBoard.members.map(x => ({ userId: x.userId, role: x.role })) } as CreateBoardRequest)
         });
         await invalidate('api:boards');
         visible = false;

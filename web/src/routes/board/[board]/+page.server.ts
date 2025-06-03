@@ -3,7 +3,8 @@ import type { PageServerLoad } from './$types';
 import { env } from '$env/dynamic/private';
 import { redirect } from '@sveltejs/kit';
 
-export const load = (async ({ cookies, params }) => {
+export const load = (async ({ cookies, params, depends }) => {
+    depends('api:boards');
     const accessToken = cookies.get('access_token');
     if (!accessToken)
         throw new Error('Unauthorized: No access token found');

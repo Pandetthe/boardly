@@ -2,41 +2,65 @@
     import PopupAccordion from "$lib/components/popup/PopupAccordion.svelte";
     import Popup from "$lib/components/popup/Popup.svelte";
     import { Check } from "lucide-svelte";
-	import type { CreateSwimlaneRequest, DetailedSwimlane, Swimlane, UpdateSwimlaneRequest } from "$lib/types/api/swimlanes";
+    import type { CreateSwimlaneRequest, DetailedSwimlane, Swimlane, UpdateSwimlaneRequest } from "$lib/types/api/swimlanes";
+    import { invalidate } from "$app/navigation";
+    
+    const { boardId } = $props<{ boardId: string }>();
 
-    let visible: boolean = $state(false);
     let isEditMode: boolean = $state(false);
-    let currentSwimlane: CreateSwimlaneRequest = $state({ title: '', lists: [] });
+    let visible: boolean = $state(false);
+    let currentSwimlane: CreateSwimlaneRequest | null = $state(null);
     let currentSwimlaneId: string | null = $state(null);
 
     export function show(swimlane: DetailedSwimlane | null = null) {
+        console.log(swimlane);
+        isEditMode = swimlane !== null;
         visible = true;
         if (!isEditMode) {
             currentSwimlane = { title: '', lists: [] };
-            currentSwimlaneId = null;
             return;
         }
-        if (!swimlane)
-            throw new Error("Swimlane cannot be null in edit mode");
-        currentSwimlaneId = swimlane.id
-        currentSwimlane = { title: swimlane.title, lists: [] };//swimlane.lists.map(list => ({ title: list.title })) };
+        currentSwimlane = { title: swimlane!.title, lists: swimlane!.lists.map(list => ({ title: list.title, color: list.color})) };
+        currentSwimlaneId = swimlane!.id;
     }
 
-    export function onCreate() {
-
+    export async function onCreate() {
+        await fetch(`/api/boards/${boardId}/swimlanes`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(currentSwimlane)
+        });
         visible = false;
+        await invalidate('api:boards');
     }
 
 
-    export function onDelete() {
-
+    export async function onDelete() {
+        await fetch(`/api/boards/${boardId}/swimlanes/${currentSwimlaneId}`, {
+            method: 'DELETE',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(currentSwimlane)
+        });
         visible = false;
+        await invalidate('api:boards');
     }
 
 
-    export function onEdit() {
-
+    export async function onEdit() {
+        console.log(currentSwimlane);
+        await fetch(`/api/boards/${boardId}/swimlanes/${currentSwimlaneId}`, {
+            method: 'PATCH',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(currentSwimlane)
+        });
         visible = false;
+        await invalidate('api:boards');
     }
 
     export function onCancel() {
@@ -50,31 +74,31 @@
     let tagName = "";
 
     function addList() {
-        currentSwimlane.lists = [...currentSwimlane.lists, { title: listName, color: listColorSelection }];
+        currentSwimlane!.lists = [...currentSwimlane!.lists, { title: listName, color: listColorSelection }];
         listName = "";
     }
 
 </script>
 
 
-<Popup title="swimlane" {isEditMode} {onCreate} {onDelete} {onCancel} {onEdit} bind:visible>
+<Popup title="swimlane" {onCreate} {onDelete} {onCancel} {onEdit} {isEditMode} bind:visible>
     <PopupAccordion
      label="Title"
      name="card-creation"
-     ready={currentSwimlane.title.length != 0}
+     ready={currentSwimlane!.title.length != 0}
      required
-     invalid={swimlaneTitleInvalid && currentSwimlane.title.length == 0}>
+     invalid={swimlaneTitleInvalid && currentSwimlane!.title.length == 0}>
       <input
        type="text"
        class="input w-full bg-background-secondary"
        placeholder="Enter the swimlane name"
-       bind:value={currentSwimlane.title}
+       bind:value={currentSwimlane!.title}
        required oninvalid="{(e) => { e.preventDefault(); swimlaneTitleInvalid = true; }}" />
     </PopupAccordion>
 
-    <PopupAccordion label="Lists" name="card-creation" ready={currentSwimlane.lists.length !== 0} required>
+    <PopupAccordion label="Lists" name="card-creation" ready={currentSwimlane!.lists.length !== 0} required>
         <div class="flex flex-col gap-2">
-            {#each currentSwimlane.lists as list}
+            {#each currentSwimlane!.lists as list}
                 <div class="bg-{list.color}-bg border-{list.color} text-{list.color} drop-shadow-xl drop-shadow-{list.color}-shadow w-full p-5">{list.title}</div>
             {/each}
             <div class="join border-border border-1 bg-{listColorSelection}-bg text-{listColorSelection}">

@@ -22,6 +22,8 @@
         dueDate: string;
     }[] = [];
 
+    export let boardId: string;
+
     $: visible = false;
     $: isEditMode = false;
     $: currentCardName = "";
@@ -58,11 +60,30 @@
         currentPageId = id;
     }
 
-    export function onCreate() {
+    export async function onCreate() {
+        const rese = await fetch(`/api/boards/${boardId}/cards`, {
+            method: "POST",
+            body: JSON.stringify({
+                title: currentCardName,
+                color: "blue",
+                description: currentCardDescription,
+                tags: pageTags.filter((tag) => tag.checked).map((tag) => tag.id),
+                assignedUsers: assignedUsers,
+                dueDate: currentDueDate,
+            }),
+            headers: {
+                "Content-Type": "application/json",
+            }
+        });
+        if (!rese.ok) {
+            console.error("Failed to create card");
+            return;
+        }
+        const res = await rese.json();
         list = [
             ...list,
             {
-                id: Math.floor(Math.random() * 1000000),
+                id: res.id,
                 title: currentCardName,
                 color: "blue",
                 description: currentCardDescription,
@@ -75,13 +96,33 @@
     }
 
 
-    export function onDelete() {
+    export async function onDelete() {
+        await fetch(`/api/boards/${boardId}/cards/${currentPageId}`, {
+            method: "DELETE",
+            headers: {
+                "Content-Type": "application/json",
+            }
+        });
         list = list.filter((page) => page.id !== currentPageId);
         visible = false;
     }
 
 
-    export function onEdit() {
+    export async function onEdit() {
+        await fetch(`/api/boards/${boardId}/cards/${currentPageId}`, {
+            method: "PATCH",
+            body: JSON.stringify({
+                title: currentCardName,
+                color: "blue",
+                description: currentCardDescription,
+                tags: pageTags.filter((tag) => tag.checked).map((tag) => tag.id),
+                assignedUsers: assignedUsers,
+                dueDate: currentDueDate,
+            }),
+            headers: {
+                "Content-Type": "application/json",
+            }
+        });
         list = list.map((page) => {
             if (page.id === currentPageId) {
                 return {

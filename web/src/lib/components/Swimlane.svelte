@@ -5,6 +5,7 @@
     let cardRefs: Record<number, Card> = {};
     export let lists;    
     export let users;
+    export let boardId: string;
 </script>
 
 <div class="max-w:screen-lg mx-auto flex flex-col gap-5 lg:flex-row justify-center">
@@ -12,9 +13,10 @@
         <List
             cardRefs={cardRefs}
             title={list.title}
-            color={list.color}
+            color={list.color.toLowerCase()}
             cards={list.cards}
             users={users}
+            boardId={boardId}
         />
     {/each}
 </div>

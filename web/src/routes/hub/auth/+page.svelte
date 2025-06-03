@@ -8,8 +8,6 @@
     let connection: signalR.HubConnection;
 
     function start() {
-        console.log(document.cookie.split('; ').find(row => row.startsWith('accessToken='))
-                    ?.split('=')[1] || '');
 
         connection = new signalR.HubConnectionBuilder()
             .withUrl("/api/hubs/chathub")

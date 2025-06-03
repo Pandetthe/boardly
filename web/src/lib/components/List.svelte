@@ -4,7 +4,8 @@
     import Card from "$lib/components/Card.svelte";
 	import { Plus } from "lucide-svelte";
     import ManageCardPopup from "$lib/components/popup/ManageCardPopup.svelte";
-
+    
+    export let boardId: string;
     export let title;
     export let color: string;
     export let cards: {
@@ -55,7 +56,7 @@
 </script>
 
 <div class="w-full max-w-150 rounded-2xl bg-{color}-bg p-5 h-fit">
-    <ManageCardPopup bind:this={popup} pageTags={tags} bind:list={cards}/>
+    <ManageCardPopup bind:this={popup} pageTags={tags} bind:list={cards} boardId={boardId}/>
     <h1 class="font-bold text-{color}">{title}</h1>
     <div class="divider mb-3 mt-0"></div>
     <ul bind:this={list} class="flex flex-col" data-list-id=1>
