@@ -51,6 +51,7 @@ public class ListController(ListService listService) : ControllerBase
         {
             Title = data.Title,
             MaxWIP = data.MaxWIP,
+            Color = data.Color
         };
 
         await _listService.CreateListAsync(boardId, swimlaneId, userId, list, cancellationToken);
@@ -68,6 +69,7 @@ public class ListController(ListService listService) : ControllerBase
             Id = listId,
             Title = data.Title,
             MaxWIP = data.MaxWIP,
+            Color = data.Color
         };
 
         await _listService.UpdateListAsync(boardId, swimlaneId, userId, list, cancellationToken);
