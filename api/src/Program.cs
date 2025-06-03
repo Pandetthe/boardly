@@ -13,10 +13,10 @@ using Serilog;
 using Serilog.Events;
 using System.Reflection;
 using System.Text;
-using System.Text.Json;
 using System.Text.Json.Serialization;
 
 namespace Boardly.Api;
+
 public class Program
 {
     public static async Task Main(string[] args)

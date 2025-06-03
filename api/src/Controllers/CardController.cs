@@ -24,6 +24,17 @@ public class CardController : ControllerBase
         _boardService = boardService;
     }
 
+    [HttpGet]
+    [ProducesResponseType(typeof(CardResponse), StatusCodes.Status200OK, "application/json")]
+    public async Task<IActionResult> GetAllCardsAsync(ObjectId boardId, CancellationToken cancellationToken)
+    {
+        ObjectId userId = ObjectId.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
+        IEnumerable<Card> cards = await _cardService.GetCardsByBoardIdAsync(boardId, userId, cancellationToken) ?? throw new RecordDoesNotExist("Card has not been found.");
+        BoardWithUser board = await _boardService.GetBoardByIdAsync(boardId, userId, cancellationToken) ?? throw new RecordDoesNotExist("Board has not been found.");
+        Swimlane swimlane = board.Swimlanes.FirstOrDefault(x => x.Id == cards.FirstOrDefault()?.SwimlaneId) ?? throw new RecordDoesNotExist("Swimlane has not been found.");
+        return Ok(cards.Select(x => new CardResponse(x, board, swimlane)));
+    }
+
     [HttpGet("{cardId}")]
     [ProducesResponseType(typeof(CardResponse), StatusCodes.Status200OK, "application/json")]
     public async Task<IActionResult> GetCardAsync(ObjectId cardId, CancellationToken cancellationToken)
@@ -59,7 +70,7 @@ public class CardController : ControllerBase
     [HttpPatch("{cardId}")]
     [Consumes("application/json")]
     [ProducesResponseType(typeof(MessageResponse), StatusCodes.Status200OK,  "application/json")]
-    public async Task<IActionResult> UpdateCard(ObjectId cardId, [FromBody] CreateUpdateCardRequest data, CancellationToken cancellationToken)
+    public async Task<IActionResult> UpdateCardAsync(ObjectId cardId, [FromBody] CreateUpdateCardRequest data, CancellationToken cancellationToken)
     {
         ObjectId userId = ObjectId.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
         var card = await _cardService.GetCardByIdAsync(cardId, userId, cancellationToken) ?? throw new RecordDoesNotExist("Card has not been found.");
@@ -76,7 +87,7 @@ public class CardController : ControllerBase
     [HttpPatch("{cardId}/move")]
     [Consumes("application/json")]
     [ProducesResponseType(typeof(MessageResponse), StatusCodes.Status200OK, "application/json")]
-    public async Task<IActionResult> MoveCard(ObjectId cardId, [FromBody] MoveCardRequest data, CancellationToken cancellationToken)
+    public async Task<IActionResult> MoveCardAsync(ObjectId cardId, [FromBody] MoveCardRequest data, CancellationToken cancellationToken)
     {
         ObjectId userId = ObjectId.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
         await _cardService.MoveCardAsync(cardId, userId, data.SwimlaneId, cancellationToken);
@@ -86,11 +97,10 @@ public class CardController : ControllerBase
     [HttpDelete("{cardId}")]
     [Consumes("application/json")]
     [ProducesResponseType(typeof(MessageResponse), StatusCodes.Status200OK,  "application/json")]
-    public async Task<IActionResult> DeleteCard(ObjectId cardId, CancellationToken cancellationToken)
+    public async Task<IActionResult> DeleteCardAsync(ObjectId cardId, CancellationToken cancellationToken)
     {
         ObjectId userId = ObjectId.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
         await _cardService.DeleteCardAsync(cardId, userId, cancellationToken);
         return Ok(new MessageResponse("Card deleted successfully!"));
     }
-    
 }
