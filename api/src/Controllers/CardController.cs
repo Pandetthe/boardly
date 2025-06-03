@@ -31,8 +31,7 @@ public class CardController : ControllerBase
         ObjectId userId = ObjectId.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
         IEnumerable<Card> cards = await _cardService.GetCardsByBoardIdAsync(boardId, userId, cancellationToken) ?? throw new RecordDoesNotExist("Card has not been found.");
         BoardWithUser board = await _boardService.GetBoardByIdAsync(boardId, userId, cancellationToken) ?? throw new RecordDoesNotExist("Board has not been found.");
-        Swimlane swimlane = board.Swimlanes.FirstOrDefault(x => x.Id == cards.FirstOrDefault()?.SwimlaneId) ?? throw new RecordDoesNotExist("Swimlane has not been found.");
-        return Ok(cards.Select(x => new CardResponse(x, board, swimlane)));
+        return Ok(cards.Select(x => new CardResponse(x, board, board.Swimlanes.FirstOrDefault(y => y.Id == x.SwimlaneId) ?? throw new RecordDoesNotExist("Swimlane has not been found."))));
     }
 
     [HttpGet("{cardId}")]
