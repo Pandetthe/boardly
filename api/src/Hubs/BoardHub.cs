@@ -1,5 +1,4 @@
-﻿using Boardly.Api.Entities;
-using Microsoft.AspNetCore.Authorization;
+﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
 using MongoDB.Bson;
 using System.Security.Claims;
@@ -9,27 +8,16 @@ namespace Boardly.Api.Hubs;
 [Authorize]
 public class BoardHub : Hub
 {
-    public async Task UpdateBoard(ObjectId boardId, object boardData)
+    public override Task OnConnectedAsync()
     {
         ObjectId userId = ObjectId.Parse(Context.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value);
-        await Clients.GroupExcept(boardId.ToString(), Context.ConnectionId)
-            .SendAsync("BoardUpdated", boardId, boardData);
+        return base.OnConnectedAsync();
     }
 
-    public async Task DeleteBoard(ObjectId boardId)
+    public override Task OnDisconnectedAsync(Exception? exception)
     {
         ObjectId userId = ObjectId.Parse(Context.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value);
-        await Clients.GroupExcept(boardId.ToString(), Context.ConnectionId)
-            .SendAsync("BoardDeleted", boardId);
-    }
 
-    public async Task JoinBoard(ObjectId boardId)
-    {
-        await Groups.AddToGroupAsync(Context.ConnectionId, boardId.ToString());
-    }
-
-    public async Task LeaveBoard(ObjectId boardId)
-    {
-        await Groups.RemoveFromGroupAsync(Context.ConnectionId, boardId.ToString());
+        return base.OnDisconnectedAsync(exception);
     }
 }

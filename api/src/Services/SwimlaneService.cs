@@ -59,7 +59,7 @@ public class SwimlaneService(MongoDbProvider mongoDbProvider, ILogger<BoardServi
         Swimlane selectedSwimlane = board.Swimlanes.FirstOrDefault(x => x.Id == swimlane.Id)
             ?? throw new RecordDoesNotExist("Swimlane has not been found.");
         selectedSwimlane.Title = swimlane.Title;
-        selectedSwimlane.Description = swimlane.Description;
+        selectedSwimlane.Color = swimlane.Color;
         board.UpdatedAt = DateTime.UtcNow;
         var filter = Builders<Board>.Filter.Eq(b => b.Id, board.Id);
         var update = Builders<Board>.Update

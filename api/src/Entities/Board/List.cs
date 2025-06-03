@@ -8,9 +8,9 @@ public class List
 
     public string Title { get; set; } = null!;
 
-    public string? Description { get; set; }
-
     public HashSet<ObjectId> Cards { get; set; } = [];
+
+    public Color Color { get; set; }
 
     public int? MaxWIP { get; set; }
 

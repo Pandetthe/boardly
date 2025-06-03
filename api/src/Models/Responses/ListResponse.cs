@@ -1,4 +1,5 @@
-﻿using Boardly.Api.Entities.Board;
+﻿using Boardly.Api.Entities;
+using Boardly.Api.Entities.Board;
 using MongoDB.Bson;
 
 namespace Boardly.Api.Models.Responses;
@@ -6,10 +7,10 @@ namespace Boardly.Api.Models.Responses;
 public record ListResponse(
     ObjectId Id,
     string Title,
-    string? Description,
+    Color Color,
     int? MaxWIP)
 {
-    public ListResponse(List list) : this(list.Id, list.Title, list.Description, list.MaxWIP)
+    public ListResponse(List list) : this(list.Id, list.Title, list.Color, list.MaxWIP)
     {
 
     }

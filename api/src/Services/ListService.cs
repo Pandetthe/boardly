@@ -63,7 +63,7 @@ public class ListService(MongoDbProvider mongoDbProvider, ILogger<BoardService> 
         List selectedList = selectedSwimlane.Lists.FirstOrDefault(x => x.Id == list.Id)
             ?? throw new RecordDoesNotExist("List has not been found.");
         selectedList.Title = list.Title;
-        selectedList.Description = list.Description;
+        selectedList.Color = list.Color;
         board.UpdatedAt = DateTime.UtcNow;
         var filter = Builders<Board>.Filter.Eq(b => b.Id, board.Id);
         var update = Builders<Board>.Update

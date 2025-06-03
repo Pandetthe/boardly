@@ -8,11 +8,11 @@ public class Swimlane
 
     public string Title { get; set; } = null!;
 
-    public string? Description { get; set; }
-
     public List<Tag> Tags { get; set; } = [];
 
     public List<List> Lists { get; set; } = [];
+
+    public Color Color { get; set; }
 
     public override int GetHashCode() => Id.GetHashCode();
 
