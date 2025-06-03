@@ -88,6 +88,18 @@ public class BoardService
         return board;
     }
 
+    public async Task ChangeUserActivity(ObjectId id, ObjectId userId, bool isActive, CancellationToken cancellationToken = default)
+    {
+        var filter = Builders<Board>.Filter.And(
+            Builders<Board>.Filter.Eq("_id", id),
+            Builders<Board>.Filter.ElemMatch("members", Builders<Member>.Filter.Eq("userId", userId))
+        );
+
+        var update = Builders<Board>.Update.Set("members.$.isActive", isActive);
+
+        await _boardsCollection.UpdateOneAsync(filter, update, null, cancellationToken);
+    }
+
     public async Task<IEnumerable<BoardWithUser>> GetBoardsByUserIdAsync(ObjectId userId, CancellationToken cancellationToken = default)
     {
         var pipeline = new[]
