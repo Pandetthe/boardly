@@ -132,8 +132,7 @@ public class Program
             app.UseAuthentication();
             app.UseAuthorization();
             app.MapControllers();
-            app.MapHub<ChatHub>("/hubs/chathub");
-            app.MapHub<UnauthChatHub>("/hubs/unauthchathub");
+            app.MapHub<BoardHub>("/hubs/board");
 
             app.Lifetime.ApplicationStarted.Register(() =>
             {
