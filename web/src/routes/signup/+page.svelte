@@ -28,6 +28,9 @@
     }
 </script>
 
+<svelte:head>
+    <title>Sign up</title> 
+</svelte:head>
 
 <div class="flex bg-gray-700 h-full w-full justify-center items-center">
     <form on:submit|preventDefault={handleSignUp}>

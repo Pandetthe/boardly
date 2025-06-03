@@ -17,6 +17,10 @@
 	});
 </script>
 
+<svelte:head>
+    <title>Boardly</title> 
+</svelte:head>
+
 <ManageBoardPopup bind:this={popup} />
 
 <div class="overflow-auto w-full">

@@ -4,6 +4,11 @@
 	let { data }: PageProps = $props();
 </script>
 
+<svelte:head>
+    <title>My profile</title> 
+</svelte:head>
+
+
 <div class="w-full p-5 gap-5 h-fit">
     <div class="bg-white rounded shadow p-4">
         <h2 class="text-xl text-black font-bold mb-2">{data.user.nickname}</h2>

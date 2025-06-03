@@ -31,6 +31,10 @@
     }
 </script>
 
+<svelte:head>
+    <title>Sign in</title> 
+</svelte:head>
+
 <div class="flex bg-gray-700 h-full w-full justify-center items-center">
     <form on:submit|preventDefault={handleSignIn}>
         <fieldset class="fieldset w-md bg-gray-900 p-4 rounded-box">
