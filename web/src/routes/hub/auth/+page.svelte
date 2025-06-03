@@ -12,9 +12,7 @@
                     ?.split('=')[1] || '');
 
         connection = new signalR.HubConnectionBuilder()
-            .withUrl(env.PUBLIC_API_SERVER + "hubs/chathub", {
-                accessTokenFactory: () => 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJqdGkiOiJkNDQ0NjVlZC1iOWIxLTQxN2UtOWFlNy02N2RkMTc4N2UwNTYiLCJzdWIiOiI2ODM1ZjYyNmEzN2E4MjBhY2YyODBhNDMiLCJuaWNrbmFtZSI6IkFsZWtzR3J6eWJlayIsImV4cCI6MTc0ODg5Njc2MCwiaXNzIjoiQm9hcmRseSIsImF1ZCI6ImJvYXJkbHktYXBwLWNsaWVudCJ9.dvUx6nnf3hWtARg1HVrloRiPHJjpqc-iUYXWU0HnWJ0'
-            })
+            .withUrl("/api/hubs/chathub")
             .configureLogging(signalR.LogLevel.Information)
             .build();
 

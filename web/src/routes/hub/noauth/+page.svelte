@@ -9,7 +9,7 @@
 
     function start() {
         connection = new signalR.HubConnectionBuilder()
-            .withUrl(env.PUBLIC_API_SERVER + "hubs/unauthchathub")
+            .withUrl("/api/hubs/unauthchathub")
             .configureLogging(signalR.LogLevel.Information)
             .build();
 
