@@ -9,7 +9,7 @@ export const PATCH: RequestHandler = async (event) => handleProxy(event);
 
 async function handleProxy({ params, request, url, cookies }: Parameters<RequestHandler>[0]) {
 	const path = Array.isArray(params.path) ? params.path.join('/') : params.path;
-	const fullUrl = new URL(`${path}${url.search ? '?' + url.searchParams.toString() : ''}`, env.API_SERVER);
+	const fullUrl = new URL(`${path}${url.search ? '?' + url.searchParams.toString() : ''}`, env.VITE_API_SERVER);
 	const accessToken = cookies.get('access_token');
 
 	const headers = new Headers(request.headers);

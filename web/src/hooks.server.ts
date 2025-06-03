@@ -14,7 +14,7 @@ export const handle: Handle = async ({ event, resolve }) => {
 	let refreshToken = event.cookies.get('refresh_token');
 	if (!accessToken && refreshToken) {
         try {
-            const res = await fetch(`${env.API_SERVER}/auth/refresh`, {
+            const res = await fetch(`${env.VITE_API_SERVER}/auth/refresh`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ refreshToken: refreshToken } as RefreshRequest)

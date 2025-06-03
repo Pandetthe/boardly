@@ -9,7 +9,10 @@
 
     function start() {
         connection = new signalR.HubConnectionBuilder()
-            .withUrl("/api/hubs/unauthchathub")
+            .withUrl("/api/hubs/unauthchathub", {
+                skipNegotiation: true,
+                transport: signalR.HttpTransportType.WebSockets,
+            })
             .configureLogging(signalR.LogLevel.Information)
             .build();
 

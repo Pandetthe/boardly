@@ -31,6 +31,7 @@
 		"@tailwindcss/typography": "^0.5.16",
 		"@tailwindcss/vite": "^4.1.4",
 		"@types/geopattern": "^1.2.9",
+		"@types/node": "^22.15.29",
 		"@types/sortablejs": "^1.15.8",
 		"daisyui": "^5.0.27",
 		"eslint": "^9.18.0",
@@ -49,6 +50,7 @@
 	},
 	"dependencies": {
 		"@microsoft/signalr": "^8.0.7",
+		"dotenv": "^16.5.0",
 		"geopattern": "^1.2.3",
 		"lucide-svelte": "^0.501.0",
 		"marked": "^15.0.8",
