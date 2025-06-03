@@ -24,7 +24,6 @@ export const handle: Handle = async ({ event, resolve }) => {
                 accessToken = data.accessToken;
                 refreshToken = data.refreshToken;
                 event.cookies.set('accessToken', accessToken, {
-                    httpOnly: true,
                     secure: true,
                     sameSite: 'strict',
                     maxAge: data.accessTokenExpiresIn,

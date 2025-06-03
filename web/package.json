@@ -1,8 +1,12 @@
 {
 	"name": "boardly-frontend",
 	"contributors": [
-		"Aleksander Grzybek",
-		"Jakub Jurczyk"
+		{
+			"name": "Aleksander Grzybek"
+		},
+		{
+			"name": "Jakub Jurczyk"
+		}
 	],
 	"private": true,
 	"version": "0.0.1",
@@ -44,9 +48,14 @@
 		"vite": "^6.2.5"
 	},
 	"dependencies": {
+		"@microsoft/signalr": "^8.0.7",
 		"geopattern": "^1.2.3",
 		"lucide-svelte": "^0.501.0",
 		"marked": "^15.0.8",
 		"tailwindcss": "^4.1.4"
-	}
+	},
+	"description": "Everything you need to build a Svelte project, powered by [`sv`](https://github.com/sveltejs/cli).",
+	"main": "eslint.config.js",
+	"keywords": [],
+	"author": ""
 }

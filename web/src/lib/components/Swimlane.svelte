@@ -1,6 +1,6 @@
 <script lang="ts">
     import List from "$lib/components/List.svelte";
-	import Card from "$lib/Card.svelte";
+    import Card from "$lib/components/Card.svelte";
 
     let cardRefs: Record<number, Card> = {};
     export let lists;    

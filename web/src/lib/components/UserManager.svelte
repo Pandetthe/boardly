@@ -1,7 +1,12 @@
 <script lang="ts">
 	import type { User } from "../types/api/users";
+    import { onMount } from "svelte";
 
-    const users: User[] = [];
+    let users: User[];
+
+    onMount(async () => {
+        users = await fetch("api/finder").then(response => response.json());
+    });
 </script>
 
 <div class="h-80 overflow-scroll">
