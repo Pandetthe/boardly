@@ -89,7 +89,12 @@
     </PopupAccordion>
     
     <PopupAccordion label="Users" name="board-creation" ready={false}>
-        <UserFinder onSelect={(user) => currentBoard.members.push(user)} />
+        <UserFinder onSelect={(user) => {
+            if (currentBoard.members.some(m => m.userId === user.userId)) {
+                return;
+            }
+            currentBoard.members.push(user);
+        }} blacklist={currentBoard.members.map(x => x.userId)}/>
         <UserManager users={currentBoard.members} />
     </PopupAccordion>
 </Popup>

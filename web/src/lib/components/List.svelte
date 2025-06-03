@@ -4,19 +4,25 @@
     import Card from "$lib/components/Card.svelte";
 	import { Plus } from "lucide-svelte";
     import ManageCardPopup from "$lib/components/popup/ManageCardPopup.svelte";
+	import { getContext } from 'svelte';
     
-    export let boardId: string;
-    export let title;
-    export let color: string;
-    export let cards: {
+    let cards: {
         id: number;
         title: string;
         color: string;
-        description: string;
+        description: string | null;
         tags: number[];
         assignedUsers: number[];
-        dueDate: string;
-    }[] = [];
+        dueDate: string | null;
+    }[] = getContext('cards');
+
+    export let listId: string;
+    export let swimlaneId: string;
+
+    export let boardId: string;
+    export let title;
+    export let color: string;
+
     export let cardRefs: {
         [key: number]: {
             process: (newColor: string) => void;
@@ -56,7 +62,7 @@
 </script>
 
 <div class="w-full max-w-150 rounded-2xl bg-{color}-bg p-5 h-fit">
-    <ManageCardPopup bind:this={popup} pageTags={tags} bind:list={cards} boardId={boardId}/>
+    <ManageCardPopup bind:this={popup} pageTags={tags} bind:list={cards} boardId={boardId} listId={listId} swimlaneId={swimlaneId}/>
     <h1 class="font-bold text-{color}">{title}</h1>
     <div class="divider mb-3 mt-0"></div>
     <ul bind:this={list} class="flex flex-col" data-list-id=1>

@@ -6,6 +6,7 @@
 	import BoardCard from "./BoardCard.svelte";
 
     export let onSelect: (member: Member) => void = () => {};
+    export let blacklist: string[] = [];
 
     function addMember(e: MouseEvent) {
         e.preventDefault();
@@ -40,7 +41,7 @@
 
     async function search() {
         filteredUsers = await fetch(
-            `/api/users?q=${encodeURIComponent(input.value)}`,
+            `/api/users?q=${encodeURIComponent(input.value)}&b=${encodeURIComponent(blacklist.join(","))}`
         ).then(response => response.json());
     }
 

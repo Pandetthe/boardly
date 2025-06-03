@@ -47,9 +47,9 @@
             {/each}
         </div>
         {/if}
-        {#if assignedUsers.length > 0 || dueDate.length > 0 || description.length > 0}
+        {#if assignedUsers.length > 0 || dueDate?.length > 0 || description?.length > 0}
         <div class="card-body">
-            {#if dueDate.length > 0}
+            {#if dueDate?.length > 0}
             <div>
                 <div class="text-text-secondary flex gap-2 items-center h-5"><Clock class="h-full"/> {dueDate}</div>
             </div>
@@ -70,7 +70,7 @@
                 </div>
             </div>
             {/if}
-            {#if description.length > 0}
+            {#if description?.length > 0}
             <div class="mt-5 prose prose-sm">
                 {@html marked(description)}
             </div>

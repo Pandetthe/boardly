@@ -3,7 +3,6 @@
     import UserFinder from "$lib/components/UserFinder.svelte";
     import UserManager from "$lib/components/UserManager.svelte";
     import Popup from "$lib/components/popup/Popup.svelte";
-	import { page } from "$app/state";
 
     export let pageTags: {
         id: number;
@@ -16,13 +15,16 @@
         id: number;
         title: string;
         color: string;
-        description: string;
+        description: string | null;
         tags: number[];
         assignedUsers: number[];
-        dueDate: string;
+        dueDate: string | null;
     }[] = [];
 
     export let boardId: string;
+
+    export let swimlaneId: string;
+    export let listId: string;
 
     $: visible = false;
     $: isEditMode = false;
@@ -61,15 +63,18 @@
     }
 
     export async function onCreate() {
+        console.log(swimlaneId, listId);
         const rese = await fetch(`/api/boards/${boardId}/cards`, {
             method: "POST",
             body: JSON.stringify({
+                listId: listId,
+                swimlaneId: swimlaneId,
                 title: currentCardName,
                 color: "blue",
-                description: currentCardDescription,
+                description: currentCardDescription || null,
                 tags: pageTags.filter((tag) => tag.checked).map((tag) => tag.id),
                 assignedUsers: assignedUsers,
-                dueDate: currentDueDate,
+                dueDate: currentDueDate || null,
             }),
             headers: {
                 "Content-Type": "application/json",
@@ -86,10 +91,10 @@
                 id: res.id,
                 title: currentCardName,
                 color: "blue",
-                description: currentCardDescription,
+                description: currentCardDescription || null,
                 tags: pageTags.filter((tag) => tag.checked).map((tag) => tag.id),
                 assignedUsers: assignedUsers,
-                dueDate: currentDueDate,
+                dueDate: currentDueDate || null,
             },
         ];
         visible = false;
@@ -114,10 +119,10 @@
             body: JSON.stringify({
                 title: currentCardName,
                 color: "blue",
-                description: currentCardDescription,
+                description: currentCardDescription || null,
                 tags: pageTags.filter((tag) => tag.checked).map((tag) => tag.id),
                 assignedUsers: assignedUsers,
-                dueDate: currentDueDate,
+                dueDate: currentDueDate || null,
             }),
             headers: {
                 "Content-Type": "application/json",
@@ -161,7 +166,7 @@
       </div>
     </PopupAccordion>
 
-    <PopupAccordion label="Due date" name="card-creation" ready={currentDueDate.length != 0}>
+    <PopupAccordion label="Due date" name="card-creation" ready={currentDueDate?.length != 0}>
       <input
         type="datetime-local"
         class="input w-full bg-background-secondary"

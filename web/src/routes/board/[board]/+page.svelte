@@ -5,7 +5,10 @@
 	import { onMount } from 'svelte';
 	import type { PageProps } from './$types';
 	import * as signalR from '@microsoft/signalr';
+	import { setContext } from 'svelte'
 	let { data }: PageProps = $props();
+
+	setContext('cards', data.cards);
 
 	let swimlanePopup: ManageSwimlanePopup | undefined = $state(undefined);
 
@@ -47,7 +50,7 @@
 			</label>
 			<div class="tab-content">
 				<div class="divider mt-0 pt-0"></div>
-				<Swimlane lists={swimlane.lists} users={[]} boardId={data.board.id}/>
+				<Swimlane lists={swimlane.lists} users={[]} boardId={data.board.id} swimlaneId={swimlane.id}/>
 			</div>
 		{/each}
 		<button

@@ -27,9 +27,9 @@
                             {#if user.role == BoardRole.Owner}
                                 <option value="0" selected>Owner</option>
                             {/if}
-                            <option value="1" selected={user.role == BoardRole.Viewer}>Viewer</option>
-                            <option value="2" selected={user.role == BoardRole.Editor}>Editor</option>
-                            <option value="3" selected={user.role == BoardRole.Admin}>Admin</option>
+                            <option value="Viewer" selected={user.role == BoardRole.Viewer}>Viewer</option>
+                            <option value="Editor" selected={user.role == BoardRole.Editor}>Editor</option>
+                            <option value="Admin" selected={user.role == BoardRole.Admin}>Admin</option>
                         </select>
                     </th>
                     <th>
