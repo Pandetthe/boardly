@@ -68,6 +68,7 @@ public class BoardController(BoardService boardService) : ControllerBase
         var swimlanes = data.Swimlanes?.Select(swimlane => new Swimlane
         {
             Title = swimlane.Title,
+            Color = swimlane.Color,
             Tags = swimlane.Tags?.Select(tag => new Tag
             {
                 Title = tag.Title,
@@ -77,6 +78,7 @@ public class BoardController(BoardService boardService) : ControllerBase
             {
                 Title = list.Title,
                 MaxWIP = list.MaxWIP,
+                Color = list.Color,
             }).ToList() ?? [],
         }).ToHashSet() ?? [];
 
