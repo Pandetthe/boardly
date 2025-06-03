@@ -1,7 +1,7 @@
 import { env } from '$env/dynamic/private';
 
 export async function POST({ cookies }) {
-    const accessToken = cookies.get('accessToken');
+    const accessToken = cookies.get('access_token');
     if (!accessToken)
         throw new Error('Unauthorized: No access token found');
     const res = await fetch(`${env.API_SERVER}/auth/revoke`, {
@@ -16,14 +16,14 @@ export async function POST({ cookies }) {
         return res;
     }
 
-    cookies.delete('accessToken', {
+    cookies.delete('access_token', {
         httpOnly: true,
         secure: true,
         sameSite: 'strict',
         path: '/',
     });
 
-    cookies.delete('refreshToken', {
+    cookies.delete('refresh_token', {
         httpOnly: true,
         secure: true,
         sameSite: 'strict',

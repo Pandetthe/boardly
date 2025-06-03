@@ -15,7 +15,7 @@ export async function POST({ request, cookies }) {
 
   const { accessToken, accessTokenExpiresIn, refreshToken, refreshTokenExpiresIn } = await res.json() as AuthResponse;
 
-  cookies.set('accessToken', accessToken, {
+  cookies.set('access_token', accessToken, {
     httpOnly: true,
     secure: true,
     sameSite: 'strict',
@@ -23,7 +23,7 @@ export async function POST({ request, cookies }) {
     path: '/',
   });
 
-  cookies.set('refreshToken', refreshToken, {
+  cookies.set('refresh_token', refreshToken, {
     httpOnly: true,
     secure: true,
     sameSite: 'strict',

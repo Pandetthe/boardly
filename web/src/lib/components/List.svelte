@@ -1,7 +1,7 @@
 <script lang="ts">
     import Sortable from "sortablejs";
     import { onMount } from "svelte";
-    import Card from "$lib/Card.svelte";
+    import Card from "$lib/components/Card.svelte";
 	import { Plus } from "lucide-svelte";
     import ManageCardPopup from "$lib/components/popup/ManageCardPopup.svelte";
 
