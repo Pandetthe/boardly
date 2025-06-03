@@ -15,9 +15,14 @@ namespace Boardly.Api.Controllers;
 [Route("boards"), Authorize]
 [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized, "application/problem+json")]
 [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError, "application/problem+json")]
-public class BoardController(BoardService boardService) : ControllerBase
+public class BoardController : ControllerBase
 {
-    private readonly BoardService _boardService = boardService;
+    private readonly BoardService _boardService;
+
+    public BoardController(BoardService boardService)
+    {
+        _boardService = boardService;
+    }
 
     [HttpGet]
     [ProducesResponseType(typeof(List<BoardResponse>), StatusCodes.Status200OK, "application/json")]

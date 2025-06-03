@@ -13,11 +13,17 @@ namespace Boardly.Api.Controllers;
 
 [ApiController]
 [Route("/boards/{boardId}/cards"), Authorize]
-public class CardController(CardService cardService, BoardService boardService) : ControllerBase
+public class CardController : ControllerBase
 {
-    private readonly CardService _cardService = cardService;
-    private readonly BoardService _boardService = boardService;
-    
+    private readonly CardService _cardService;
+    private readonly BoardService _boardService;
+
+    public CardController(CardService cardService, BoardService boardService)
+    {
+        _cardService = cardService;
+        _boardService = boardService;
+    }
+
     [HttpGet("{cardId}")]
     [ProducesResponseType(typeof(CardResponse), StatusCodes.Status200OK, "application/json")]
     public async Task<IActionResult> GetCardAsync(ObjectId cardId, CancellationToken cancellationToken)

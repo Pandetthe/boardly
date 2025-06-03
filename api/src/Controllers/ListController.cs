@@ -16,9 +16,14 @@ namespace Boardly.Api.Controllers;
 [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized, "application/problem+json")]
 [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound, "application/problem+json")]
 [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError, "application/problem+json")]
-public class ListController(ListService listService) : ControllerBase
+public class ListController : ControllerBase
 {
-    private readonly ListService _listService = listService;
+    private readonly ListService _listService;
+
+    public ListController(ListService listService)
+    {
+        _listService = listService;
+    }
 
     [HttpGet]
     [Consumes("application/json")]

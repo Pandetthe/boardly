@@ -17,9 +17,14 @@ namespace Boardly.Api.Controllers;
 [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden, "application/problem+json")]
 [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound, "application/problem+json")]
 [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError, "application/problem+json")]
-public class SwimlaneController(SwimlaneService swimlaneService) : ControllerBase
+public class SwimlaneController : ControllerBase
 {
-    private readonly SwimlaneService _swimlaneService = swimlaneService;
+    private readonly SwimlaneService _swimlaneService;
+
+    public SwimlaneController(SwimlaneService swimlaneService)
+    {
+        _swimlaneService = swimlaneService;
+    }
 
     [HttpGet]
     [ProducesResponseType(typeof(List<SwimlaneResponse>), StatusCodes.Status200OK, "application/json")]

@@ -14,11 +14,16 @@ namespace Boardly.Api.Controllers;
 [Route("users"), Authorize]
 [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized, "application/problem+json")]
 [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError, "application/problem+json")]
-public class UserController(UserService userService) : ControllerBase
+public class UserController : ControllerBase
 {
-    private readonly UserService _userService = userService;
+    private readonly UserService _userService;
 
-    [HttpGet("Me")]
+    public UserController(UserService userService)
+    {
+        _userService = userService;
+    }
+
+    [HttpGet("me")]
     [ProducesResponseType(typeof(UserResponse), StatusCodes.Status200OK, "application/json")]
     public async Task<IActionResult> GetMeAsync(CancellationToken cancellationToken)
     {
@@ -48,7 +53,7 @@ public class UserController(UserService userService) : ControllerBase
         return Ok(new UserResponse(user));
     }
 
-    [HttpPatch("Me")]
+    [HttpPatch("me")]
     [Consumes("application/json")]
     [ProducesResponseType(typeof(MessageResponse), StatusCodes.Status200OK, "application/json")]
     [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest, "application/problem+json")]
