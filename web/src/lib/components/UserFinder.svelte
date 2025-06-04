@@ -40,9 +40,32 @@
 
 
     async function search() {
-        filteredUsers = await fetch(
-            `/api/users?q=${encodeURIComponent(input.value)}&b=${encodeURIComponent(blacklist.join(","))}`
-        ).then(response => response.json());
+        const params = new URLSearchParams();
+
+        if (input.value) {
+            params.append("q", input.value);
+        }
+
+        for (const id of blacklist) {
+            params.append("b", id);
+        }
+
+        try {
+            const response = await fetch(`/api/users?${params.toString()}`, {
+                method: "GET",
+                headers: {
+                    "Accept": "application/json"
+                }
+            });
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! Status: ${response.status}`);
+            }
+
+            filteredUsers = await response.json();
+        } catch (error) {
+            console.error("Fetch error:", error);
+        }
     }
 
     async function deselect() {
