@@ -3,8 +3,19 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace Boardly.Api.Exceptions;
 
-public class ExceptionHandler(IProblemDetailsService problemDetailsService) : IExceptionHandler
+public class GlobalExceptionHandler : IExceptionHandler
 {
+    private readonly ILogger<GlobalExceptionHandler> _logger;
+    private readonly IProblemDetailsService _problemDetailsService;
+
+    public GlobalExceptionHandler(
+        ILogger<GlobalExceptionHandler> logger,
+        IProblemDetailsService problemDetailsService)
+    {
+        _logger = logger;
+        _problemDetailsService = problemDetailsService;
+    }
+
     public async ValueTask<bool> TryHandleAsync(
         HttpContext httpContext,
         Exception exception,
@@ -24,13 +35,18 @@ public class ExceptionHandler(IProblemDetailsService problemDetailsService) : IE
             },
             Detail = exception.Message
         };
-        if (problemDetails.Status == StatusCodes.Status501NotImplemented)
-            problemDetails.Detail = null;
         if (problemDetails.Status == StatusCodes.Status500InternalServerError)
-            return false;
-
+        {
+            problemDetails.Detail = null;
+            _logger.LogError(exception, "An unhandled exception occurred while processing the request.");
+        }
+        else if (problemDetails.Status == StatusCodes.Status501NotImplemented)
+        {
+            problemDetails.Detail = null;
+            _logger.LogWarning("Endpoint not implemented: {Message}", exception.Message);
+        }
         httpContext.Response.StatusCode = problemDetails.Status.Value;
-        return await problemDetailsService.TryWriteAsync(new ProblemDetailsContext
+        return await _problemDetailsService.TryWriteAsync(new ProblemDetailsContext
         {
             Exception = exception,
             HttpContext = httpContext,

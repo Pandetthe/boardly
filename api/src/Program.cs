@@ -10,7 +10,6 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.IdentityModel.Tokens;
 using Scalar.AspNetCore;
 using Serilog;
-using Serilog.Events;
 using System.Reflection;
 using System.Text;
 using System.Text.Json.Serialization;
@@ -22,7 +21,6 @@ public class Program
     public static async Task Main(string[] args)
     {
         Log.Logger = new LoggerConfiguration()
-            .MinimumLevel.Override("Microsoft", LogEventLevel.Information)
             .WriteTo.Console()
             .CreateBootstrapLogger();
 
@@ -38,7 +36,10 @@ public class Program
                 .AddEnvironmentVariables();
             builder.Services.AddSerilog((services, lc) => lc
                 .ReadFrom.Configuration(builder.Configuration)
-                .ReadFrom.Services(services));
+                .ReadFrom.Services(services)
+                .Filter.ByExcluding(logEvent =>
+                    logEvent.Properties.TryGetValue("SourceContext", out var sc) &&
+                    sc.ToString().Contains("Microsoft.AspNetCore.Diagnostics.ExceptionHandlerMiddleware")));
 
             builder.Services.AddSignalR();
             builder.Services.AddCors(options =>
@@ -61,6 +62,7 @@ public class Program
             builder.Services.AddSingleton<ListService>();
             builder.Services.AddSingleton<CardService>();
             builder.Services.AddSingleton<TokenService>();
+            builder.Services.AddHealthChecks();
 
             builder.Services.AddControllers(options =>
             {
@@ -115,7 +117,7 @@ public class Program
                 options.AddSchemaTransformer<EnumAsStringSchemaTransformer>();
             });
             builder.Services.AddProblemDetails();
-            builder.Services.AddExceptionHandler<ExceptionHandler>();
+            builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 
             WebApplication app = builder.Build();
             logger.Debug("Web application built successfully");
@@ -133,6 +135,7 @@ public class Program
             app.UseAuthentication();
             app.UseAuthorization();
             app.MapControllers();
+            app.MapHealthChecks("/health");
             app.MapHub<BoardHub>("/hubs/board");
 
             app.Lifetime.ApplicationStarted.Register(() =>
