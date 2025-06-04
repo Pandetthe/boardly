@@ -80,17 +80,17 @@ public class BoardController : ControllerBase
         {
             Title = swimlane.Title,
             Color = swimlane.Color,
-            Tags = swimlane.Tags?.Select(tag => new Tag
+            Tags = [.. swimlane.Tags?.Select(tag => new Tag
             {
                 Title = tag.Title,
                 Color = tag.Color,
-            }).ToList() ?? [],
-            Lists = swimlane.Lists?.Select(list => new List
+            }) ?? []],
+            Lists = [.. swimlane.Lists?.Select(list => new List
             {
                 Title = list.Title,
                 MaxWIP = list.MaxWIP,
                 Color = list.Color,
-            }).ToList() ?? [],
+            }) ?? []],
         }).ToHashSet() ?? [];
 
         var board = new Board

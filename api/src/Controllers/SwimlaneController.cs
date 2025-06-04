@@ -55,16 +55,16 @@ public class SwimlaneController : ControllerBase
         var swimlane = new Swimlane
         {
             Title = data.Title,
-            Tags = data.Tags?.Select(tag => new Tag
+            Tags = [.. data.Tags?.Select(tag => new Tag
             {
                 Title = tag.Title,
                 Color = tag.Color,
-            }).ToList() ?? [],
-            Lists = data.Lists?.Select(list => new List
+            }) ?? []],
+            Lists = [..data.Lists?.Select(list => new List
             {
                 Title = list.Title,
                 MaxWIP = list.MaxWIP,
-            }).ToList() ?? [],
+            }) ?? []],
         };
 
         await _swimlaneService.CreateSwimlaneAsync(boardId, userId, swimlane, cancellationToken);
@@ -81,16 +81,16 @@ public class SwimlaneController : ControllerBase
         {
             Id = swimlaneId,
             Title = data.Title,
-            Tags = data.Tags?.Select(tag => new Tag
+            Tags = [.. data.Tags?.Select(tag => new Tag
             {
                 Title = tag.Title,
                 Color = tag.Color,
-            }).ToList() ?? [],
-            Lists = data.Lists?.Select(list => new List
+            }) ?? []],
+            Lists = [.. data.Lists?.Select(list => new List
             {
                 Title = list.Title,
                 MaxWIP = list.MaxWIP,
-            }).ToList() ?? [],
+            }) ?? []],
         };
 
         await _swimlaneService.UpdateSwimlaneAsync(boardId, userId, swimlane, cancellationToken);

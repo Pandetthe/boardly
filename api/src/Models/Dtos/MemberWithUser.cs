@@ -12,4 +12,15 @@ public class MemberWithUser
     public BoardRole Role { get; set; }
 
     public bool IsActive { get; set; }
+
+    public override int GetHashCode() => UserId.GetHashCode();
+
+    public override bool Equals(object? obj)
+    {
+        if (obj is MemberWithUser other)
+        {
+            return UserId == other.UserId;
+        }
+        return false;
+    }
 }

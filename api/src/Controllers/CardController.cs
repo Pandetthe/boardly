@@ -16,12 +16,10 @@ namespace Boardly.Api.Controllers;
 public class CardController : ControllerBase
 {
     private readonly CardService _cardService;
-    private readonly BoardService _boardService;
 
-    public CardController(CardService cardService, BoardService boardService)
+    public CardController(CardService cardService)
     {
         _cardService = cardService;
-        _boardService = boardService;
     }
 
     [HttpGet]
@@ -29,20 +27,18 @@ public class CardController : ControllerBase
     public async Task<IActionResult> GetAllCardsAsync(ObjectId boardId, CancellationToken cancellationToken)
     {
         ObjectId userId = ObjectId.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
-        IEnumerable<Card> cards = await _cardService.GetCardsByBoardIdAsync(boardId, userId, cancellationToken) ?? throw new RecordDoesNotExist("Card has not been found.");
-        BoardWithUser board = await _boardService.GetBoardByIdAsync(boardId, userId, cancellationToken) ?? throw new RecordDoesNotExist("Board has not been found.");
-        return Ok(cards.Select(x => new CardResponse(x, board, board.Swimlanes.FirstOrDefault(y => y.Id == x.SwimlaneId) ?? throw new RecordDoesNotExist("Swimlane has not been found."))));
+        IEnumerable<CardWithAssignedUserAndTags> cards = await _cardService.GetCardsByBoardIdAsync(boardId, userId, cancellationToken);
+        return Ok(cards.Select(x => new CardResponse(x)));
     }
 
     [HttpGet("{cardId}")]
     [ProducesResponseType(typeof(CardResponse), StatusCodes.Status200OK, "application/json")]
-    public async Task<IActionResult> GetCardAsync(ObjectId cardId, CancellationToken cancellationToken)
+    public async Task<IActionResult> GetCardAsync(ObjectId boardId, ObjectId cardId, CancellationToken cancellationToken)
     {
         ObjectId userId = ObjectId.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
-        Card card = await _cardService.GetCardByIdAsync(cardId, userId, cancellationToken) ?? throw new RecordDoesNotExist("Card has not been found.");
-        BoardWithUser board = await _boardService.GetBoardByIdAsync(card.BoardId, userId, cancellationToken) ?? throw new RecordDoesNotExist("Board has not been found.");
-        Swimlane swimlane = board.Swimlanes.FirstOrDefault(x => x.Id == card.SwimlaneId) ?? throw new RecordDoesNotExist("Swimlane has not been found.");
-        return Ok(new CardResponse(card, board, swimlane));
+        CardWithAssignedUserAndTags card = await _cardService.GetCardByIdAsync(boardId, cardId, userId, cancellationToken)
+            ?? throw new RecordDoesNotExist("Card has not been found.");
+        return Ok(new CardResponse(card));
     }
     
     [HttpPost]
@@ -72,7 +68,7 @@ public class CardController : ControllerBase
     public async Task<IActionResult> UpdateCardAsync(ObjectId cardId, [FromBody] CreateUpdateCardRequest data, CancellationToken cancellationToken)
     {
         ObjectId userId = ObjectId.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
-        var card = await _cardService.GetCardByIdAsync(cardId, userId, cancellationToken) ?? throw new RecordDoesNotExist("Card has not been found.");
+        var card = await _cardService.GetRawCardByIdAsync(cardId, userId, cancellationToken) ?? throw new RecordDoesNotExist("Card has not been found.");
         card.Title = data.Title;
         card.DueDate = data.DueDate;
         card.Description = data.Description;

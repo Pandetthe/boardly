@@ -7,11 +7,11 @@ public class Card
 {
     public ObjectId Id { get; init; } = ObjectId.GenerateNewId();
 
-    public ObjectId BoardId { get; init; }
+    public ObjectId BoardId { get; set; }
 
-    public ObjectId SwimlaneId { get; init; }
+    public ObjectId SwimlaneId { get; set; }
 
-    public ObjectId ListId { get; init; }
+    public ObjectId ListId { get; set; }
 
     public string Title { get; set; } = null!;
 

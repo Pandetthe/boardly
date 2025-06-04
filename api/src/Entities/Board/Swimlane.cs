@@ -8,9 +8,9 @@ public class Swimlane
 
     public string Title { get; set; } = null!;
 
-    public List<Tag> Tags { get; set; } = [];
+    public HashSet<Tag> Tags { get; set; } = [];
 
-    public List<List> Lists { get; set; } = [];
+    public HashSet<List> Lists { get; set; } = [];
 
     public Color Color { get; set; }
 

@@ -1,0 +1,21 @@
+﻿using MongoDB.Bson;
+
+namespace Boardly.Api.Models.Dtos;
+
+public class AssignedUser
+{
+    public ObjectId Id { get; set; }
+
+    public string Nickname { get; set; } = null!;
+
+    public override int GetHashCode() => Id.GetHashCode();
+
+    public override bool Equals(object? obj)
+    {
+        if (obj is AssignedUser other)
+        {
+            return Id == other.Id;
+        }
+        return false;
+    }
+}

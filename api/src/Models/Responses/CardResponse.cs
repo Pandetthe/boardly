@@ -13,16 +13,17 @@ public record CardResponse
     string Title,
     string? Description,
     DateTime? DueDate,
-    HashSet<MemberResponse>? AssignedUsers,
+    HashSet<AssignedUserResponse>? AssignedUsers,
     HashSet<TagResponse>? Tags,
     DateTime CreatedAt,
     DateTime UpdatedAt
 )
 {
-    public CardResponse(Card card, BoardWithUser board, Swimlane swimlane) : this(card.Id, card.BoardId, card.SwimlaneId, card.ListId, card.Title,
+    public CardResponse(CardWithAssignedUserAndTags card) : this(
+        card.Id, card.BoardId, card.SwimlaneId, card.ListId, card.Title,
         card.Description, card.DueDate,
-        [.. board.Members.Where(x => card.AssignedUsers.Contains(x.UserId)).Select(x => new MemberResponse(x))],
-        [.. swimlane.Tags.Where(x => card.Tags.Contains(x.Id)).Select(x => new TagResponse(x))],
+        card.AssignedUsers?.Select(x => new AssignedUserResponse(x)).ToHashSet(),
+        card.Tags?.Select(x => new TagResponse(x)).ToHashSet(),
         card.CreatedAt, card.UpdatedAt)
     {}
 }
