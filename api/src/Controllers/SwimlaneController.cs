@@ -97,8 +97,7 @@ public class SwimlaneController : ControllerBase
         return Ok(new MessageResponse("Successfully updated swimlane!"));
     }
 
-    [HttpDelete("{swimlaneId}")]
-    [Consumes("application/json")]
+    [HttpDelete("{swimlaneId}")] 
     [ProducesResponseType(typeof(MessageResponse), StatusCodes.Status200OK, "application/json")]
     public async Task<IActionResult> DeleteSwimlaneAsync(ObjectId boardId, ObjectId swimlaneId, CancellationToken cancellationToken)
     {
