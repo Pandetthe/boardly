@@ -1,21 +1,13 @@
 <script lang="ts">
     import Sortable from "sortablejs";
     import { onMount } from "svelte";
+    import type { ICard } from "$lib/types/api/cards";
     import Card from "$lib/components/Card.svelte";
 	import { Plus } from "lucide-svelte";
     import ManageCardPopup from "$lib/components/popup/ManageCardPopup.svelte";
 	import { getContext } from 'svelte';
     
-    let cards: {
-        id: number;
-        title: string;
-        color: string;
-        description: string | null;
-        tags: number[];
-        assignedUsers: number[];
-        dueDate: string | null;
-    }[] = getContext('cards');
-
+    let cards: ICard[];
     export let listId: string;
     export let swimlaneId: string;
 
@@ -24,10 +16,11 @@
     export let color: string;
 
     export let cardRefs: {
-        [key: number]: {
+        [key: string]: {
             process: (newColor: string) => void;
         };
     } = {};
+
     export let tags: {
         id: number;
         title: string;
@@ -53,6 +46,8 @@
             },
             filter: ".nodrag",
         });
+        cards = getContext<ICard[]>('cards').filter(card => card.listId === listId && card.swimlaneId === swimlaneId);
+
     });
     
     function process(evt: any) {
@@ -73,10 +68,9 @@
                 id={card.id}
                 color={color}
                 title={card.title}
-                description={card.description}
-     
+                description={card.description || undefined}
                 assignedUsers={card.assignedUsers?.map((userId: number) => users.find((user:{ id: number }) => user.id === userId))}
-                dueDate={card.dueDate}
+                dueDate={card.dueDate || undefined}
             />
         {/each}
     </ul>

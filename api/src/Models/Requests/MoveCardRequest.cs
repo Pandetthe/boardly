@@ -6,5 +6,5 @@ namespace Boardly.Api.Models.Requests;
 public class MoveCardRequest
 {
     [Required]
-    public ObjectId SwimlaneId { get; init; }
+    public ObjectId ListId { get; init; }
 }

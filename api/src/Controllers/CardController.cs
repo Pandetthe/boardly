@@ -85,7 +85,7 @@ public class CardController : ControllerBase
     public async Task<IActionResult> MoveCardAsync(ObjectId cardId, [FromBody] MoveCardRequest data, CancellationToken cancellationToken)
     {
         ObjectId userId = ObjectId.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
-        await _cardService.MoveCardAsync(cardId, userId, data.SwimlaneId, cancellationToken);
+        await _cardService.MoveCardAsync(cardId, userId, data.ListId, cancellationToken);
         return Ok(new MessageResponse("Card moved successfully!"));
     }
     
