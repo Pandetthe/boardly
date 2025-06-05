@@ -165,11 +165,11 @@ public class CardService
         })];
     }
 
-    public async Task<Card?> GetRawCardByIdAsync(ObjectId cardId, ObjectId userId, CancellationToken cancellationToken = default)
+    public async Task<Card?> GetRawCardByIdAsync(ObjectId boardId, ObjectId cardId, ObjectId userId, CancellationToken cancellationToken = default)
     {
-        if (await _boardService.CheckUserBoardRoleAsync(cardId, userId, cancellationToken) == null)
+        if (await _boardService.CheckUserBoardRoleAsync(boardId, userId, cancellationToken) == null)
             throw new ForbidenException("User is not a member of this board.");
-        return await _cardsCollection.Find(x => x.Id == cardId).FirstOrDefaultAsync(cancellationToken);
+        return await _cardsCollection.Find(x => x.Id == cardId && x.BoardId == boardId).FirstOrDefaultAsync(cancellationToken);
     }
 
     public async Task<CardWithAssignedUserAndTags?> GetCardByIdAsync(ObjectId boardId, ObjectId cardId, ObjectId userId, CancellationToken cancellationToken = default)
