@@ -34,6 +34,7 @@ public class CardService
             throw new ForbidenException("User is not a member of this board.");
         var pipeline = new []
         {
+            new BsonDocument("$match", new BsonDocument("boardId", boardId)),
             new BsonDocument("$unwind", new BsonDocument
             {
                 { "path", "$assignedUsers" },
@@ -177,6 +178,7 @@ public class CardService
             throw new ForbidenException("User is not a member of this board.");
         var pipeline = new []
         {
+            new BsonDocument("$match", new BsonDocument("_id", cardId)),
             new BsonDocument("$match", new BsonDocument("boardId", boardId)),
             new BsonDocument("$unwind", new BsonDocument
             {
