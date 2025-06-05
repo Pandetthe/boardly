@@ -5,11 +5,18 @@ using MongoDB.Driver;
 
 namespace Boardly.Api.Services;
 
-public class ListService(MongoDbProvider mongoDbProvider, ILogger<BoardService> logger, BoardService boardService)
+public class ListService
 {
-    private readonly IMongoCollection<Board> _boardsCollection = mongoDbProvider.GetBoardsCollection();
-    private readonly ILogger<BoardService> _logger = logger;
-    private readonly BoardService _boardService = boardService;
+    private readonly IMongoCollection<Board> _boardsCollection;
+    private readonly IMongoCollection<Card> _cardsCollection;
+    private readonly BoardService _boardService;
+
+    public ListService(MongoDbProvider mongoDbProvider, BoardService boardService)
+    {
+        _boardsCollection = mongoDbProvider.GetBoardsCollection();
+        _cardsCollection = mongoDbProvider.GetCardsCollection();
+        _boardService = boardService;
+    }
 
     public async Task<List?> GetListByIdAsync(ObjectId boardId, ObjectId swimlaneId, ObjectId listId, ObjectId userId, CancellationToken cancellationToken = default)
     {
@@ -90,6 +97,7 @@ public class ListService(MongoDbProvider mongoDbProvider, ILogger<BoardService> 
             ArrayFilters = [new JsonArrayFilterDefinition<Swimlane>("{ 'swimlane._id': '" + swimlaneId + "' }")]
         };
         UpdateResult result = await _boardsCollection.UpdateOneAsync(boardFilter, update, updateOptions, cancellationToken);
+        await _cardsCollection.DeleteManyAsync(x => x.ListId == listId, cancellationToken: cancellationToken);
         if (result.ModifiedCount == 0)
             throw new RecordDoesNotExist("List has not been found.");
     }

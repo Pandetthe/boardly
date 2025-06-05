@@ -21,6 +21,13 @@ public class CardService
         _boardsCollection = mongoDbProvider.GetBoardsCollection();
     }
 
+    public async Task<IEnumerable<Card>> GetRawCardsByBoardIdAsync(ObjectId boardId, ObjectId userId, CancellationToken cancellationToken = default)
+    {
+        if (await _boardService.CheckUserBoardRoleAsync(boardId, userId, cancellationToken) == null)
+            throw new ForbidenException("User is not a member of this board.");
+        return await _cardsCollection.Find(x => x.BoardId == boardId).ToListAsync(cancellationToken);
+    }
+
     public async Task<IEnumerable<CardWithAssignedUserAndTags>> GetCardsByBoardIdAsync(ObjectId boardId, ObjectId userId, CancellationToken cancellationToken = default)
     {
         if (await _boardService.CheckUserBoardRoleAsync(boardId, userId, cancellationToken) == null)
@@ -109,7 +116,7 @@ public class CardService
             DueDate = doc["dueDate"].ToNullableUniversalTime(),
             CreatedAt = doc["createdAt"].ToUniversalTime(),
             UpdatedAt = doc["updatedAt"].ToUniversalTime(),
-            Tags = [.. doc["tags"].AsBsonArray.Select(t =>
+            Tags = [.. doc["tags"].AsBsonArray.Where(x => x.AsBsonDocument.ElementCount != 0).Select(t =>
             {
                 var tag = t.AsBsonDocument;
                 return new Entities.Board.Tag
@@ -119,7 +126,7 @@ public class CardService
                     Color = Enum.Parse<Color>(tag["color"].AsString)
                 };
             })],
-            AssignedUsers = [.. doc["assignedUsers"].AsBsonArray.Select(m =>
+            AssignedUsers = [.. doc["assignedUsers"].AsBsonArray.Where(x => x.AsBsonDocument.ElementCount != 0).Select(m =>
             {
                 var member = m.AsBsonDocument;
                 return new AssignedUser
@@ -135,7 +142,7 @@ public class CardService
     {
         if (await _boardService.CheckUserBoardRoleAsync(cardId, userId, cancellationToken) == null)
             throw new ForbidenException("User is not a member of this board.");
-        return await _cardsCollection.Find(x => x.Id == cardId, null).FirstOrDefaultAsync(cancellationToken);
+        return await _cardsCollection.Find(x => x.Id == cardId).FirstOrDefaultAsync(cancellationToken);
     }
 
     public async Task<CardWithAssignedUserAndTags?> GetCardByIdAsync(ObjectId boardId, ObjectId cardId, ObjectId userId, CancellationToken cancellationToken = default)
@@ -227,7 +234,7 @@ public class CardService
             DueDate = doc["dueDate"].ToNullableUniversalTime(),
             CreatedAt = doc["createdAt"].ToUniversalTime(),
             UpdatedAt = doc["updatedAt"].ToUniversalTime(),
-            Tags = [.. doc["tags"].AsBsonArray.Select(t =>
+            Tags = [.. doc["tags"].AsBsonArray.Where(x => x.AsBsonDocument.ElementCount != 0).Select(t =>
             {
                 var tag = t.AsBsonDocument;
                 return new Entities.Board.Tag
@@ -237,7 +244,7 @@ public class CardService
                     Color = Enum.Parse<Color>(tag["color"].AsString)
                 };
             })],
-            AssignedUsers = [.. doc["assignedUsers"].AsBsonArray.Select(m =>
+            AssignedUsers = [.. doc["assignedUsers"].AsBsonArray.Where(x => x.AsBsonDocument.ElementCount != 0).Select(m =>
             {
                 var member = m.AsBsonDocument;
                 return new AssignedUser

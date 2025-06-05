@@ -30,11 +30,13 @@
 	</PropertyGroup>
 
 	<ItemGroup>
-		<PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="9.0.4" />
-		<PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="9.0.4" />
+		<PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="9.0.5" />
+		<PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="9.0.5" />
+		<PackageReference Include="Microsoft.Extensions.Logging.AzureAppServices" Version="9.0.5" />
 		<PackageReference Include="Microsoft.VisualStudio.Azure.Containers.Tools.Targets" Version="1.21.2" />
-		<PackageReference Include="MongoDB.Driver" Version="3.3.0" />
-		<PackageReference Include="Scalar.AspNetCore" Version="2.2.1" />
+		<PackageReference Include="MongoDB.Driver" Version="3.4.0" />
+		<PackageReference Include="Scalar.AspNetCore" Version="2.4.8" />
 		<PackageReference Include="Serilog.AspNetCore" Version="9.0.0" />
+		<PackageReference Include="Serilog.Sinks.AzureApp" Version="3.1.0" />
 	</ItemGroup>
 </Project>

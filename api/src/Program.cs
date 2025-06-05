@@ -22,6 +22,7 @@ public class Program
     {
         Log.Logger = new LoggerConfiguration()
             .WriteTo.Console()
+            .WriteTo.AzureApp()
             .CreateBootstrapLogger();
 
         Serilog.ILogger logger = Log.ForContext("SourceContext", typeof(Program).FullName);
