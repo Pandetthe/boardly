@@ -279,7 +279,7 @@ public class CardService
         await _cardsCollection.UpdateOneAsync(filter, update, cancellationToken: cancellationToken);
     }
 
-    public async Task MoveCardAsync(ObjectId userId, ObjectId cardId, ObjectId swimlaneId,
+    public async Task MoveCardAsync(ObjectId userId, ObjectId cardId, ObjectId listId,
         CancellationToken cancellationToken = default)
     {
         Card card = await _cardsCollection.Find(x => x.Id == cardId).FirstOrDefaultAsync(cancellationToken)
@@ -294,7 +294,7 @@ public class CardService
         }
         var filter = Builders<Card>.Filter.Eq(x => x.Id, cardId);
         var update = Builders<Card>.Update
-            .Set(c => c.SwimlaneId, swimlaneId);
+            .Set(c => c.ListId, listId);
         await _cardsCollection.UpdateOneAsync(filter, update, cancellationToken: cancellationToken);
     }
 

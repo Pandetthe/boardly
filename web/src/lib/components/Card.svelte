@@ -14,7 +14,7 @@
     }[] = [];
     export let dueDate = "";
     export let assignedUsers: {
-        name: string;
+        nickname: string;
         id: string;
     }[] = [];
 
@@ -54,15 +54,15 @@
                 <div class="text-text-secondary flex gap-2 items-center h-5"><Clock class="h-full"/> {dueDate}</div>
             </div>
             {/if}
-            {#if assignedUsers.length > 0}
+            {#if assignedUsers.length > 0 && assignedUsers[0]}
             <div>
                 <div class="text-text-secondary flex gap-2 items-center h-5">
                     <User class="h-full"/>
                     <div class="avatar-group -space-x-4 overflow-visible">
                         {#each assignedUsers as user}
-                        <div class="tooltip" data-tip={user.name}>
+                        <div class="tooltip" data-tip={user.nickname}>
                             <div class="avatar h-8 w-8">
-                                    <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcThmIFs-N4PT0D3gxuDINqgkKWhSxR6sNwJ6g&s" alt={user.name}/>
+                                    <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcThmIFs-N4PT0D3gxuDINqgkKWhSxR6sNwJ6g&s" alt={user.nickname}/>
                                 </div>
                             </div>
                         {/each}

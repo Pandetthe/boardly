@@ -3,6 +3,7 @@
     import UserFinder from "$lib/components/UserFinder.svelte";
     import UserManager from "$lib/components/UserManager.svelte";
     import Popup from "$lib/components/popup/Popup.svelte";
+	import type { ICard } from "$lib/types/api/cards";
 
     export let pageTags: {
         id: number;
@@ -11,15 +12,7 @@
         checked?: boolean;
     }[];
 
-    export let list: {
-        id: number;
-        title: string;
-        color: string;
-        description: string | null;
-        tags: number[];
-        assignedUsers: number[];
-        dueDate: string | null;
-    }[] = [];
+    export let list: ICard[] = [];
 
     export let boardId: string;
 
@@ -33,9 +26,9 @@
     $: currentCardDescription = "";
     let assignedUsers: number[] = [];
 
-    let currentPageId: number | null = null;
+    let currentPageId: string | null = null;
 
-    export function show(id: number|null=null) {
+    export function show(id: string | null=null) {
         visible = true;
         isEditMode = id !== null;
         if (!isEditMode) {
@@ -84,11 +77,14 @@
             console.error("Failed to create card");
             return;
         }
-        const res = await rese.json();
+        const res: {id:string} = await rese.json();
         list = [
             ...list,
             {
                 id: res.id,
+                listId: listId,
+                swimlaneId: swimlaneId,
+                boardId: boardId,
                 title: currentCardName,
                 color: "blue",
                 description: currentCardDescription || null,
