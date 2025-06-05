@@ -44,7 +44,7 @@ public class CardController : ControllerBase
     [HttpPost]
     [Consumes("application/json")]
     [ProducesResponseType(typeof(IdResponse), StatusCodes.Status200OK, "application/json")]
-    public async Task<IActionResult> CreateCardAsync(ObjectId boardId, [FromBody] CreateUpdateCardRequest data, CancellationToken cancellationToken)
+    public async Task<IActionResult> CreateCardAsync(ObjectId boardId, [FromBody] CreateCardRequest data, CancellationToken cancellationToken)
     {
         ObjectId userId = ObjectId.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
         var card = new Card
@@ -65,7 +65,7 @@ public class CardController : ControllerBase
     [HttpPatch("{cardId}")]
     [Consumes("application/json")]
     [ProducesResponseType(typeof(MessageResponse), StatusCodes.Status200OK,  "application/json")]
-    public async Task<IActionResult> UpdateCardAsync(ObjectId cardId, [FromBody] CreateUpdateCardRequest data, CancellationToken cancellationToken)
+    public async Task<IActionResult> UpdateCardAsync(ObjectId cardId, [FromBody] UpdateCardRequest data, CancellationToken cancellationToken)
     {
         ObjectId userId = ObjectId.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
         var card = await _cardService.GetRawCardByIdAsync(cardId, userId, cancellationToken) ?? throw new RecordDoesNotExist("Card has not been found.");
