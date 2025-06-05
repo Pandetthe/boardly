@@ -36,5 +36,6 @@
 		<PackageReference Include="MongoDB.Driver" Version="3.3.0" />
 		<PackageReference Include="Scalar.AspNetCore" Version="2.2.1" />
 		<PackageReference Include="Serilog.AspNetCore" Version="9.0.0" />
+		<PackageReference Include="Serilog.Sinks.AzureApp" Version="3.1.0" />
 	</ItemGroup>
 </Project>
