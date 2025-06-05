@@ -116,7 +116,7 @@ public class CardService
             DueDate = doc["dueDate"].ToNullableUniversalTime(),
             CreatedAt = doc["createdAt"].ToUniversalTime(),
             UpdatedAt = doc["updatedAt"].ToUniversalTime(),
-            Tags = [.. doc["tags"].AsBsonArray.Select(t =>
+            Tags = [.. doc["tags"].AsBsonArray.Where(x => x.AsBsonDocument.ElementCount != 0).Select(t =>
             {
                 var tag = t.AsBsonDocument;
                 return new Entities.Board.Tag
@@ -126,7 +126,7 @@ public class CardService
                     Color = Enum.Parse<Color>(tag["color"].AsString)
                 };
             })],
-            AssignedUsers = [.. doc["assignedUsers"].AsBsonArray.Select(m =>
+            AssignedUsers = [.. doc["assignedUsers"].AsBsonArray.Where(x => x.AsBsonDocument.ElementCount != 0).Select(m =>
             {
                 var member = m.AsBsonDocument;
                 return new AssignedUser
@@ -234,7 +234,7 @@ public class CardService
             DueDate = doc["dueDate"].ToNullableUniversalTime(),
             CreatedAt = doc["createdAt"].ToUniversalTime(),
             UpdatedAt = doc["updatedAt"].ToUniversalTime(),
-            Tags = [.. doc["tags"].AsBsonArray.Select(t =>
+            Tags = [.. doc["tags"].AsBsonArray.Where(x => x.AsBsonDocument.ElementCount != 0).Select(t =>
             {
                 var tag = t.AsBsonDocument;
                 return new Entities.Board.Tag
@@ -244,7 +244,7 @@ public class CardService
                     Color = Enum.Parse<Color>(tag["color"].AsString)
                 };
             })],
-            AssignedUsers = [.. doc["assignedUsers"].AsBsonArray.Select(m =>
+            AssignedUsers = [.. doc["assignedUsers"].AsBsonArray.Where(x => x.AsBsonDocument.ElementCount != 0).Select(m =>
             {
                 var member = m.AsBsonDocument;
                 return new AssignedUser
