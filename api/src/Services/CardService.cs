@@ -32,7 +32,7 @@ public class CardService
     {
         if (await _boardService.CheckUserBoardRoleAsync(boardId, userId, cancellationToken) == null)
             throw new ForbidenException("User is not a member of this board.");
-        var pipeline = new[]
+        var pipeline = new []
         {
             new BsonDocument("$unwind", new BsonDocument
             {
@@ -69,14 +69,22 @@ public class CardService
             {
                 { "input", "$board.swimlanes" },
                 { "as", "sw" },
-                { "cond", new BsonDocument("$eq", new BsonArray { "$$sw._id", "$swimlaneId" }) }
+                { "cond", new BsonDocument("$eq", new BsonArray
+                    {
+                        "$$sw._id",
+                        "$swimlaneId"
+                    }) }
             })))),
-            new BsonDocument("$addFields", new BsonDocument("tag",
-                new BsonDocument("$first", new BsonDocument("$filter", new BsonDocument
+            new BsonDocument("$addFields", new BsonDocument("tag", new BsonDocument("$first",
+                new BsonDocument("$filter", new BsonDocument
             {
                 { "input", "$swimlane.tags" },
                 { "as", "tg" },
-                { "cond", new BsonDocument("$eq", new BsonArray { "$$tg._id", "$tags" }) }
+                { "cond", new BsonDocument("$eq", new BsonArray
+                    {
+                        "$$tg._id",
+                        "$tags"
+                    }) }
             })))),
             new BsonDocument("$group", new BsonDocument
             {
@@ -87,19 +95,37 @@ public class CardService
                 { "title", new BsonDocument("$first", "$title") },
                 { "description", new BsonDocument("$first", "$description") },
                 { "dueDate", new BsonDocument("$first", "$dueDate") },
-                { "tags", new BsonDocument("$push", new BsonDocument
-                    {
-                        { "_id", "$tag._id" },
-                        { "title", "$tag.title" },
-                        { "color", "$tag.color" }
-                    }) },
-                { "assignedUsers", new BsonDocument("$push", new BsonDocument
-                    {
-                        { "_id", "$user._id" },
-                        { "nickname", "$user.nickname" }
-                    }) },
                 { "createdAt", new BsonDocument("$first", "$createdAt") },
-                { "updatedAt", new BsonDocument("$first", "$updatedAt") }
+                { "updatedAt", new BsonDocument("$first", "$updatedAt") },
+                { "tags", new BsonDocument("$push", new BsonDocument("$cond", new BsonArray
+                    { new BsonDocument("$ne", new BsonArray
+                        {
+                            new BsonDocument("$type", "$tag"),
+                            "missing"
+                        }),
+                        new BsonDocument
+                        {
+                            { "_id", "$tag._id" },
+                            { "title", "$tag.title" },
+                            { "color", "$tag.color" }
+                        },
+                        "$$REMOVE"
+                    }))
+                },
+                { "assignedUsers", new BsonDocument("$push", new BsonDocument("$cond", new BsonArray
+                    { new BsonDocument("$ne", new BsonArray
+                        {
+                            new BsonDocument("$type", "$user"),
+                            "missing"
+                        }),
+                        new BsonDocument
+                        {
+                            { "_id", "$user._id" },
+                            { "nickname", "$user.nickname" }
+                        },
+                        "$$REMOVE"
+                    }))
+                }
             })
         };
         var documents = await _cardsCollection
@@ -116,7 +142,7 @@ public class CardService
             DueDate = doc["dueDate"].ToNullableUniversalTime(),
             CreatedAt = doc["createdAt"].ToUniversalTime(),
             UpdatedAt = doc["updatedAt"].ToUniversalTime(),
-            Tags = [.. doc["tags"].AsBsonArray.Where(x => x.AsBsonDocument.ElementCount != 0).Select(t =>
+            Tags = [.. doc["tags"].AsBsonArray.Select(t =>
             {
                 var tag = t.AsBsonDocument;
                 return new Entities.Board.Tag
@@ -126,7 +152,7 @@ public class CardService
                     Color = Enum.Parse<Color>(tag["color"].AsString)
                 };
             })],
-            AssignedUsers = [.. doc["assignedUsers"].AsBsonArray.Where(x => x.AsBsonDocument.ElementCount != 0).Select(m =>
+            AssignedUsers = [.. doc["assignedUsers"].AsBsonArray.Select(m =>
             {
                 var member = m.AsBsonDocument;
                 return new AssignedUser
@@ -149,7 +175,7 @@ public class CardService
     {
         if (await _boardService.CheckUserBoardRoleAsync(boardId, userId, cancellationToken) == null)
             throw new ForbidenException("User is not a member of this board.");
-        var pipeline = new[]
+        var pipeline = new []
         {
             new BsonDocument("$match", new BsonDocument("boardId", boardId)),
             new BsonDocument("$unwind", new BsonDocument
@@ -187,14 +213,22 @@ public class CardService
             {
                 { "input", "$board.swimlanes" },
                 { "as", "sw" },
-                { "cond", new BsonDocument("$eq", new BsonArray { "$$sw._id", "$swimlaneId" }) }
+                { "cond", new BsonDocument("$eq", new BsonArray
+                    {
+                        "$$sw._id",
+                        "$swimlaneId"
+                    }) }
             })))),
-            new BsonDocument("$addFields", new BsonDocument("tag",
-                new BsonDocument("$first", new BsonDocument("$filter", new BsonDocument
+            new BsonDocument("$addFields", new BsonDocument("tag", new BsonDocument("$first",
+                new BsonDocument("$filter", new BsonDocument
             {
                 { "input", "$swimlane.tags" },
                 { "as", "tg" },
-                { "cond", new BsonDocument("$eq", new BsonArray { "$$tg._id", "$tags" }) }
+                { "cond", new BsonDocument("$eq", new BsonArray
+                    {
+                        "$$tg._id",
+                        "$tags"
+                    }) }
             })))),
             new BsonDocument("$group", new BsonDocument
             {
@@ -205,19 +239,37 @@ public class CardService
                 { "title", new BsonDocument("$first", "$title") },
                 { "description", new BsonDocument("$first", "$description") },
                 { "dueDate", new BsonDocument("$first", "$dueDate") },
-                { "tags", new BsonDocument("$push", new BsonDocument
-                    {
-                        { "_id", "$tag._id" },
-                        { "title", "$tag.title" },
-                        { "color", "$tag.color" }
-                    }) },
-                { "assignedUsers", new BsonDocument("$push", new BsonDocument
-                    {
-                        { "_id", "$user._id" },
-                        { "nickname", "$user.nickname" }
-                    }) },
                 { "createdAt", new BsonDocument("$first", "$createdAt") },
-                { "updatedAt", new BsonDocument("$first", "$updatedAt") }
+                { "updatedAt", new BsonDocument("$first", "$updatedAt") },
+                { "tags", new BsonDocument("$push", new BsonDocument("$cond", new BsonArray
+                    { new BsonDocument("$ne", new BsonArray
+                        {
+                            new BsonDocument("$type", "$tag"),
+                            "missing"
+                        }),
+                        new BsonDocument
+                        {
+                            { "_id", "$tag._id" },
+                            { "title", "$tag.title" },
+                            { "color", "$tag.color" }
+                        },
+                        "$$REMOVE"
+                    }))
+                },
+                { "assignedUsers", new BsonDocument("$push", new BsonDocument("$cond", new BsonArray
+                    { new BsonDocument("$ne", new BsonArray
+                        {
+                            new BsonDocument("$type", "$user"),
+                            "missing"
+                        }),
+                        new BsonDocument
+                        {
+                            { "_id", "$user._id" },
+                            { "nickname", "$user.nickname" }
+                        },
+                        "$$REMOVE"
+                    }))
+                }
             })
         };
         var doc = await _cardsCollection
@@ -234,7 +286,7 @@ public class CardService
             DueDate = doc["dueDate"].ToNullableUniversalTime(),
             CreatedAt = doc["createdAt"].ToUniversalTime(),
             UpdatedAt = doc["updatedAt"].ToUniversalTime(),
-            Tags = [.. doc["tags"].AsBsonArray.Where(x => x.AsBsonDocument.ElementCount != 0).Select(t =>
+            Tags = [.. doc["tags"].AsBsonArray.Select(t =>
             {
                 var tag = t.AsBsonDocument;
                 return new Entities.Board.Tag
@@ -244,7 +296,7 @@ public class CardService
                     Color = Enum.Parse<Color>(tag["color"].AsString)
                 };
             })],
-            AssignedUsers = [.. doc["assignedUsers"].AsBsonArray.Where(x => x.AsBsonDocument.ElementCount != 0).Select(m =>
+            AssignedUsers = [.. doc["assignedUsers"].AsBsonArray.Select(m =>
             {
                 var member = m.AsBsonDocument;
                 return new AssignedUser
