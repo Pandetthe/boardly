@@ -5,11 +5,18 @@ using MongoDB.Driver;
 
 namespace Boardly.Api.Services;
 
-public class SwimlaneService(MongoDbProvider mongoDbProvider, ILogger<BoardService> logger, BoardService boardService)
+public class SwimlaneService
 {
-    private readonly IMongoCollection<Board> _boardsCollection = mongoDbProvider.GetBoardsCollection();
-    private readonly ILogger<BoardService> _logger = logger;
-    private readonly BoardService _boardService = boardService;
+    private readonly IMongoCollection<Board> _boardsCollection;
+    private readonly IMongoCollection<Card> _cardsCollection;
+    private readonly BoardService _boardService;
+
+    public SwimlaneService(MongoDbProvider mongoDbProvider, BoardService boardService)
+    {
+        _boardsCollection = mongoDbProvider.GetBoardsCollection();
+        _cardsCollection = mongoDbProvider.GetCardsCollection();
+        _boardService = boardService;
+    }
 
     public async Task<Swimlane?> GetSwimlaneByIdAsync(ObjectId boardId, ObjectId swimlaneId, ObjectId userId, CancellationToken cancellationToken = default)
     {
@@ -76,12 +83,12 @@ public class SwimlaneService(MongoDbProvider mongoDbProvider, ILogger<BoardServi
             ?? throw new ForbidenException("You are not a member of this board.");
         if (role != BoardRole.Owner && role != BoardRole.Admin)
         throw new ForbidenException("User is not authorized to delete this swimlane.");
-        var boardFilter = Builders<Board>.Filter.Eq(b => b.Id, boardId);
         var update = Builders<Board>.Update.PullFilter(
             b => b.Swimlanes,
             Builders<Swimlane>.Filter.Eq(s => s.Id, swimlaneId)
         );
-        UpdateResult result = await _boardsCollection.UpdateOneAsync(boardFilter, update, cancellationToken: cancellationToken);
+        UpdateResult result = await _boardsCollection.UpdateOneAsync(x => x.Id == boardId, update, cancellationToken: cancellationToken);
+        await _cardsCollection.DeleteManyAsync(x => x.SwimlaneId == swimlaneId, cancellationToken: cancellationToken);
         if (result.ModifiedCount == 0)
             throw new RecordDoesNotExist("Swimlane has not been found.");
     }

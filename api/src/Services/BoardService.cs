@@ -10,12 +10,12 @@ namespace Boardly.Api.Services;
 public class BoardService
 {
     private readonly IMongoCollection<Board> _boardsCollection;
-    private readonly ILogger<BoardService> _logger;
+    private readonly IMongoCollection<Card> _cardsCollection;
 
-    public BoardService(MongoDbProvider mongoDbProvider, ILogger<BoardService> logger)
+    public BoardService(MongoDbProvider mongoDbProvider)
     {
         _boardsCollection = mongoDbProvider.GetBoardsCollection();
-        _logger = logger;
+        _cardsCollection = mongoDbProvider.GetCardsCollection();
     }
 
     public async Task CreateBoardAsync(Board board, CancellationToken cancellationToken = default)
@@ -25,6 +25,15 @@ public class BoardService
         await _boardsCollection.InsertOneAsync(board, cancellationToken: cancellationToken);
     }
 
+    public async Task<Board?> GetRawBoardByIdAsync(ObjectId id, ObjectId userId, CancellationToken cancellationToken = default)
+    {
+        var board = await _boardsCollection.Find(x => x.Id == id).FirstOrDefaultAsync(cancellationToken);
+        if (board == null)
+            return null;
+        if (board.Members.All(x => x.UserId != userId))
+            throw new ForbidenException("User is not a member of this board.");
+        return board;
+    }
 
     public async Task<BoardWithUser?> GetBoardByIdAsync(ObjectId id, ObjectId userId, CancellationToken cancellationToken = default)
     {
@@ -156,6 +165,12 @@ public class BoardService
         })];
     }
 
+    public async Task<IEnumerable<Board>> GetRawBoardsByUserIdAsync(ObjectId userId, CancellationToken cancellationToken = default)
+    {
+        var filter = Builders<Board>.Filter.ElemMatch(b => b.Members, m => m.UserId == userId);
+        return await _boardsCollection.Find(filter).ToListAsync(cancellationToken);
+    }
+
     public async Task UpdateBoardAsync(Board board, ObjectId userId, CancellationToken cancellationToken = default)
     {
         IEnumerable<Member> owners = board.Members.Where(x => x.Role == BoardRole.Owner);
@@ -171,7 +186,6 @@ public class BoardService
             throw new InvalidOperationException("An unexpected error occurred while updating board. Board has more or less than one owner!");
         if (existingOwners.First() != owners.First() && existingOwners.First().UserId != userId)
             throw new ForbidenException("User is not authorized to change the owner of this board.");
-        UpdateResult result;
         board.UpdatedAt = DateTime.UtcNow;
         var filter = Builders<Board>.Filter.Eq(b => b.Id, board.Id);
         var update = Builders<Board>.Update
@@ -179,7 +193,7 @@ public class BoardService
             .Set(b => b.Members, board.Members)
             .Set(b => b.UpdatedAt, board.UpdatedAt);
 
-        result = await _boardsCollection.UpdateOneAsync(filter, update, cancellationToken: cancellationToken);
+        UpdateResult result = await _boardsCollection.UpdateOneAsync(filter, update, cancellationToken: cancellationToken);
         if (result.ModifiedCount == 0)
             throw new RecordDoesNotExist("Board has not been found.");
     }
@@ -198,11 +212,8 @@ public class BoardService
         BoardRole? role = await CheckUserBoardRoleAsync(id, userId, cancellationToken);
         if (role == null || role != BoardRole.Owner)
             throw new ForbidenException("User is not authorized to delete this board.");
-        DeleteResult result;
-        var filterWithAccess = Builders<Board>.Filter.And(
-            Builders<Board>.Filter.Eq(b => b.Id, id)
-        );
-        result = await _boardsCollection.DeleteOneAsync(filterWithAccess, cancellationToken);
+        DeleteResult result = await _boardsCollection.DeleteOneAsync(x => x.Id == id, cancellationToken);
+        await _cardsCollection.DeleteManyAsync(x => x.BoardId == id, cancellationToken);
         if (result.DeletedCount == 0)
             throw new RecordDoesNotExist("Board has not been found.");
     }

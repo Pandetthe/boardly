@@ -21,6 +21,13 @@ public class CardService
         _boardsCollection = mongoDbProvider.GetBoardsCollection();
     }
 
+    public async Task<IEnumerable<Card>> GetRawCardsByBoardIdAsync(ObjectId boardId, ObjectId userId, CancellationToken cancellationToken = default)
+    {
+        if (await _boardService.CheckUserBoardRoleAsync(boardId, userId, cancellationToken) == null)
+            throw new ForbidenException("User is not a member of this board.");
+        return await _cardsCollection.Find(x => x.BoardId == boardId).ToListAsync(cancellationToken);
+    }
+
     public async Task<IEnumerable<CardWithAssignedUserAndTags>> GetCardsByBoardIdAsync(ObjectId boardId, ObjectId userId, CancellationToken cancellationToken = default)
     {
         if (await _boardService.CheckUserBoardRoleAsync(boardId, userId, cancellationToken) == null)
@@ -135,7 +142,7 @@ public class CardService
     {
         if (await _boardService.CheckUserBoardRoleAsync(cardId, userId, cancellationToken) == null)
             throw new ForbidenException("User is not a member of this board.");
-        return await _cardsCollection.Find(x => x.Id == cardId, null).FirstOrDefaultAsync(cancellationToken);
+        return await _cardsCollection.Find(x => x.Id == cardId).FirstOrDefaultAsync(cancellationToken);
     }
 
     public async Task<CardWithAssignedUserAndTags?> GetCardByIdAsync(ObjectId boardId, ObjectId cardId, ObjectId userId, CancellationToken cancellationToken = default)
