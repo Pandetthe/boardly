@@ -286,7 +286,7 @@ public class CardService
         await _cardsCollection.UpdateOneAsync(filter, update, cancellationToken: cancellationToken);
     }
 
-    public async Task MoveCardAsync(ObjectId userId, ObjectId cardId, ObjectId listId,
+    public async Task MoveCardAsync(ObjectId cardId, ObjectId userId, ObjectId listId,
         CancellationToken cancellationToken = default)
     {
         Card card = await _cardsCollection.Find(x => x.Id == cardId).FirstOrDefaultAsync(cancellationToken)
