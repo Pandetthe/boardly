@@ -82,6 +82,7 @@ public class CardController : ControllerBase
         card.AssignedUsers = data.AssignedUsers ?? [];
 
         await _cardService.UpdateCardAsync(cardId, userId, card, cancellationToken);
+        await _hubContext.Clients.All.SendAsync("Update", cancellationToken);
         return Ok(new MessageResponse("Card updated successfully!"));
     }
     
