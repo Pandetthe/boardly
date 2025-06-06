@@ -26,7 +26,8 @@ export const load = (async ({ cookies, params, depends }) => {
         });
         if (res.ok && cards.ok) {
             const rawBoard = await res.json() as DetailedBoardReponse;
-            return { board: parseDetailedBoard(rawBoard) satisfies DetailedBoard, cards: await cards.json() };
+            const rawCards = await cards.json();
+            return { board: parseDetailedBoard(rawBoard) satisfies DetailedBoard, cards: rawCards };
         }
     } catch (error) {
         console.error('Error while fetching boards:', error);

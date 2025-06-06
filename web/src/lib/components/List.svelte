@@ -6,6 +6,7 @@
 	import { Plus } from "lucide-svelte";
     import ManageCardPopup from "$lib/components/popup/ManageCardPopup.svelte";
 	import { getContext } from 'svelte';
+	import type { Writable } from "svelte/store";
     
     let cards: ICard[];
     export let listId: string;
@@ -30,6 +31,13 @@
     let list: HTMLUListElement;
     let popup: ManageCardPopup;
 
+    let cardsContext = getContext<Writable<ICard[]>>('cards');
+
+    cardsContext.subscribe((value) => {
+        console.log("RV", value);
+        cards = value.filter(card => card.listId === listId && card.swimlaneId === swimlaneId);
+    });
+
     onMount(() => {
         Sortable.create(list, {
             group: "shared",
@@ -46,7 +54,6 @@
             },
             filter: ".nodrag",
         });
-        cards = getContext<ICard[]>('cards').filter(card => card.listId === listId && card.swimlaneId === swimlaneId);
 
     });
     

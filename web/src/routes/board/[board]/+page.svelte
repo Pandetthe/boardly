@@ -10,12 +10,26 @@
 
 	let { data }: PageProps = $props();
 
-	setContext('cards', data.cards);
-	setContext('board', data.board);
+	import { writable } from 'svelte/store';
+
+	const cards = writable(data.cards);
+	const board = writable(data.board);
+
+	$effect(() => {
+		if (data?.cards) {
+			cards.set(data.cards);
+		}
+		if (data?.board) {
+			board.set(data.board);
+		}
+	});
+
+	setContext('cards', cards);
+	setContext('board', board);
 
 	let swimlanePopup: ManageSwimlanePopup | undefined = $state(undefined);
 
-	let conn;
+	let conn: signalR.HubConnection;
 
 	async function start() {
 		conn = new signalR.HubConnectionBuilder()
@@ -38,19 +52,19 @@
 
     }
 
-onMount(async () => {
-	await start();
-});
+	onMount(async () => {
+		await start();
+	});
 
-onDestroy(() => {
-	if (conn) {
-		conn.stop().then(() => {
-			console.log('SignalR connection stopped');
-		}).catch(err => {
-			console.error("Error while stopping connection: ", err);
-		});
-	}
-});
+	onDestroy(() => {
+		if (conn) {
+			conn.stop().then(() => {
+				console.log('SignalR connection stopped');
+			}).catch(err => {
+				console.error("Error while stopping connection: ", err);
+			});
+		}
+	});
 
 </script>
 
