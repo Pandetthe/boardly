@@ -18,11 +18,11 @@ namespace Boardly.Api.Controllers;
 public class CardController : ControllerBase
 {
     private readonly CardService _cardService;
-    private readonly IHubContext<BoardHub> _hubContext;
+    private readonly IHubContext<BoardHub> _boardHubContext;
 
-    public CardController(CardService cardService, IHubContext<BoardHub> hubContext)
+    public CardController(CardService cardService, IHubContext<BoardHub> boardHubContext)
     {
-        _hubContext = hubContext;
+        _boardHubContext = boardHubContext;
         _cardService = cardService;
     }
 
@@ -64,7 +64,7 @@ public class CardController : ControllerBase
             AssignedUsers = data.AssignedUsers ?? []
         };
         await _cardService.CreateCardAsync(userId, card, cancellationToken);
-        await _hubContext.Clients.All.SendAsync("Update", cancellationToken);
+        await _boardHubContext.Clients.Group(boardId.ToString()).SendAsync("Update", cancellationToken);
         return Ok(new IdResponse(card.Id));
     }
 
@@ -82,29 +82,29 @@ public class CardController : ControllerBase
         card.AssignedUsers = data.AssignedUsers ?? [];
 
         await _cardService.UpdateCardAsync(cardId, userId, card, cancellationToken);
-        await _hubContext.Clients.All.SendAsync("Update", cancellationToken);
+        await _boardHubContext.Clients.Group(boardId.ToString()).SendAsync("Update", cancellationToken);
         return Ok(new MessageResponse("Card updated successfully!"));
     }
     
     [HttpPatch("{cardId}/move")]
     [Consumes("application/json")]
     [ProducesResponseType(typeof(MessageResponse), StatusCodes.Status200OK, "application/json")]
-    public async Task<IActionResult> MoveCardAsync(ObjectId cardId, [FromBody] MoveCardRequest data, CancellationToken cancellationToken)
+    public async Task<IActionResult> MoveCardAsync(ObjectId boardId, ObjectId cardId, [FromBody] MoveCardRequest data, CancellationToken cancellationToken)
     {
         ObjectId userId = ObjectId.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
         await _cardService.MoveCardAsync(cardId, userId, data.ListId, cancellationToken);
-        await _hubContext.Clients.All.SendAsync("Update", cancellationToken);
+        await _boardHubContext.Clients.Group(boardId.ToString()).SendAsync("Update", cancellationToken);
         return Ok(new MessageResponse("Card moved successfully!"));
     }
     
     [HttpDelete("{cardId}")]
     [Consumes("application/json")]
     [ProducesResponseType(typeof(MessageResponse), StatusCodes.Status200OK,  "application/json")]
-    public async Task<IActionResult> DeleteCardAsync(ObjectId cardId, CancellationToken cancellationToken)
+    public async Task<IActionResult> DeleteCardAsync(ObjectId boardId, ObjectId cardId, CancellationToken cancellationToken)
     {
         ObjectId userId = ObjectId.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
         await _cardService.DeleteCardAsync(cardId, userId, cancellationToken);
-        await _hubContext.Clients.All.SendAsync("Update", cancellationToken);
+        await _boardHubContext.Clients.Group(boardId.ToString()).SendAsync("Update", cancellationToken);
         return Ok(new MessageResponse("Card deleted successfully!"));
     }
 }

@@ -20,14 +20,14 @@ namespace Boardly.Api.Controllers;
 public class BoardController : ControllerBase
 {
     private readonly BoardService _boardService;
-    private readonly IHubContext<BoardHub> _hubContext;
+    private readonly IHubContext<BoardHub> _boardHubContext;
 
     public BoardController(
         BoardService boardService,
         IHubContext<BoardHub> hubContext)
     {
         _boardService = boardService;
-        _hubContext = hubContext;
+        _boardHubContext = hubContext;
     }
 
     [HttpGet]
@@ -126,6 +126,7 @@ public class BoardController : ControllerBase
         };
 
         await _boardService.UpdateBoardAsync(board, userId, cancellationToken);
+        await _boardHubContext.Clients.Group(boardId.ToString()).SendAsync("Update", cancellationToken);
         return Ok(new MessageResponse("Successfully updated board!"));
     }
 
@@ -138,6 +139,7 @@ public class BoardController : ControllerBase
     {
         ObjectId userId = ObjectId.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
         await _boardService.DeleteBoardAsync(boardId, userId, cancellationToken);
+        await _boardHubContext.Clients.Group(boardId.ToString()).SendAsync("BoardDelete", cancellationToken);
         return Ok(new MessageResponse("Board successfully deleted!"));
     }
 }
