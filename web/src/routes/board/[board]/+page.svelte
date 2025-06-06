@@ -2,7 +2,7 @@
 	import Swimlane from '$lib/components/Swimlane.svelte';
 	import ManageSwimlanePopup from '$lib/components/popup/ManageSwimlanePopup.svelte';
 	import { Menu, Plus } from 'lucide-svelte';
-	import { onMount } from 'svelte';
+	import { onDestroy, onMount } from 'svelte';
 	import type { PageProps } from './$types';
 	import * as signalR from '@microsoft/signalr';
 	import { setContext } from 'svelte'
@@ -16,12 +16,14 @@
 
     let connection: signalR.HubConnection;
 
-    function start() {
+    async function start() {
         connection = new signalR.HubConnectionBuilder()
-            .withUrl("/api/hubs/board?boardId=683f13ac4d0f10626e47c678")
+            .withUrl(`/api/hubs/board?boardId=${data.board.id}`)
+			.withAutomaticReconnect()
             .configureLogging(signalR.LogLevel.Information)
             .build();
 
+<<<<<<< HEAD
         connection.start().catch(err => console.error("Error while starting connection: ", err));
 
 		setContext('connection', connection);
@@ -29,11 +31,23 @@
 		connection.on("Update", () => {
 			invalidate('api:boards');
 		});
+=======
+		try {
+			await connection.start();
+		} catch (err) {
+			console.error("Error while starting connection: ", err);
+		}
+>>>>>>> dc21447cb4d553ef5ef68e0851fa505acdc83ff9
     }
 
-    onMount(() => {
-        start();
-    });
+onMount(async () => {
+	await start();
+});
+onDestroy(async () => {
+	if (connection) {
+		await connection.stop();
+	}
+});
 </script>
 
 <svelte:head>
