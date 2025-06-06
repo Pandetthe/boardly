@@ -6,7 +6,9 @@
 	import BoardCard from "./BoardCard.svelte";
 
     export let onSelect: (member: Member) => void = () => {};
+    export let showRole = true;
     export let blacklist: string[] = [];
+    export let members: Member[] | null = null;
 
     function addMember(e: MouseEvent) {
         e.preventDefault();
@@ -31,6 +33,21 @@
         onSelect(member);
     }
 
+    function addMemberNoRole(e: MouseEvent) {
+        e.preventDefault();
+        e.stopPropagation();
+
+        if (selected == null) {
+            return;
+        }
+
+        const member = { 
+            userId: selected.id, nickname: selected.nickname, isActive: false
+        }
+
+        onSelect(member as Member);
+    }
+
     let filteredUsers: User[] = [];
 
     let selected: User | null = null;
@@ -40,6 +57,18 @@
 
 
     async function search() {
+        if (members != null) {
+            filteredUsers = members
+            .filter(
+                x => x.nickname.toLocaleLowerCase().includes(input.value.toLocaleLowerCase())
+            )
+            .map(member => ({
+                id: member.userId,
+                nickname: member.nickname
+            }));
+            return;
+        }
+
         const params = new URLSearchParams();
 
         if (input.value) {
@@ -59,7 +88,7 @@
             });
 
             if (!response.ok) {
-                throw new Error(`HTTP error! Status: ${response.status}`);
+                throw new Error(await response.json());
             }
 
             filteredUsers = await response.json();
@@ -96,10 +125,12 @@
         </button>
     {/if}
     </div>
+    {#if showRole}
     <select class="h-10 p-2 text-text-secondary bg-component text-sm rounded-md" bind:this={role}>
         <option value="1" selected>Viewer</option>
         <option value="2">Editor</option>
         <option value="3">Admin</option>
     </select>
-    <button class="btn btn-primary" onclick={(e) => addMember(e)}>Add</button>
+    {/if}
+    <button class="btn btn-primary" onclick={(e) => showRole ? addMember(e) : addMemberNoRole(e)}>Add</button>
 </div>

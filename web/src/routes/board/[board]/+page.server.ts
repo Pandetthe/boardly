@@ -24,7 +24,6 @@ export const load = (async ({ cookies, params, depends }) => {
                 'Authorization': `Bearer ${accessToken}`,
             },
         });
-
         if (res.ok && cards.ok) {
             const rawBoard = await res.json() as DetailedBoardReponse;
             return { board: parseDetailedBoard(rawBoard) satisfies DetailedBoard, cards: await cards.json() };

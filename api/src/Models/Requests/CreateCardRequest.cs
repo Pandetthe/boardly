@@ -3,7 +3,7 @@ using System.ComponentModel.DataAnnotations;
 
 namespace Boardly.Api.Models.Requests;
 
-public class CreateUpdateCardRequest
+public class CreateCardRequest
 {
     [Required]
     public string Title { get; init; } = null!;

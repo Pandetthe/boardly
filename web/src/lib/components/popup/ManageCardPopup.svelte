@@ -4,27 +4,28 @@
     import UserManager from "$lib/components/UserManager.svelte";
     import Popup from "$lib/components/popup/Popup.svelte";
 	import type { ICard } from "$lib/types/api/cards";
+    import type { Board } from "$lib/types/api/boards";
+    import { getContext } from "svelte";
+	import type { IceCream } from "lucide-svelte";
+	import { invalidate } from "$app/navigation";
 
-    export let pageTags: {
-        id: number;
-        color: string;
-        title: string;
-        checked?: boolean;
-    }[];
-
-    export let list: ICard[] = [];
-
+    export let pageTags;
+    export let list: ICard[];
+    export let listId: string;
+    export let swimlaneId: string;
     export let boardId: string;
 
-    export let swimlaneId: string;
-    export let listId: string;
+    const board = getContext<Board>("board");
 
-    $: visible = false;
-    $: isEditMode = false;
-    $: currentCardName = "";
-    $: currentDueDate = "";
-    $: currentCardDescription = "";
-    let assignedUsers: number[] = [];
+
+    let visible = false;
+    let isEditMode = false;
+    let currentCardName = "";
+    let currentDueDate = "";
+    let currentCardDescription = "";
+    let assignedUsers: {id: string, nickname:string}[] = [];
+
+    const connection = getContext<signalR.HubConnection>("connection");
 
     let currentPageId: string | null = null;
 
@@ -47,7 +48,7 @@
         currentDueDate = curr?.dueDate || "";
         if (curr?.tags) {
             pageTags.forEach((tag) => {
-                tag.checked = curr.tags.includes(tag.id);
+                tag.checked = curr.tags.find((t) => t.id === tag.id) !== undefined;
             });
         }
         assignedUsers = curr?.assignedUsers || [];
@@ -56,7 +57,6 @@
     }
 
     export async function onCreate() {
-        console.log(swimlaneId, listId);
         const rese = await fetch(`/api/boards/${boardId}/cards`, {
             method: "POST",
             body: JSON.stringify({
@@ -66,7 +66,7 @@
                 color: "blue",
                 description: currentCardDescription || null,
                 tags: pageTags.filter((tag) => tag.checked).map((tag) => tag.id),
-                assignedUsers: assignedUsers,
+                assignedUsers: assignedUsers.map((user) => user.id),
                 dueDate: currentDueDate || null,
             }),
             headers: {
@@ -88,12 +88,14 @@
                 title: currentCardName,
                 color: "blue",
                 description: currentCardDescription || null,
-                tags: pageTags.filter((tag) => tag.checked).map((tag) => tag.id),
+                tags: pageTags.filter((tag) => tag.checked),
                 assignedUsers: assignedUsers,
                 dueDate: currentDueDate || null,
             },
         ];
         visible = false;
+        connection.invoke("Update");
+        invalidate("api:boards");
     }
 
 
@@ -106,6 +108,8 @@
         });
         list = list.filter((page) => page.id !== currentPageId);
         visible = false;
+        connection.invoke("Update");
+        invalidate("api:boards");
     }
 
 
@@ -116,8 +120,8 @@
                 title: currentCardName,
                 color: "blue",
                 description: currentCardDescription || null,
-                tags: pageTags.filter((tag) => tag.checked).map((tag) => tag.id),
-                assignedUsers: assignedUsers,
+                tags: pageTags.filter((tag) => tag.checked),
+                assignedUsers: assignedUsers.map((user) => user.id),
                 dueDate: currentDueDate || null,
             }),
             headers: {
@@ -131,7 +135,7 @@
                     title: currentCardName,
                     color: "blue",
                     description: currentCardDescription,
-                    tags: pageTags.filter((tag) => tag.checked).map((tag) => tag.id),
+                    tags: pageTags.filter((tag) => tag.checked),
                     assignedUsers: [],
                     dueDate: currentDueDate,
                 };
@@ -139,10 +143,24 @@
             return page;
         });
         visible = false;
+        connection.send("Updated");
+        invalidate("api:boards");
     }
 
     export function onCancel() {
         visible = false;
+    }
+
+    function addUser(member) {
+        if (assignedUsers.some((user) => user.id === member.userId)) {
+            return;
+        }
+        assignedUsers.push({ id: member.userId, nickname: member.nickname });
+    }
+
+    function removeUser(member) {
+        assignedUsers = assignedUsers.filter((user) => user.id !== member.id);
+        console.log(assignedUsers);
     }
 
     let pageNameInvalid = false;
@@ -172,8 +190,8 @@
     </PopupAccordion>
 
     <PopupAccordion label="Assign to" name="card-creation" ready={false}>
-      <UserFinder />
-      <UserManager />
+    <UserFinder members={board.members} showRole={false} onSelect={(member) => addUser(member)} />
+      <UserManager users={assignedUsers} onRemove={(member) => removeUser(member)} />
     </PopupAccordion>
 
     <PopupAccordion label="Description" name="card-creation" ready={currentCardDescription.length!=0}>

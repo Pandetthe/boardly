@@ -11,7 +11,6 @@ async function handleProxy({ params, request, url, cookies }: Parameters<Request
 	const path = Array.isArray(params.path) ? params.path.join('/') : params.path;
 	const fullUrl = new URL(`${path}${url.search ? '?' + url.searchParams.toString() : ''}`, env.VITE_API_SERVER);
 	
-	console.log(fullUrl);
 	const accessToken = cookies.get('access_token');
 
 	const headers = new Headers(request.headers);

@@ -50,7 +50,21 @@
 
     });
     
-    function process(evt: any) {
+    async function process(evt: any) {
+        const res = await fetch(`/api/boards/${boardId}/cards/${evt.item.dataset.id}/move`, {
+            method: "PATCH",
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+                listId: evt.to.dataset.id,
+                swimlaneId: swimlaneId,
+            }),
+        });
+        if (!res.ok) {
+            console.error("Failed to move card");
+            return;
+        }
         cardRefs[evt.item.dataset.id].process(color);
     }
 
@@ -60,7 +74,7 @@
     <ManageCardPopup bind:this={popup} pageTags={tags} bind:list={cards} boardId={boardId} listId={listId} swimlaneId={swimlaneId}/>
     <h1 class="font-bold text-{color}">{title}</h1>
     <div class="divider mb-3 mt-0"></div>
-    <ul bind:this={list} class="flex flex-col" data-list-id=1>
+    <ul bind:this={list} class="flex flex-col" data-id={listId}>
         {#each cards as card}
             <Card 
                 bind:this={cardRefs[card.id]}
@@ -69,7 +83,7 @@
                 color={color}
                 title={card.title}
                 description={card.description || undefined}
-                assignedUsers={card.assignedUsers?.map((userId: number) => users.find((user:{ id: number }) => user.id === userId))}
+                assignedUsers={card.assignedUsers}
                 dueDate={card.dueDate || undefined}
             />
         {/each}
