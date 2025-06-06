@@ -37,11 +37,6 @@ public class BoardHub : Hub
         await Groups.AddToGroupAsync(Context.ConnectionId, boardId.ToString());
         await base.OnConnectedAsync();
     }
-    
-    public async Task Update()
-    {
-        await Clients.All.SendAsync("Update");
-    }
 
     public override async Task OnDisconnectedAsync(Exception? exception)
     {

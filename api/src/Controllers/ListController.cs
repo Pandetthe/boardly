@@ -1,10 +1,12 @@
 ﻿using Boardly.Api.Entities.Board;
 using Boardly.Api.Exceptions;
+using Boardly.Api.Hubs;
 using Boardly.Api.Models.Requests;
 using Boardly.Api.Models.Responses;
 using Boardly.Api.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.SignalR;
 using MongoDB.Bson;
 using System.Security.Claims;
 
@@ -19,10 +21,12 @@ namespace Boardly.Api.Controllers;
 public class ListController : ControllerBase
 {
     private readonly ListService _listService;
+    private readonly IHubContext<BoardHub> _hubContext;
 
-    public ListController(ListService listService)
+    public ListController(ListService listService, IHubContext<BoardHub> hubContext)
     {
         _listService = listService;
+        _hubContext = hubContext;
     }
 
     [HttpGet]
@@ -60,6 +64,7 @@ public class ListController : ControllerBase
         };
 
         await _listService.CreateListAsync(boardId, swimlaneId, userId, list, cancellationToken);
+        await _hubContext.Clients.All.SendAsync("Update", cancellationToken);
         return Ok(new IdResponse(list.Id));
     }
 
@@ -78,6 +83,7 @@ public class ListController : ControllerBase
         };
 
         await _listService.UpdateListAsync(boardId, swimlaneId, userId, list, cancellationToken);
+        await _hubContext.Clients.All.SendAsync("Update", cancellationToken);
         return Ok(new MessageResponse("Successfully updated list!"));
     }
 
@@ -88,6 +94,7 @@ public class ListController : ControllerBase
     {
         ObjectId userId = ObjectId.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
         await _listService.DeleteListAsync(boardId, swimlaneId, listId, userId, cancellationToken);
+        await _hubContext.Clients.All.SendAsync("Update", cancellationToken);
         return Ok(new MessageResponse("List successfully deleted!"));
     }
 }

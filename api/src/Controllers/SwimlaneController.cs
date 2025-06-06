@@ -1,10 +1,12 @@
 ﻿using Boardly.Api.Entities.Board;
 using Boardly.Api.Exceptions;
+using Boardly.Api.Hubs;
 using Boardly.Api.Models.Requests;
 using Boardly.Api.Models.Responses;
 using Boardly.Api.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.SignalR;
 using MongoDB.Bson;
 using System.Security.Claims;
 
@@ -20,10 +22,12 @@ namespace Boardly.Api.Controllers;
 public class SwimlaneController : ControllerBase
 {
     private readonly SwimlaneService _swimlaneService;
+    private readonly IHubContext<BoardHub> _hubContext;
 
-    public SwimlaneController(SwimlaneService swimlaneService)
+    public SwimlaneController(SwimlaneService swimlaneService, IHubContext<BoardHub> hubContext)
     {
         _swimlaneService = swimlaneService;
+        _hubContext = hubContext;
     }
 
     [HttpGet]
@@ -68,6 +72,7 @@ public class SwimlaneController : ControllerBase
         };
 
         await _swimlaneService.CreateSwimlaneAsync(boardId, userId, swimlane, cancellationToken);
+        await _hubContext.Clients.All.SendAsync("Update", cancellationToken);
         return Ok(new IdResponse(swimlane.Id));
     }
 
@@ -94,6 +99,7 @@ public class SwimlaneController : ControllerBase
         };
 
         await _swimlaneService.UpdateSwimlaneAsync(boardId, userId, swimlane, cancellationToken);
+        await _hubContext.Clients.All.SendAsync("Update", cancellationToken);
         return Ok(new MessageResponse("Successfully updated swimlane!"));
     }
 
@@ -103,6 +109,7 @@ public class SwimlaneController : ControllerBase
     {
         ObjectId userId = ObjectId.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
         await _swimlaneService.DeleteSwimlaneAsync(boardId, swimlaneId, userId, cancellationToken);
+        await _hubContext.Clients.All.SendAsync("Update", cancellationToken);
         return Ok(new MessageResponse("Swimlane successfully deleted!"));
     }
 }

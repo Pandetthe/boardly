@@ -1,11 +1,13 @@
 using Boardly.Api.Entities.Board;
 using Boardly.Api.Exceptions;
+using Boardly.Api.Hubs;
 using Boardly.Api.Models.Dtos;
 using Boardly.Api.Models.Requests;
 using Boardly.Api.Models.Responses;
 using Boardly.Api.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.SignalR;
 using MongoDB.Bson;
 using System.Security.Claims;
 
@@ -16,9 +18,11 @@ namespace Boardly.Api.Controllers;
 public class CardController : ControllerBase
 {
     private readonly CardService _cardService;
+    private readonly IHubContext<BoardHub> _hubContext;
 
-    public CardController(CardService cardService)
+    public CardController(CardService cardService, IHubContext<BoardHub> hubContext)
     {
+        _hubContext = hubContext;
         _cardService = cardService;
     }
 
@@ -27,7 +31,8 @@ public class CardController : ControllerBase
     public async Task<IActionResult> GetAllCardsAsync(ObjectId boardId, CancellationToken cancellationToken)
     {
         ObjectId userId = ObjectId.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
-        IEnumerable<CardWithAssignedUserAndTags> cards = await _cardService.GetCardsByBoardIdAsync(boardId, userId, cancellationToken);
+        IEnumerable<CardWithAssignedUserAndTags> cards =
+            await _cardService.GetCardsByBoardIdAsync(boardId, userId, cancellationToken);
         return Ok(cards.Select(x => new CardResponse(x)));
     }
 
@@ -59,6 +64,7 @@ public class CardController : ControllerBase
             AssignedUsers = data.AssignedUsers ?? []
         };
         await _cardService.CreateCardAsync(userId, card, cancellationToken);
+        await _hubContext.Clients.All.SendAsync("Update", cancellationToken);
         return Ok(new IdResponse(card.Id));
     }
 
@@ -86,6 +92,7 @@ public class CardController : ControllerBase
     {
         ObjectId userId = ObjectId.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
         await _cardService.MoveCardAsync(cardId, userId, data.ListId, cancellationToken);
+        await _hubContext.Clients.All.SendAsync("Update", cancellationToken);
         return Ok(new MessageResponse("Card moved successfully!"));
     }
     
@@ -96,6 +103,7 @@ public class CardController : ControllerBase
     {
         ObjectId userId = ObjectId.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
         await _cardService.DeleteCardAsync(cardId, userId, cancellationToken);
+        await _hubContext.Clients.All.SendAsync("Update", cancellationToken);
         return Ok(new MessageResponse("Card deleted successfully!"));
     }
 }
