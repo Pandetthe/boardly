@@ -40,8 +40,8 @@ public class BoardService
         var pipeline = new[]
         {
             new BsonDocument("$match", new BsonDocument("_id", id)),
-            new BsonDocument("$unwind", "$members"),
             new BsonDocument("$match", new BsonDocument("members.userId", userId)),
+            new BsonDocument("$unwind", "$members"),
             new BsonDocument("$lookup", new BsonDocument
             {
                 { "from", "users" },
@@ -113,8 +113,8 @@ public class BoardService
     {
         var pipeline = new[]
         {
-            new BsonDocument("$unwind", "$members"),
             new BsonDocument("$match", new BsonDocument("members.userId", userId)),
+            new BsonDocument("$unwind", "$members"),
             new BsonDocument("$lookup", new BsonDocument
             {
                 { "from", "users" },
