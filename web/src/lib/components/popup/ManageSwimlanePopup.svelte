@@ -72,6 +72,7 @@
     let tagColorSelection = "blue";
     let listName = "";
     let tagName = "";
+    let pageTags = $state<{ color: string, title: string }[]>([]);
 
     function addList() {
         currentSwimlane!.lists = [...currentSwimlane!.lists, { title: listName, color: listColorSelection }];
@@ -118,7 +119,7 @@
             </div>
         </div>
     </PopupAccordion>
-<!-- 
+
     <PopupAccordion label="Tags" name="card-creation" ready={pageTags.length != 0}>
         <div class="flex flex-col gap-2">
             {#each pageTags as tag}
@@ -140,5 +141,5 @@
                 </button>
             </div>
         </div>
-    </PopupAccordion> -->
+    </PopupAccordion>
 </Popup>

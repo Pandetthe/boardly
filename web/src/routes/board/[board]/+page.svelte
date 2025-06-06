@@ -6,9 +6,11 @@
 	import type { PageProps } from './$types';
 	import * as signalR from '@microsoft/signalr';
 	import { setContext } from 'svelte'
+	import { invalidate } from '$app/navigation';
 	let { data }: PageProps = $props();
 
 	setContext('cards', data.cards);
+	setContext('board', data.board);
 
 	let swimlanePopup: ManageSwimlanePopup | undefined = $state(undefined);
 
@@ -21,6 +23,12 @@
             .build();
 
         connection.start().catch(err => console.error("Error while starting connection: ", err));
+
+		setContext('connection', connection);
+
+		connection.on("Update", () => {
+			invalidate('api:boards');
+		});
     }
 
     onMount(() => {

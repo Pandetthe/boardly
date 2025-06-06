@@ -6,7 +6,7 @@ export interface ICard {
     title: string;
     color: string;
     description: string | null;
-    tags: number[];
-    assignedUsers: number[];
+    tags: {id: string, title: string}[];
+    assignedUsers: {id: string, nickname:string}[];
     dueDate: string | null;
 }

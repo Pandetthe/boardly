@@ -1,11 +1,14 @@
 <script lang="ts">
 	import { BoardRole, type Member } from "../types/api/members";
-    export let users: Member[];
+    export let users: {id: string, nickname:string, role: BoardRole | undefined}[];
 
-    function removeUser(e: MouseEvent, user: Member) {
+    export let onRemove: (user: {id: string, nickname:string, role: BoardRole | undefined}) => void = () => {};
+
+    function removeUser(e: MouseEvent, user: {id: string, nickname:string, role: BoardRole | undefined}) {
         e.preventDefault();
         e.stopPropagation();
-        users = users.filter(u => u.userId !== user.userId);
+        users = users.filter(u => u.id !== user.id);
+        onRemove(user);
     }
 
 </script>
@@ -22,6 +25,7 @@
                         alt="pfp"/>
                     </th>
                     <th>{user.nickname}</th>
+                    {#if user.role}
                     <th>
                         <select class="h-10 p-2 text-text-secondary bg-component font-normal rounded-md" disabled={user.role == BoardRole.Owner} bind:value={user.role}>
                             {#if user.role == BoardRole.Owner}
@@ -32,6 +36,7 @@
                             <option value="Admin" selected={user.role == BoardRole.Admin}>Admin</option>
                         </select>
                     </th>
+                    {/if}
                     <th>
                         <button class="btn btn-error ml-2 btn-soft" onclick={(e) => removeUser(e, user)}>*</button>
                     </th>

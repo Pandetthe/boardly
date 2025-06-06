@@ -15,12 +15,10 @@ export const load = (async ({ cookies, depends }) => {
                 'Authorization': `Bearer ${accessToken}`,
             },
         });
-
         if (res.ok) {
             const rawBoards = await res.json() as BoardResponse[];
             return { boards: rawBoards.map(parseBoard) satisfies Board[] };
         }
-        console.log(res.status, res.statusText);
     } catch (error) {
         console.error('Error while fetching boards:', error);
     }
