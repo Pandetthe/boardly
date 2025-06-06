@@ -7,6 +7,7 @@
 	import * as signalR from '@microsoft/signalr';
 	import { setContext } from 'svelte'
 	import { invalidate } from '$app/navigation';
+
 	let { data }: PageProps = $props();
 
 	setContext('cards', data.cards);
@@ -14,40 +15,43 @@
 
 	let swimlanePopup: ManageSwimlanePopup | undefined = $state(undefined);
 
-    let connection: signalR.HubConnection;
+	let conn;
 
-    async function start() {
-        connection = new signalR.HubConnectionBuilder()
-            .withUrl(`/api/hubs/board?boardId=${data.board.id}`)
+	async function start() {
+		conn = new signalR.HubConnectionBuilder()
+			.withUrl(`/api/hubs/board?boardId=${data.board.id}`)
 			.withAutomaticReconnect()
-            .configureLogging(signalR.LogLevel.Information)
-            .build();
+			.configureLogging(signalR.LogLevel.Information)
+			.build();
 
-<<<<<<< HEAD
-        connection.start().catch(err => console.error("Error while starting connection: ", err));
-
-		setContext('connection', connection);
-
-		connection.on("Update", () => {
-			invalidate('api:boards');
-		});
-=======
 		try {
-			await connection.start();
+			await conn.start();
+			console.log('SignalR connection started');
 		} catch (err) {
 			console.error("Error while starting connection: ", err);
 		}
->>>>>>> dc21447cb4d553ef5ef68e0851fa505acdc83ff9
+
+		conn.on("Update", () => {
+			console.log("Update received");
+			invalidate('api:board');
+		});
+
     }
 
 onMount(async () => {
 	await start();
 });
-onDestroy(async () => {
-	if (connection) {
-		await connection.stop();
+
+onDestroy(() => {
+	if (conn) {
+		conn.stop().then(() => {
+			console.log('SignalR connection stopped');
+		}).catch(err => {
+			console.error("Error while stopping connection: ", err);
+		});
 	}
 });
+
 </script>
 
 <svelte:head>

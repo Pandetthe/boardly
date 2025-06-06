@@ -6,8 +6,6 @@
 	import type { ICard } from "$lib/types/api/cards";
     import type { Board } from "$lib/types/api/boards";
     import { getContext } from "svelte";
-	import type { IceCream } from "lucide-svelte";
-	import { invalidate } from "$app/navigation";
 
     export let pageTags;
     export let list: ICard[];
@@ -25,7 +23,6 @@
     let currentCardDescription = "";
     let assignedUsers: {id: string, nickname:string}[] = [];
 
-    const connection = getContext<signalR.HubConnection>("connection");
 
     let currentPageId: string | null = null;
 
@@ -94,8 +91,6 @@
             },
         ];
         visible = false;
-        connection.invoke("Update");
-        invalidate("api:boards");
     }
 
 
@@ -108,8 +103,6 @@
         });
         list = list.filter((page) => page.id !== currentPageId);
         visible = false;
-        connection.invoke("Update");
-        invalidate("api:boards");
     }
 
 
@@ -143,8 +136,6 @@
             return page;
         });
         visible = false;
-        connection.send("Updated");
-        invalidate("api:boards");
     }
 
     export function onCancel() {

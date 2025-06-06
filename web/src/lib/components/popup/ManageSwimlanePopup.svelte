@@ -33,7 +33,6 @@
             body: JSON.stringify(currentSwimlane)
         });
         visible = false;
-        await invalidate('api:boards');
     }
 
 
@@ -46,7 +45,6 @@
             body: JSON.stringify(currentSwimlane)
         });
         visible = false;
-        await invalidate('api:boards');
     }
 
 

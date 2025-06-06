@@ -4,7 +4,7 @@ import { env } from '$env/dynamic/private';
 import { redirect } from '@sveltejs/kit';
 
 export const load = (async ({ cookies, params, depends }) => {
-    depends('api:boards');
+    depends('api:board');
     const accessToken = cookies.get('access_token');
     if (!accessToken)
         throw new Error('Unauthorized: No access token found');
