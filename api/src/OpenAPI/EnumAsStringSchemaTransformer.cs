@@ -18,7 +18,7 @@ internal class EnumAsStringSchemaTransformer : IOpenApiSchemaTransformer
             schema.Enum.Clear();
             foreach (var name in enumNames)
             {
-                schema.Enum.Add(new OpenApiString(name));
+                schema.Enum.Add(new OpenApiString(char.ToLowerInvariant(name[0]) + name[1..]));
             }
         }
         return Task.CompletedTask;

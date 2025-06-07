@@ -12,6 +12,7 @@ using Scalar.AspNetCore;
 using Serilog;
 using System.Reflection;
 using System.Text;
+using System.Text.Json;
 using System.Text.Json.Serialization;
 
 namespace Boardly.Api;
@@ -74,7 +75,7 @@ public class Program
             {
                 options.JsonSerializerOptions.Converters.Add(new ObjectIdJsonConverter());
                 options.JsonSerializerOptions.Converters.Add(
-                    new JsonStringEnumConverter(allowIntegerValues: false)
+                    new JsonStringEnumConverter(JsonNamingPolicy.CamelCase, allowIntegerValues: false)
                 );
             });
 
