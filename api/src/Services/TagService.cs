@@ -106,6 +106,6 @@ public class TagService
 
         var cardFilter = Builders<Card>.Filter.AnyEq(c => c.Tags, tagId);
         var cardUpdate = Builders<Card>.Update.Pull(c => c.Tags, tagId);
-        await _cardsCollection.UpdateManyAsync(x => Tags, cardUpdate, cancellationToken: cancellationToken);
+        await _cardsCollection.UpdateManyAsync(cardFilter, cardUpdate, cancellationToken: cancellationToken);
     }
 }
