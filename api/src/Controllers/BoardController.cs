@@ -127,7 +127,7 @@ public class BoardController : ControllerBase
         };
 
         await _boardService.UpdateBoardAsync(board, userId, cancellationToken);
-        await _boardHubContext.Clients.Group(boardId.ToString()).SendAsync("Update", cancellationToken);
+        await _boardHubContext.Clients.Group(boardId.ToString()).SendAsync("BoardUpdate", cancellationToken);
         return Ok(new MessageResponse("Successfully updated board!"));
     }
 
