@@ -61,6 +61,7 @@ public class TagController : ControllerBase
             Color = data.Color
         };
         await _tagService.CreateTagAsync(boardId, swimlaneId, userId, tag, cancellationToken);
+        await _boardHubContext.Clients.Group(boardId.ToString()).SendAsync("TagCreate", cancellationToken);
         return Ok(new IdResponse(tag.Id));
     }
 
@@ -77,6 +78,7 @@ public class TagController : ControllerBase
             Color = data.Color,
         };
         await _tagService.UpdateTagAsync(boardId, swimlaneId, userId, tag, cancellationToken);
+        await _boardHubContext.Clients.Group(boardId.ToString()).SendAsync("TagUpdate", cancellationToken);
         return Ok(new MessageResponse("Successfully updated tag!"));
     }
 
