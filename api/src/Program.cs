@@ -63,6 +63,7 @@ public class Program
             builder.Services.AddSingleton<ListService>();
             builder.Services.AddSingleton<CardService>();
             builder.Services.AddSingleton<TokenService>();
+            builder.Services.AddSingleton<TagService>();
             builder.Services.AddHealthChecks();
 
             builder.Services.AddControllers(options =>
