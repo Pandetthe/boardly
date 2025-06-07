@@ -1,12 +1,12 @@
 ﻿using Boardly.Api.Entities;
 using Boardly.Api.Exceptions;
+using Boardly.Api.Extensions;
 using Boardly.Api.Models.Requests;
 using Boardly.Api.Models.Responses;
 using Boardly.Api.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using MongoDB.Bson;
-using System.Security.Claims;
 
 namespace Boardly.Api.Controllers;
 
@@ -103,7 +103,7 @@ public class AuthController : ControllerBase
     [ProducesResponseType(typeof(MessageResponse), StatusCodes.Status200OK, "application/json")]
     public async Task<IActionResult> RevokeAsync(CancellationToken cancellationToken)
     {
-        ObjectId userId = ObjectId.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
+        ObjectId userId = User.GetUserId();
         await _tokenService.DeleteAllRefreshTokens(userId, cancellationToken);
         return Ok(new MessageResponse("Successfully revoked all refresh tokens."));
     }
