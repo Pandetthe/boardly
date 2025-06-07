@@ -7,6 +7,7 @@
 
     export let board: Board;
 	export let popup: ManageBoardPopup;
+	export let editEnabled: boolean;
 
 	function hashString(str: string) {
 		let hash = 0;
@@ -65,9 +66,11 @@
 					</div>
 				{/each}
 			</div>
-			<button class="btn btn-ghost z-10 w-10 p-0" onclick={showPopup}>
-				<Menu />
-			</button>
+			{#if editEnabled}
+				<button class="btn btn-ghost z-10 w-10 p-0" onclick={showPopup}>
+					<Menu />
+				</button>
+			{/if}
 		</div>
 		<p class="left text-left text-text-secondary">Updated at: {board.updatedAt.toLocaleString()}</p>
 	</div>

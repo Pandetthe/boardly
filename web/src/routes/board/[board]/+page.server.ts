@@ -24,10 +24,19 @@ export const load = (async ({ cookies, params, depends }) => {
                 'Authorization': `Bearer ${accessToken}`,
             },
         });
-        if (res.ok && cards.ok) {
+
+        const user = await fetch(new URL(`users/me`, env.VITE_API_SERVER), {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${accessToken}`,
+            },
+        });
+        if (res.ok && cards.ok && user.ok) {
             const rawBoard = await res.json() as DetailedBoardReponse;
             const rawCards = await cards.json();
-            return { board: parseDetailedBoard(rawBoard) satisfies DetailedBoard, cards: rawCards };
+            const rawUser = await user.json();
+            return { board: parseDetailedBoard(rawBoard) satisfies DetailedBoard, cards: rawCards, user: rawUser };
         }
     } catch (error) {
         console.error('Error while fetching boards:', error);

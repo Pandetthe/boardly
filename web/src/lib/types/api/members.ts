@@ -1,8 +1,8 @@
 export enum BoardRole {
-    Owner = "Owner",
-    Admin = "Admin",
-    Editor = "Editor",
-    Viewer = "Viewer"
+    Owner = "owner",
+    Admin = "admin",
+    Editor = "editor",
+    Viewer = "viewer"
 }
 
 export interface Member extends MemberResponse {

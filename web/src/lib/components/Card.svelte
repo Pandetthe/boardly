@@ -1,7 +1,9 @@
 
 <script lang="ts">
+	import { BoardRole } from '$lib/types/api/members';
     import { User, Clock, Menu } from 'lucide-svelte';
     import { marked } from "marked";
+	import { getContext } from 'svelte';
 
     export let title;
     export let id;
@@ -28,17 +30,21 @@
         color = newColor;
     }
 
+    const me = getContext('user');
+    const board = getContext('board');
 </script>
 
-<li class="border-2 border-{color} bg-component rounded-xl mb-5 drop-shadow-2xl drop-shadow-{color}-shadow" data-id={id}>
+<li class="border-2 border-{color} bg-component rounded-xl mb-5 drop-shadow-2xl drop-shadow-{color}-shadow {assignedUsers.some(u => u.id == me.id) || $board.members.some(member => member.userId === me.id && member.role != BoardRole.Viewer)? '' : 'nodrag'}" data-id={id}>
     <div class="card">
         <div class="flex justify-between items-start p-6">
         <h1 class="card-title text-{color} text-2xl font-black drop-shadow-xl drop-shadow-{color}-shadow">
             {title}
         </h1>
+        {#if $board.members.some(member => member.userId === me.id && member.role != BoardRole.Viewer)}
         <button class="btn-xs btn-ghost z-50 aspect-square p-1" aria-label="More options" on:click={() => {popup.show(id)}}>
             <Menu />
         </button>
+        {/if}
         </div>
         {#if tags.length > 0}
         <div class="flex pl-6 pr-6 gap-1 flex-wrap">

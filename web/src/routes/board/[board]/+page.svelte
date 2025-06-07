@@ -11,6 +11,7 @@
 	let { data }: PageProps = $props();
 
 	import { writable } from 'svelte/store';
+	import { BoardRole } from '$lib/types/api/members';
 
 	const cards = writable(data.cards);
 	const board = writable(data.board);
@@ -26,6 +27,7 @@
 
 	setContext('cards', cards);
 	setContext('board', board);
+    setContext('user', data.user);
 
 	let swimlanePopup: ManageSwimlanePopup | undefined = $state(undefined);
 
@@ -148,24 +150,29 @@
 			>
 				<input type="radio" name="tabs" />
 				{swimlane.title}
+				{#if $board.members.some(member => member.userId === data.user.id && (member.role == BoardRole.Admin || member.role == BoardRole.Owner))}
 				<button
 					class="btn btn-xs btn-ghost z-50 aspect-square p-0"
 					aria-label="More options"
 					onclick={() => swimlanePopup?.show(swimlane)}
 				>
 				<Menu />
+				</button>
+				{/if}
 			</label>
 			<div class="tab-content">
 				<div class="divider mt-0 pt-0"></div>
 				<Swimlane tags={swimlane.tags} lists={swimlane.lists} users={[]} boardId={data.board.id} swimlaneId={swimlane.id}/>
 			</div>
 		{/each}
+		{#if $board.members.some(member => member.userId === data.user.id && (member.role == BoardRole.Admin || member.role == BoardRole.Owner))}
 		<button
 			class="tab btn btn-md btn-ghost border-border bg-component hover:bg-component-hover hover:border-border-hover rounded-md border-1 w-10 p-1"
 			onclick={() => swimlanePopup?.show()}
 		>
 			<Plus />
 		</button>
+		{/if}
 	</div>
 </div>
 

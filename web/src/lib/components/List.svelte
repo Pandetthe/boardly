@@ -9,6 +9,7 @@
     import type { Writable } from "svelte/store";
     import { derived } from "svelte/store";
 	import { invalidate } from "$app/navigation";
+	import { BoardRole } from "$lib/types/api/members";
   
     export let listId: string;
     export let swimlaneId: string;
@@ -65,12 +66,6 @@
             evt.item.remove();
             invalidate('api:board');
         },
-        onMove: (evt) => {
-            if (evt.related.classList.contains("nodrag")) {
-                return false;
-            }
-            return true;
-        },
         filter: ".nodrag",
       });
 
@@ -78,6 +73,9 @@
         sortable.destroy();
       });
     });
+
+    const me = getContext("user");
+    const board = getContext("board");
   </script>
   
   <div class="w-full max-w-150 rounded-2xl bg-{color}-bg p-5 h-fit">
@@ -105,11 +103,13 @@
         />
       {/each}
     </ul>
+    {#if $board.members.some(member => member.userId === me.id && member.role != BoardRole.Viewer)}
     <button
       class="btn btn-dash h-15 w-full nodrag border-{color} text-{color} hover:bg-transparent border-2 rounded-2xl text-2xl"
       on:click={() => popup.show()}
     >
       <Plus />
     </button>
+    {/if}
   </div>
   
