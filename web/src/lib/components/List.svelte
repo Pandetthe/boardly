@@ -1,104 +1,115 @@
 <script lang="ts">
     import Sortable from "sortablejs";
-    import { onMount } from "svelte";
+    import { onMount, onDestroy } from "svelte";
     import type { ICard } from "$lib/types/api/cards";
     import Card from "$lib/components/Card.svelte";
-	import { Plus } from "lucide-svelte";
+    import { Plus } from "lucide-svelte";
     import ManageCardPopup from "$lib/components/popup/ManageCardPopup.svelte";
-	import { getContext } from 'svelte';
-	import type { Writable } from "svelte/store";
-    
-    let cards: ICard[];
+    import { getContext } from "svelte";
+    import type { Writable } from "svelte/store";
+    import { derived } from "svelte/store";
+	import { invalidate } from "$app/navigation";
+  
     export let listId: string;
     export let swimlaneId: string;
-
     export let boardId: string;
-    export let title;
+    export let title: string;
     export let color: string;
-
-    export let cardRefs: {
-        [key: string]: {
-            process: (newColor: string) => void;
-        };
-    } = {};
-
-    export let tags: {
-        id: number;
-        title: string;
-        color: string;
-    }[] = [];
-    export let users;
+    export let tags: { id: string; title: string; color: string }[];
+  
     let list: HTMLUListElement;
     let popup: ManageCardPopup;
 
-    let cardsContext = getContext<Writable<ICard[]>>('cards');
+    const cardsContext = getContext<Writable<ICard[]>>("cards");
 
-    cardsContext.subscribe((value) => {
-        console.log("RV", value);
-        cards = value.filter(card => card.listId === listId && card.swimlaneId === swimlaneId);
-    });
-
-    onMount(() => {
-        Sortable.create(list, {
-            group: "shared",
-            animation: 150,
-            emptyInsertThreshold: 50,
-            ghostClass: "ghost",
-            dragClass: "drag",
-            onAdd: process,
-            onMove: (evt) => {
-                if (evt.related.classList.contains("nodrag")) {
-                    return false;
-                }
-                return true;
-            },
-            filter: ".nodrag",
-        });
-
-    });
-    
+    let filteredCards = derived(cardsContext, ($cardsContext) =>
+      $cardsContext
+        .filter((card) => card.listId === listId && card.swimlaneId === swimlaneId)
+        .sort((a, b) => a.id < b.id ? -1 : 1)
+    );
+  
     async function process(evt: any) {
-        const res = await fetch(`/api/boards/${boardId}/cards/${evt.item.dataset.id}/move`, {
-            method: "PATCH",
-            headers: {
-                "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-                listId: evt.to.dataset.id,
-                swimlaneId: swimlaneId,
-            }),
-        });
-        if (!res.ok) {
-            console.error("Failed to move card");
-            return;
-        }
-        cardRefs[evt.item.dataset.id].process(color);
+      const movedCardId = evt.item.dataset.id;
+      const newListId = evt.to.dataset.id;
+  
+      const res = await fetch(`/api/boards/${boardId}/cards/${movedCardId}/move`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          listId: newListId,
+          swimlaneId: swimlaneId,
+        }),
+      });
+  
+      if (!res.ok) {
+        console.error("Failed to move card");
+        return;
+      }
+      $cardsContext = []
     }
+  
+    onMount(() => {
+      const sortable = Sortable.create(list, {
+        group: "shared",
+        animation: 150,
+        emptyInsertThreshold: 50,
+        ghostClass: "ghost",
+        dragClass: "drag",
+        onAdd: process,
+        onEnd: (evt) => {
+            if (evt.from.dataset.id === evt.to.dataset.id) {
+                return;
+            }
+            evt.item.remove();
+            invalidate('api:board');
+        },
+        onMove: (evt) => {
+            if (evt.related.classList.contains("nodrag")) {
+                return false;
+            }
+            return true;
+        },
+        filter: ".nodrag",
+      });
 
-</script>
-
-<div class="w-full max-w-150 rounded-2xl bg-{color}-bg p-5 h-fit">
-    <ManageCardPopup bind:this={popup} pageTags={tags} bind:list={cards} boardId={boardId} listId={listId} swimlaneId={swimlaneId}/>
+      onDestroy(() => {
+        sortable.destroy();
+      });
+    });
+  </script>
+  
+  <div class="w-full max-w-150 rounded-2xl bg-{color}-bg p-5 h-fit">
+    <ManageCardPopup
+      bind:this={popup}
+      pageTags={tags}
+      bind:list={$filteredCards}
+      boardId={boardId}
+      listId={listId}
+      swimlaneId={swimlaneId}
+    />
     <h1 class="font-bold text-{color}">{title}</h1>
     <div class="divider mb-3 mt-0"></div>
     <ul bind:this={list} class="flex flex-col" data-id={listId}>
-        {#each cards as card}
-            <Card 
-                bind:this={cardRefs[card.id]}
-                {popup}
-                id={card.id}
-                color={color}
-                title={card.title}
-                description={card.description || undefined}
-                assignedUsers={card.assignedUsers}
-                dueDate={card.dueDate || undefined}
-            />
-        {/each}
+      {#each $filteredCards as card (card.id)}
+        <Card
+        {popup}
+        id={card.id}
+        color={color}
+        title={card.title}
+        tags={card.tags.map((tag) => tags.find((t) => t.id === tag.id))}
+        description={card.description || undefined}
+        assignedUsers={card.assignedUsers}
+        dueDate={card.dueDate || undefined}
+        />
+      {/each}
     </ul>
-    <button 
-    class="btn btn-dash h-15 w-full nodrag border-{color} text-{color} hover:bg-transparent border-2 rounded-2xl text-2xl"
-    on:click={() => popup.show()}
+    <button
+      class="btn btn-dash h-15 w-full nodrag border-{color} text-{color} hover:bg-transparent border-2 rounded-2xl text-2xl"
+      on:click={() => popup.show()}
     >
-        <Plus />
+      <Plus />
     </button>
-</div>
+  </div>
+  

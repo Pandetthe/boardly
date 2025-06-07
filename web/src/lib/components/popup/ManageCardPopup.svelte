@@ -6,6 +6,7 @@
 	import type { ICard } from "$lib/types/api/cards";
     import type { Board } from "$lib/types/api/boards";
     import { getContext } from "svelte";
+	import type { Readable } from "svelte/store";
 
     export let pageTags;
     export let list: ICard[];
@@ -14,7 +15,6 @@
     export let boardId: string;
 
     const board = getContext<Board>("board");
-
 
     let visible = false;
     let isEditMode = false;
@@ -54,7 +54,7 @@
     }
 
     export async function onCreate() {
-        const rese = await fetch(`/api/boards/${boardId}/cards`, {
+        await fetch(`/api/boards/${boardId}/cards`, {
             method: "POST",
             body: JSON.stringify({
                 listId: listId,
@@ -70,26 +70,7 @@
                 "Content-Type": "application/json",
             }
         });
-        if (!rese.ok) {
-            console.error("Failed to create card");
-            return;
-        }
-        const res: {id:string} = await rese.json();
-        list = [
-            ...list,
-            {
-                id: res.id,
-                listId: listId,
-                swimlaneId: swimlaneId,
-                boardId: boardId,
-                title: currentCardName,
-                color: "blue",
-                description: currentCardDescription || null,
-                tags: pageTags.filter((tag) => tag.checked),
-                assignedUsers: assignedUsers,
-                dueDate: currentDueDate || null,
-            },
-        ];
+
         visible = false;
     }
 
@@ -101,7 +82,6 @@
                 "Content-Type": "application/json",
             }
         });
-        list = list.filter((page) => page.id !== currentPageId);
         visible = false;
     }
 
@@ -113,27 +93,13 @@
                 title: currentCardName,
                 color: "blue",
                 description: currentCardDescription || null,
-                tags: pageTags.filter((tag) => tag.checked),
+                tags: pageTags.filter((tag) => tag.checked).map((tag) => tag.id),
                 assignedUsers: assignedUsers.map((user) => user.id),
                 dueDate: currentDueDate || null,
             }),
             headers: {
                 "Content-Type": "application/json",
             }
-        });
-        list = list.map((page) => {
-            if (page.id === currentPageId) {
-                return {
-                    ...page,
-                    title: currentCardName,
-                    color: "blue",
-                    description: currentCardDescription,
-                    tags: pageTags.filter((tag) => tag.checked),
-                    assignedUsers: [],
-                    dueDate: currentDueDate,
-                };
-            }
-            return page;
         });
         visible = false;
     }

@@ -7,6 +7,7 @@
     export let users;
     export let boardId: string;
     export let swimlaneId: string;
+    export let tags;
 </script>
 
 <div class="max-w:screen-lg mx-auto flex flex-col gap-5 lg:flex-row justify-center">
@@ -19,6 +20,7 @@
             boardId={boardId}
             swimlaneId={swimlaneId}
             listId={list.id}
+            tags={tags}
         />
     {/each}
 </div>

@@ -6,7 +6,7 @@
 	import type { PageProps } from './$types';
 	import * as signalR from '@microsoft/signalr';
 	import { setContext } from 'svelte'
-	import { invalidate } from '$app/navigation';
+	import { goto, invalidate, invalidateAll } from '$app/navigation';
 
 	let { data }: PageProps = $props();
 
@@ -45,11 +45,78 @@
 			console.error("Error while starting connection: ", err);
 		}
 
-		conn.on("Update", () => {
-			console.log("Update received");
+		conn.on("BoardUpdate", () => {
+			console.log("BoardUpdate received");
 			invalidate('api:board');
 		});
 
+		conn.on("BoardDelete", () => {
+			console.log("BoardDelete received");
+			goto('/');
+		});
+
+		conn.on("CardCreate", () => {
+			console.log("CardCreate received");
+			invalidate('api:board');
+		});
+
+		conn.on("CardUpdate", () => {
+			console.log("CardUpdate received");
+			invalidate('api:board');
+		});
+
+		conn.on("CardDelete", () => {
+			console.log("CardDelete received");
+			invalidate('api:board');
+		});
+
+		conn.on("CardMove", async () => {
+			console.log("CardMove received");
+			invalidate('api:board');
+		});
+
+		conn.on("SwimlaneCreate", () => {
+			console.log("SwimlaneCreate received");
+			invalidate('api:board');
+		});
+
+		conn.on("SwimlaneUpdate", () => {
+			console.log("SwimlaneUpdate received");
+			invalidate('api:board');
+		});
+
+		conn.on("SwimlaneDelete", () => {
+			console.log("SwimlaneDelete received");
+			invalidate('api:board');
+		});
+
+		conn.on("ListUpdate", () => {
+			console.log("ListUpdate received");
+			invalidate('api:board');
+		});
+		conn.on("ListCreate", () => {
+			console.log("ListCreate received");
+			invalidate('api:board');
+		});
+		conn.on("ListDelete", () => {
+			console.log("ListDelete received");
+			invalidate('api:board');
+		});
+
+		conn.on("TagUpdate", () => {
+			console.log("TagUpdate received");
+			invalidate('api:board');
+		});
+
+		conn.on("TagCreate", () => {
+			console.log("TagCreate received");
+			invalidate('api:board');
+		});
+
+		conn.on("TagDelete", () => {
+			console.log("TagDelete received");
+			invalidate('api:board');
+		});
     }
 
 	onMount(async () => {
@@ -90,7 +157,7 @@
 			</label>
 			<div class="tab-content">
 				<div class="divider mt-0 pt-0"></div>
-				<Swimlane lists={swimlane.lists} users={[]} boardId={data.board.id} swimlaneId={swimlane.id}/>
+				<Swimlane tags={swimlane.tags} lists={swimlane.lists} users={[]} boardId={data.board.id} swimlaneId={swimlane.id}/>
 			</div>
 		{/each}
 		<button

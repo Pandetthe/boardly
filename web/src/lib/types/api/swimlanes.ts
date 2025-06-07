@@ -1,10 +1,13 @@
 import type { CreateListRequest, DetailedListResponse } from "./lists";
+import type { Tag } from "./tags";
 
 export interface CreateSwimlaneRequest extends UpdateSwimlaneRequest {
     lists: CreateListRequest[];
 }
 
 export type UpdateSwimlaneRequest = Omit<Swimlane, 'id' | 'createdAt' | 'updatedAt'>;
+
+export type DetailedSwimlaneRequest = Omit<DetailedSwimlane, 'id' | 'createdAt' | 'updatedAt'>;
 
 export interface Swimlane {
     id: string;
@@ -30,10 +33,12 @@ export function parseSwimlane(raw: SwimlaneResponse): Swimlane {
 
 export interface DetailedSwimlaneResponse extends SwimlaneResponse {
     lists: DetailedListResponse[];
+    tags: Tag[];
 }
 
 export interface DetailedSwimlane extends Swimlane {
     lists: DetailedListResponse[];
+    tags: Tag[];
 }
 
 export function parseDetailedSwimlane(raw: DetailedSwimlaneResponse): DetailedSwimlane {

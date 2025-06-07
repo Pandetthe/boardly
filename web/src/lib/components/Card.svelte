@@ -8,10 +8,10 @@
     export let color: string;
     export let description = "";
     export let tags: {
-        id: number;
+        id: string;
         title: string;
         color: string;
-    }[] = [];
+    }[];
     export let dueDate = "";
     export let assignedUsers: {
         nickname: string;
