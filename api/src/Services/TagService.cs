@@ -90,7 +90,7 @@ public class TagService
         var boardFilter = Builders<Board>.Filter.Eq(b => b.Id, boardId);
         var update = Builders<Board>.Update.PullFilter(
             "Swimlanes.$[swimlane].Tags",
-            Builders<List>.Filter.Eq(l => l.Id, tagId)
+            Builders<Entities.Board.Tag>.Filter.Eq(l => l.Id, tagId)
         );
         var updateOptions = new UpdateOptions
         {
@@ -101,6 +101,6 @@ public class TagService
         var cardUpdate = Builders<Card>.Update.Pull(c => c.Tags, tagId);
         await _cardsCollection.UpdateManyAsync(cardFilter, cardUpdate, cancellationToken: cancellationToken);
         if (result.ModifiedCount == 0)
-            throw new RecordDoesNotExist("List has not been found.");
+            throw new RecordDoesNotExist("Tag has not been found.");
     }
 }
