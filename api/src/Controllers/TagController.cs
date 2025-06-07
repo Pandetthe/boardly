@@ -65,7 +65,7 @@ public class TagController : ControllerBase
         return Ok(new IdResponse(tag.Id));
     }
 
-    [HttpPut("{tagId}")]
+    [HttpPatch("{tagId}")]
     [Consumes("application/json")]
     [ProducesResponseType(typeof(MessageResponse), StatusCodes.Status200OK, "application/json")]
     public async Task<IActionResult> UpdateTagAsync(ObjectId boardId, ObjectId swimlaneId, ObjectId tagId, [FromBody] CreateTagRequest data, CancellationToken cancellationToken)
