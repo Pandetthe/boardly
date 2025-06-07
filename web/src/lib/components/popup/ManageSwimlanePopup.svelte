@@ -134,15 +134,26 @@
         visible = false;
     }
 
-    let swimlaneTitleInvalid = false;
-    let listColorSelection = "blue";
-    let tagColorSelection = "blue";
-    let listName = "";
-    let tagName = "";
+    let swimlaneTitleInvalid = $state(false);
+    let listColorSelection = $state("blue");
+    let tagColorSelection = $state("blue");
+    let listName = $state("");
+    let tagName = $state("");
 
     function addList() {
+        if (listName.trim() === "") {
+            return;
+        }
         listsToAdd = [...listsToAdd, { title: listName, color: listColorSelection }];
         listName = "";
+    }
+
+    function addTag() {
+        if (tagName.trim() === "") {
+            return;
+        }
+        tagsToAdd = [...tagsToAdd, {color:tagColorSelection, title:tagName}];
+        tagName="";
     }
 
 </script>
@@ -203,7 +214,7 @@
                     </div>
                 </div>
             {/each}
-            <div class="join border-border border-1 bg-{listColorSelection}-bg text-{listColorSelection}">
+            <div class="join border-border border-1 bg-{listColorSelection}-bg text-{listColorSelection} w-full rounded-md">
                 <input type="text" class="input w-full join-item border-none bg-inherit focus:outline-none" placeholder="Enter the list name" bind:value={listName} />
                 <select class="w-fit join-item" bind:value={listColorSelection}>
                     <option value="blue" class="bg-blue-bg text-blue hover:bg-blue hover:text-blue-bg">Blue</option>
@@ -247,7 +258,7 @@
                 <div class="bg-{tag.color}-bg border-{tag.color} text-{tag.color} badge drop-shadow-xl drop-shadow-{tag.color}-shadow w-full justify-between h-10">
                     <input type="text" class="bg-transparent" value={tag.title} />
                     <div>
-                        <select class="w-fit join-item" bind:value={tag.color}>
+                        <select class="join-item" bind:value={tag.color}>
                             <option value="blue" class="bg-blue-bg text-blue hover:bg-blue hover:text-blue-bg">Blue</option>
                             <option value="green" class="bg-green-bg text-green hover:bg-green hover:text-green-bg">Green</option>
                             <option value="red" class="bg-red-bg text-red hover:bg-red hover:text-red-bg">Red</option>
@@ -263,7 +274,7 @@
                 </div>
             {/each}
             </div>
-            <div class="join border-border border-1 bg-{tagColorSelection}-bg text-{tagColorSelection}">
+            <div class="join border-border border-1 bg-{tagColorSelection}-bg text-{tagColorSelection} rounded-md">
                 <input type="text" class="input w-full join-item border-none bg-inherit focus:outline-none" placeholder="Enter the tag name" bind:value={tagName} />
                 <select class="w-fit join-item" bind:value={tagColorSelection}>
                     <option value="blue" class="bg-blue-bg text-blue hover:bg-blue hover:text-blue-bg">Blue</option>
@@ -274,7 +285,7 @@
                     <option value="pink" class="bg-pink-bg text-pink hover:bg-pink hover:text-pink-bg">Pink</option>
                     <option value="teal" class="bg-teal-bg text-teal hover:bg-teal hover:text-teal-bg">Teal</option>
                 </select>
-                <button class="btn btn-primary join-item" onclick={() => {tagsToAdd = [...tagsToAdd, {color:tagColorSelection, title:tagName}]; tagName=""}}  type="button" >
+                <button class="btn btn-primary join-item" onclick={addTag}  type="button" >
                     <Check />
                 </button>
             </div>
