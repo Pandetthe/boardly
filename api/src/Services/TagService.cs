@@ -89,18 +89,23 @@ public class TagService
             throw new ForbidenException("User is not authorized to delete this swimlane.");
         var boardFilter = Builders<Board>.Filter.Eq(b => b.Id, boardId);
         var update = Builders<Board>.Update.PullFilter(
-            "Swimlanes.$[swimlane].Tags",
-            Builders<Entities.Board.Tag>.Filter.Eq(l => l.Id, tagId)
+            "swimlanes.$[swimlane].tags",
+            Builders<BsonDocument>.Filter.Eq("_id", tagId)
         );
         var updateOptions = new UpdateOptions
         {
-            ArrayFilters = [new JsonArrayFilterDefinition<Swimlane>("{ 'swimlane._id': '" + swimlaneId + "' }")]
+            ArrayFilters =
+            [
+                new BsonDocumentArrayFilterDefinition<BsonDocument>(
+                    new BsonDocument("swimlane._id", swimlaneId))
+            ]
         };
-        UpdateResult result = await _boardsCollection.UpdateOneAsync(boardFilter, update, updateOptions, cancellationToken);
+        var result = await _boardsCollection.UpdateOneAsync(boardFilter, update, updateOptions, cancellationToken);
+        if (result.ModifiedCount == 0)
+            throw new RecordDoesNotExist("Tag not found in the specified swimlane.");
+
         var cardFilter = Builders<Card>.Filter.AnyEq(c => c.Tags, tagId);
         var cardUpdate = Builders<Card>.Update.Pull(c => c.Tags, tagId);
-        await _cardsCollection.UpdateManyAsync(cardFilter, cardUpdate, cancellationToken: cancellationToken);
-        if (result.ModifiedCount == 0)
-            throw new RecordDoesNotExist("Tag has not been found.");
+        await _cardsCollection.UpdateManyAsync(x => Tags, cardUpdate, cancellationToken: cancellationToken);
     }
 }

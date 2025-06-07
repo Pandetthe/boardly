@@ -89,16 +89,20 @@ public class ListService
         throw new ForbidenException("User is not authorized to delete this swimlane.");
         var boardFilter = Builders<Board>.Filter.Eq(b => b.Id, boardId);
         var update = Builders<Board>.Update.PullFilter(
-            "Swimlanes.$[swimlane].Lists",
-            Builders<List>.Filter.Eq(l => l.Id, listId)
+            "swimlanes.$[swimlane].lists",
+            Builders<BsonDocument>.Filter.Eq("_id", listId)
         );
         var updateOptions = new UpdateOptions
         {
-            ArrayFilters = [new JsonArrayFilterDefinition<Swimlane>("{ 'swimlane._id': '" + swimlaneId + "' }")]
+            ArrayFilters =
+            [
+                new BsonDocumentArrayFilterDefinition<BsonDocument>(
+                    new BsonDocument("swimlane._id", swimlaneId))
+            ]
         };
         UpdateResult result = await _boardsCollection.UpdateOneAsync(boardFilter, update, updateOptions, cancellationToken);
-        await _cardsCollection.DeleteManyAsync(x => x.ListId == listId, cancellationToken: cancellationToken);
         if (result.ModifiedCount == 0)
             throw new RecordDoesNotExist("List has not been found.");
+        await _cardsCollection.DeleteManyAsync(x => x.ListId == listId, cancellationToken: cancellationToken);
     }
 }
