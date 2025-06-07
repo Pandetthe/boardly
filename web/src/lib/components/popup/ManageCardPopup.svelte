@@ -112,7 +112,7 @@
         if (assignedUsers.some((user) => user.id === member.userId)) {
             return;
         }
-        assignedUsers.push({ id: member.userId, nickname: member.nickname });
+        assignedUsers = [...assignedUsers, { id: member.userId, nickname: member.nickname }];
     }
 
     function removeUser(member) {

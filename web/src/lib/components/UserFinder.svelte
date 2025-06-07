@@ -4,6 +4,9 @@
     import type { Member } from "$lib/types/api/members";
     import { BoardRole } from "$lib/types/api/members";
 	import BoardCard from "./BoardCard.svelte";
+	import { Check } from "lucide-svelte";
+	import { idToColor } from "$lib/utils";
+	import ProfileIcon from "./ProfileIcon.svelte";
 
     export let onSelect: (member: Member) => void = () => {};
     export let showRole = true;
@@ -105,16 +108,16 @@
 
 </script>
 
-<div class="w-full flex gap-2 border-1 border-border rounded-md">
+<div class="w-full flex gap-2 border-1 border-border bg-background-secondary rounded-md">
     <div class="dropdown w-full">
     {#if selected == null}
-    <input type="text" placeholder="Search for users" class="input w-full border-none" oninput={search} role="button" bind:this={input}/>
-    <ul class="dropdown-content dropdown-open menu bg-component-hover w-full">
+    <input type="text" placeholder="Search for users" class="input w-full border-none bg-background-secondary" oninput={search} role="button" bind:this={input}/>
+    <ul class="dropdown-content dropdown-open menu w-full bg-background-secondary">
         {#each filteredUsers as user}
             <li class="text-sm">
                 <button onclick={() => selected=user} class="font-bold flex gap-3">
-                     <img src="https://img.daisyui.com/images/stock/photo-1534528741775-53994a69daeb.webp" class="h-10 rounded-full" alt="pfp"/>
-                     {user.nickname}
+                    <ProfileIcon user={user} size="medium" />
+                    {user.nickname}
                 </button>
             </li>
         {/each}
@@ -126,11 +129,11 @@
     {/if}
     </div>
     {#if showRole}
-    <select class="h-10 p-2 text-text-secondary bg-component text-sm rounded-md" bind:this={role}>
+    <select class="h-10 p-2 text-text-secondary text-sm rounded-md" bind:this={role}>
         <option value="1" selected>Viewer</option>
         <option value="2">Editor</option>
         <option value="3">Admin</option>
     </select>
     {/if}
-    <button class="btn btn-primary" onclick={(e) => showRole ? addMember(e) : addMemberNoRole(e)}>Add</button>
+    <button class="btn btn-primary" onclick={(e) => showRole ? addMember(e) : addMemberNoRole(e)}><Check /></button>
 </div>

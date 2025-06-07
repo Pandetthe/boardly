@@ -4,33 +4,12 @@
 	import ManageBoardPopup from '$lib/components/popup/ManageBoardPopup.svelte';
 	import { goto, invalidate } from '$app/navigation';
 	import type { Board } from '$lib/types/api/boards';
+	import { idToColor } from '$lib/utils';
+	import ProfileIcon from './ProfileIcon.svelte';
 
     export let board: Board;
 	export let popup: ManageBoardPopup;
 	export let editEnabled: boolean;
-
-	function hashString(str: string) {
-		let hash = 0;
-		for (let i = 0; i < str.length; i++) {
-			hash = (hash << 5) - hash + str.charCodeAt(i);
-			hash |= 0;
-		}
-		return Math.abs(hash);
-	}
-
-	function idToColor(id: string) {
-		const colors = [
-			"#0070F3",
-			"#FFB224",
-			"#FFB224",
-			"#46A758",
-			"#12A594",
-			"#8E4EC6",
-			"#E93D82",
-		];
-		const index = hashString(id) % colors.length;
-		return colors[index];
-	}
 
 	async function showPopup(e: MouseEvent) {
 		await invalidate('api:boards');
@@ -57,13 +36,7 @@
 			{board.title}
 			<div class="flex -space-x-2">
 				{#each board.members.filter(x => x.isActive) as member (member.userId)}
-					<div
-						class="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center text-xs font-bold border-2 border-white"
-						title={member.nickname}
-						style="background-color: {idToColor(member.nickname)}"
-					>
-						{member.nickname.slice(0,2)}
-					</div>
+					<ProfileIcon user={member} noTooltip={false}/>
 				{/each}
 			</div>
 			{#if editEnabled}

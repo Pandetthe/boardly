@@ -5,12 +5,16 @@
     import Popup from "$lib/components/popup/Popup.svelte";
 	import type { Board, CreateBoardRequest, UpdateBoardRequest } from "$lib/types/api/boards";
 	import { invalidate } from "$app/navigation";
+	import { getContext } from "svelte";
+	import { BoardRole } from "$lib/types/api/members";
 
     let visible: boolean = $state(false);
     let isEditMode: boolean = $state(false);
     let currentBoard: CreateBoardRequest | UpdateBoardRequest = $state({ title: '', members: [] });
     let currentBoardId: string | null = $state(null);
     let boardNameInvalid = $state(false);
+
+    const me = getContext('user');
 
     export async function show(board: Board | null = null) {
         boardNameInvalid = false;
@@ -95,6 +99,6 @@
             }
             currentBoard.members.push(user);
         }} blacklist={currentBoard.members.map(x => x.userId)}/>
-        <UserManager users={currentBoard.members} />
+        <UserManager users={currentBoard.members} onRemove={(user) => currentBoard.members = currentBoard.members.filter(u => user.userId != u.userId)} />
     </PopupAccordion>
 </Popup>

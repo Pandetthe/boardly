@@ -28,7 +28,7 @@
 {#if visible}
     <div class="fixed top-0 left-0 w-full h-full bg-background/30 flex items-center justify-center z-50 backdrop-blur-xs">
         <form 
-         class="bg-background-secondary border-border border-1 p-4 rounded-2xl shadow-lg w-3/4 max-w-xl gap-5 flex flex-col font-bold"
+         class="bg-background-secondary border-border border-1 p-4 rounded-2xl shadow-lg w-15/16 max-w-xl gap-5 flex flex-col font-bold"
          onsubmit={handleSubmit}>
             <div class="flex justify-between items-center">
                 <h1 class="text-2xl font-bold">{isEditMode ? "Edit" : "Create"} {title}</h1>
