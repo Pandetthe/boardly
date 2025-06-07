@@ -88,6 +88,7 @@ public class TagController : ControllerBase
     {
         ObjectId userId = User.GetUserId();
         await _tagService.DeleteTagAsync(boardId, swimlaneId, tagId, userId, cancellationToken);
+        await _boardHubContext.Clients.Group(boardId.ToString()).SendAsync("TagDelete", cancellationToken);
         return Ok(new MessageResponse("Tag successfully deleted!"));
     }
 }
