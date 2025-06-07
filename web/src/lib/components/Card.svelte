@@ -76,6 +76,8 @@
             </div>
             {/if}
         </div>
+        {:else if tags.length > 0}
+            <div class="h-8"></div>
         {/if}
     </div>
 </li>
