@@ -12,6 +12,7 @@ using Scalar.AspNetCore;
 using Serilog;
 using System.Reflection;
 using System.Text;
+using System.Text.Json;
 using System.Text.Json.Serialization;
 
 namespace Boardly.Api;
@@ -63,6 +64,7 @@ public class Program
             builder.Services.AddSingleton<ListService>();
             builder.Services.AddSingleton<CardService>();
             builder.Services.AddSingleton<TokenService>();
+            builder.Services.AddSingleton<TagService>();
             builder.Services.AddHealthChecks();
 
             builder.Services.AddControllers(options =>
@@ -73,7 +75,7 @@ public class Program
             {
                 options.JsonSerializerOptions.Converters.Add(new ObjectIdJsonConverter());
                 options.JsonSerializerOptions.Converters.Add(
-                    new JsonStringEnumConverter(allowIntegerValues: false)
+                    new JsonStringEnumConverter(JsonNamingPolicy.CamelCase, allowIntegerValues: false)
                 );
             });
 

@@ -5,38 +5,38 @@ using MongoDB.Driver;
 
 namespace Boardly.Api.Services;
 
-public class ListService
+public class TagService
 {
     private readonly IMongoCollection<Board> _boardsCollection;
     private readonly IMongoCollection<Card> _cardsCollection;
     private readonly BoardService _boardService;
 
-    public ListService(MongoDbProvider mongoDbProvider, BoardService boardService)
+    public TagService(MongoDbProvider mongoDbProvider, BoardService boardService)
     {
         _boardsCollection = mongoDbProvider.GetBoardsCollection();
         _cardsCollection = mongoDbProvider.GetCardsCollection();
         _boardService = boardService;
     }
 
-    public async Task<List?> GetListByIdAsync(ObjectId boardId, ObjectId swimlaneId, ObjectId listId, ObjectId userId, CancellationToken cancellationToken = default)
+    public async Task<Entities.Board.Tag?> GetTagByIdAsync(ObjectId boardId, ObjectId swimlaneId, ObjectId tagId, ObjectId userId, CancellationToken cancellationToken = default)
     {
         Board board = await _boardsCollection.Find(x => x.Id == boardId).FirstOrDefaultAsync(cancellationToken)
             ?? throw new RecordDoesNotExist("Board has not been found.");
         if (board.Members.All(x => x.UserId != userId))
             throw new ForbidenException("User is not a member of this board.");
-        return board.Swimlanes.FirstOrDefault(x => x.Id == swimlaneId)?.Lists.FirstOrDefault(x => x.Id == listId);
+        return board.Swimlanes.FirstOrDefault(x => x.Id == swimlaneId)?.Tags.FirstOrDefault(x => x.Id == tagId);
     }
 
-    public async Task<IEnumerable<List>> GetListsBySwimlaneIdAsync(ObjectId boardId, ObjectId swimlaneId, ObjectId userId, CancellationToken cancellationToken = default)
+    public async Task<IEnumerable<Entities.Board.Tag>> GetTagsBySwimlaneIdAsync(ObjectId boardId, ObjectId swimlaneId, ObjectId userId, CancellationToken cancellationToken = default)
     {
         Board board = await _boardsCollection.Find(x => x.Id == boardId).FirstOrDefaultAsync(cancellationToken)
             ?? throw new RecordDoesNotExist("Board has not been found.");
         if (board.Members.All(x => x.UserId != userId))
             throw new ForbidenException("User is not a member of this board.");
-        return board.Swimlanes.FirstOrDefault(x => x.Id == swimlaneId)?.Lists.AsEnumerable() ?? [];
+        return board.Swimlanes.FirstOrDefault(x => x.Id == swimlaneId)?.Tags.AsEnumerable() ?? [];
     }
 
-    public async Task CreateListAsync(ObjectId boardId, ObjectId swimlaneId, ObjectId userId, List list, CancellationToken cancellationToken = default)
+    public async Task CreateTagAsync(ObjectId boardId, ObjectId swimlaneId, ObjectId userId, Entities.Board.Tag tag, CancellationToken cancellationToken = default)
     {
         Board board = await _boardsCollection.Find(x => x.Id == boardId).FirstOrDefaultAsync(cancellationToken)
                 ?? throw new RecordDoesNotExist("Board has not been found.");
@@ -46,7 +46,7 @@ public class ListService
             throw new ForbidenException("User is not authorized to create a swimlane on this board.");
         Swimlane swimlane = board.Swimlanes.FirstOrDefault(x => x.Id == swimlaneId)
             ?? throw new RecordDoesNotExist("Swimlane has not been found.");
-        swimlane.Lists.Add(list);
+        swimlane.Tags.Add(tag);
         board.UpdatedAt = DateTime.UtcNow;
         var filter = Builders<Board>.Filter.Eq(b => b.Id, board.Id);
         var update = Builders<Board>.Update
@@ -57,7 +57,7 @@ public class ListService
             throw new RecordDoesNotExist("Board has not been found.");
     }
 
-    public async Task UpdateListAsync(ObjectId boardId, ObjectId swimlaneId, ObjectId userId, List list, CancellationToken cancellationToken = default)
+    public async Task UpdateTagAsync(ObjectId boardId, ObjectId swimlaneId, ObjectId userId, Entities.Board.Tag tag, CancellationToken cancellationToken = default)
     {
         Board board = await _boardsCollection.Find(x => x.Id == boardId).FirstOrDefaultAsync(cancellationToken)
                 ?? throw new RecordDoesNotExist("Board has not been found.");
@@ -67,10 +67,10 @@ public class ListService
             throw new ForbidenException("User is not authorized to update a swimlane on this board.");
         Swimlane selectedSwimlane = board.Swimlanes.FirstOrDefault(x => x.Id == swimlaneId)
             ?? throw new RecordDoesNotExist("Swimlane has not been found.");
-        List selectedList = selectedSwimlane.Lists.FirstOrDefault(x => x.Id == list.Id)
-            ?? throw new RecordDoesNotExist("List has not been found.");
-        selectedList.Title = list.Title;
-        selectedList.Color = list.Color;
+        Entities.Board.Tag selectedTag = selectedSwimlane.Tags.FirstOrDefault(x => x.Id == tag.Id)
+            ?? throw new RecordDoesNotExist("Tag has not been found.");
+        selectedTag.Title = tag.Title;
+        selectedTag.Color = tag.Color;
         board.UpdatedAt = DateTime.UtcNow;
         var filter = Builders<Board>.Filter.Eq(b => b.Id, board.Id);
         var update = Builders<Board>.Update
@@ -81,16 +81,16 @@ public class ListService
             throw new RecordDoesNotExist("Board has not been found.");
     }
 
-    public async Task DeleteListAsync(ObjectId boardId, ObjectId swimlaneId, ObjectId listId, ObjectId userId, CancellationToken cancellationToken = default)
+    public async Task DeleteTagAsync(ObjectId boardId, ObjectId swimlaneId, ObjectId tagId, ObjectId userId, CancellationToken cancellationToken = default)
     {
         BoardRole role = await _boardService.CheckUserBoardRoleAsync(boardId, userId, cancellationToken)
             ?? throw new ForbidenException("You are not a member of this board.");
         if (role != BoardRole.Owner && role != BoardRole.Admin)
-        throw new ForbidenException("User is not authorized to delete this swimlane.");
+            throw new ForbidenException("User is not authorized to delete this swimlane.");
         var boardFilter = Builders<Board>.Filter.Eq(b => b.Id, boardId);
         var update = Builders<Board>.Update.PullFilter(
-            "swimlanes.$[swimlane].lists",
-            Builders<BsonDocument>.Filter.Eq("_id", listId)
+            "swimlanes.$[swimlane].tags",
+            Builders<BsonDocument>.Filter.Eq("_id", tagId)
         );
         var updateOptions = new UpdateOptions
         {
@@ -100,9 +100,12 @@ public class ListService
                     new BsonDocument("swimlane._id", swimlaneId))
             ]
         };
-        UpdateResult result = await _boardsCollection.UpdateOneAsync(boardFilter, update, updateOptions, cancellationToken);
+        var result = await _boardsCollection.UpdateOneAsync(boardFilter, update, updateOptions, cancellationToken);
         if (result.ModifiedCount == 0)
-            throw new RecordDoesNotExist("List has not been found.");
-        await _cardsCollection.DeleteManyAsync(x => x.ListId == listId, cancellationToken: cancellationToken);
+            throw new RecordDoesNotExist("Tag not found in the specified swimlane.");
+
+        var cardFilter = Builders<Card>.Filter.AnyEq(c => c.Tags, tagId);
+        var cardUpdate = Builders<Card>.Update.Pull(c => c.Tags, tagId);
+        await _cardsCollection.UpdateManyAsync(cardFilter, cardUpdate, cancellationToken: cancellationToken);
     }
 }

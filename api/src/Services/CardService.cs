@@ -139,7 +139,7 @@ public class CardService
             SwimlaneId = doc["swimlaneId"].AsObjectId,
             ListId = doc["listId"].AsObjectId,
             Title = doc["title"].AsString,
-            Description = doc["description"].AsString,
+            Description = doc["description"].IsString ? doc["description"].AsString : null,
             DueDate = doc["dueDate"].ToNullableUniversalTime(),
             CreatedAt = doc["createdAt"].ToUniversalTime(),
             UpdatedAt = doc["updatedAt"].ToUniversalTime(),
@@ -284,7 +284,7 @@ public class CardService
             SwimlaneId = doc["swimlaneId"].AsObjectId,
             ListId = doc["listId"].AsObjectId,
             Title = doc["title"].AsString,
-            Description = doc["description"].AsString,
+            Description = doc["description"].IsString ? doc["description"].AsString : null,
             DueDate = doc["dueDate"].ToNullableUniversalTime(),
             CreatedAt = doc["createdAt"].ToUniversalTime(),
             UpdatedAt = doc["updatedAt"].ToUniversalTime(),
@@ -326,7 +326,8 @@ public class CardService
         if (role == BoardRole.Viewer)
             throw new ForbidenException("User does not have permission to update card.");
         
-        var filter = Builders<Card>.Filter.Eq(x => x.Id, cardId); 
+        var filter = Builders<Card>.Filter.Eq(x => x.Id, cardId);
+        card.UpdatedAt = DateTime.UtcNow;
         var update = Builders<Card>.Update
             .Set(c => c.SwimlaneId, card.SwimlaneId)
             .Set(c => c.ListId, card.ListId)
@@ -335,7 +336,7 @@ public class CardService
             .Set(c => c.DueDate, card.DueDate)
             .Set(c => c.Tags, card.Tags)
             .Set(c => c.AssignedUsers, card.AssignedUsers)
-            .Set(c => c.UpdatedAt, DateTime.UtcNow);
+            .Set(c => c.UpdatedAt, card.UpdatedAt);
             
         await _cardsCollection.UpdateOneAsync(filter, update, cancellationToken: cancellationToken);
     }

@@ -1,5 +1,6 @@
 ﻿using Boardly.Api.Entities.Board;
 using Boardly.Api.Exceptions;
+using Boardly.Api.Extensions;
 using Boardly.Api.Hubs;
 using Boardly.Api.Models.Dtos;
 using Boardly.Api.Models.Requests;
@@ -46,7 +47,7 @@ public class BoardController : ControllerBase
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound, "application/problem+json")]
     public async Task<IActionResult> GetBoardByIdAsync(ObjectId boardId)
     {
-        ObjectId userId = ObjectId.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
+        ObjectId userId = User.GetUserId();
         BoardWithUser? board = await _boardService.GetBoardByIdAsync(boardId, userId)
             ?? throw new RecordDoesNotExist("Board has not beed found.");
         return Ok(new DetailedBoardResponse(board));
@@ -58,7 +59,7 @@ public class BoardController : ControllerBase
     [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest, "application/problem+json")]
     public async Task<IActionResult> CreateBoardAsync([FromBody] CreateBoardRequest data, CancellationToken cancellationToken)
     {
-        ObjectId userId = ObjectId.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
+        ObjectId userId = User.GetUserId();
         var members = new HashSet<Member>();
         if (data.Members != null)
         {
@@ -112,7 +113,7 @@ public class BoardController : ControllerBase
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound, "application/problem+json")]
     public async Task<IActionResult> UpdateBoardAsync(ObjectId boardId, [FromBody] UpdateBoardRequest data, CancellationToken cancellationToken)
     {
-        ObjectId userId = ObjectId.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
+        ObjectId userId = User.GetUserId();
         var members = data.Members.Select(x => new Member { UserId =  x.UserId, Role = x.Role }).ToHashSet();
 
         if (!ModelState.IsValid)
@@ -126,7 +127,7 @@ public class BoardController : ControllerBase
         };
 
         await _boardService.UpdateBoardAsync(board, userId, cancellationToken);
-        await _boardHubContext.Clients.Group(boardId.ToString()).SendAsync("Update", cancellationToken);
+        await _boardHubContext.Clients.Group(boardId.ToString()).SendAsync("BoardUpdate", cancellationToken);
         return Ok(new MessageResponse("Successfully updated board!"));
     }
 
@@ -137,7 +138,7 @@ public class BoardController : ControllerBase
     [ProducesResponseType(typeof(MessageResponse), StatusCodes.Status404NotFound, "application/problem+json")]
     public async Task<IActionResult> DeleteBoardAsync(ObjectId boardId, CancellationToken cancellationToken)
     {
-        ObjectId userId = ObjectId.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
+        ObjectId userId = User.GetUserId();
         await _boardService.DeleteBoardAsync(boardId, userId, cancellationToken);
         await _boardHubContext.Clients.Group(boardId.ToString()).SendAsync("BoardDelete", cancellationToken);
         return Ok(new MessageResponse("Board successfully deleted!"));
