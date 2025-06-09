@@ -3,8 +3,8 @@ using Boardly.Api.Entities.Board;
 using Boardly.Api.Exceptions;
 using Boardly.Api.Models.Dtos;
 using MongoDB.Bson;
-using MongoDB.Bson.Serialization;
 using MongoDB.Driver;
+using MongoDB.Driver.Linq;
 
 namespace Boardly.Api.Services;
 
@@ -312,21 +312,25 @@ public class CardService
 
     public async Task CreateCardAsync(ObjectId userId, Card card, CancellationToken cancellationToken = default)
     {
-        BoardRole role = await _boardService.CheckUserBoardRoleAsync(card.BoardId, userId, cancellationToken)
-             ?? throw new ForbidenException("User is not a member of this board.");
+        HashSet<Member> members = await _boardsCollection.AsQueryable().Where(x => x.Id == card.BoardId).Select(x => x.Members).FirstOrDefaultAsync(cancellationToken);
+        BoardRole role = members.FirstOrDefault(x => x.UserId == userId)?.Role
+            ?? throw new ForbidenException("User is not a member of this board.");
         if (role == BoardRole.Viewer)
             throw new ForbidenException("User does not have permission to create card.");
+        if (card.AssignedUsers.Any(x => !members.Any(m => m.UserId == x)))
+            throw new ForbidenException("One or more assigned users are not members of this board.");
         await _cardsCollection.InsertOneAsync(card, cancellationToken: cancellationToken);
     }
 
     public async Task UpdateCardAsync(ObjectId cardId, ObjectId userId, Card card, CancellationToken cancellationToken = default)
     {
-        BoardRole role = await _boardService.CheckUserBoardRoleAsync(card.BoardId, userId, cancellationToken)
-             ?? throw new ForbidenException("User is not a member of this board.");
+        HashSet<Member> members = await _boardsCollection.AsQueryable().Where(x => x.Id == card.BoardId).Select(x => x.Members).FirstOrDefaultAsync(cancellationToken);
+        BoardRole role = members.FirstOrDefault(x => x.UserId == userId)?.Role
+            ?? throw new ForbidenException("User is not a member of this board.");
         if (role == BoardRole.Viewer)
-            throw new ForbidenException("User does not have permission to update card.");
-        
-        var filter = Builders<Card>.Filter.Eq(x => x.Id, cardId);
+            throw new ForbidenException("User does not have permission to create card.");
+        if (card.AssignedUsers.Any(x => !members.Any(m => m.UserId == x)))
+            throw new ForbidenException("One or more assigned users are not members of this board.");
         card.UpdatedAt = DateTime.UtcNow;
         var update = Builders<Card>.Update
             .Set(c => c.SwimlaneId, card.SwimlaneId)
@@ -337,12 +341,10 @@ public class CardService
             .Set(c => c.Tags, card.Tags)
             .Set(c => c.AssignedUsers, card.AssignedUsers)
             .Set(c => c.UpdatedAt, card.UpdatedAt);
-            
-        await _cardsCollection.UpdateOneAsync(filter, update, cancellationToken: cancellationToken);
+        await _cardsCollection.UpdateOneAsync(x => x.Id == cardId, update, cancellationToken: cancellationToken);
     }
 
-    public async Task MoveCardAsync(ObjectId cardId, ObjectId userId, ObjectId listId,
-        CancellationToken cancellationToken = default)
+    public async Task MoveCardAsync(ObjectId cardId, ObjectId userId, ObjectId listId, CancellationToken cancellationToken = default)
     {
         Card card = await _cardsCollection.Find(x => x.Id == cardId).FirstOrDefaultAsync(cancellationToken)
                     ?? throw new RecordDoesNotExist("Card has not been found.");

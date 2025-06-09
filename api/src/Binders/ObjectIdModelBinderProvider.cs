@@ -9,7 +9,6 @@ public class ObjectIdModelBinderProvider : IModelBinderProvider
     {
         if (context.Metadata.ModelType == typeof(ObjectId))
             return new ObjectIdModelBinder();
-
         return null;
     }
 }
