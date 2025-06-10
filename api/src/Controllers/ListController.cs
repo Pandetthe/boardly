@@ -9,7 +9,6 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
 using MongoDB.Bson;
-using System.Security.Claims;
 
 namespace Boardly.Api.Controllers;
 
@@ -89,7 +88,6 @@ public class ListController : ControllerBase
     }
 
     [HttpDelete("{listId}")]
-    [Consumes("application/json")]
     [ProducesResponseType(typeof(MessageResponse), StatusCodes.Status200OK, "application/json")]
     public async Task<IActionResult> DeleteListAsync(ObjectId boardId, ObjectId swimlaneId, ObjectId listId, CancellationToken cancellationToken)
     {

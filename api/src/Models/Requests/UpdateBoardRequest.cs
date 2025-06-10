@@ -6,7 +6,7 @@ namespace Boardly.Api.Models.Requests;
 
 public class UpdateBoardRequest
 {
-    [Required]
+    [Required, MaxLength(60)]
     public string Title { get; init; } = null!;
 
     [Required]

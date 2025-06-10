@@ -5,7 +5,7 @@ namespace Boardly.Api.Models.Requests;
 
 public class CreateUpdateListRequest
 {
-    [Required]
+    [Required, MaxLength(40)]
     public string Title { get; init; } = null!;
 
     [Required]

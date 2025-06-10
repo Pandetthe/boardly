@@ -5,7 +5,7 @@ namespace Boardly.Api.Models.Requests;
 
 public class CreateCardRequest
 {
-    [Required]
+    [Required, MaxLength(100)]
     public string Title { get; init; } = null!;
     
     [Required]

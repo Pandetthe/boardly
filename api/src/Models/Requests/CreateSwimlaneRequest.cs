@@ -5,7 +5,7 @@ namespace Boardly.Api.Models.Requests;
 
 public class CreateSwimlaneRequest
 {
-    [Required]
+    [Required, MaxLength(20)]
     public string Title { get; init; } = null!;
 
     public List<CreateTagRequest>? Tags { get; init; }

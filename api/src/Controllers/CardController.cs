@@ -103,7 +103,6 @@ public class CardController : ControllerBase
     }
     
     [HttpDelete("{cardId}")]
-    [Consumes("application/json")]
     [ProducesResponseType(typeof(MessageResponse), StatusCodes.Status200OK,  "application/json")]
     public async Task<IActionResult> DeleteCardAsync(ObjectId boardId, ObjectId cardId, CancellationToken cancellationToken)
     {

@@ -6,7 +6,7 @@ namespace Boardly.Api.Models.Requests;
 
 public class CreateBoardRequest
 {
-    [Required]
+    [Required, MaxLength(60)]
     public string Title { get; init; } = null!;
 
     public HashSet<CreateRequestMember>? Members { get; init; }

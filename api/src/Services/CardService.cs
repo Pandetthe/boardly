@@ -5,15 +5,14 @@ using Boardly.Api.Models.Dtos;
 using MongoDB.Bson;
 using MongoDB.Driver;
 using MongoDB.Driver.Linq;
-using System.Linq;
 
 namespace Boardly.Api.Services;
 
 public class CardService
 {
     private readonly IMongoCollection<Card> _cardsCollection;
-    private readonly BoardService _boardService;
     private readonly IMongoCollection<Board> _boardsCollection;
+    private readonly BoardService _boardService;
 
     public CardService(MongoDbProvider mongoDbProvider, BoardService boardService)
     {
@@ -313,25 +312,74 @@ public class CardService
 
     public async Task CreateCardAsync(ObjectId userId, Card card, CancellationToken cancellationToken = default)
     {
-        HashSet<Member> members = await _boardsCollection.AsQueryable().Where(x => x.Id == card.BoardId).Select(x => x.Members).FirstOrDefaultAsync(cancellationToken);
-        BoardRole role = members.FirstOrDefault(x => x.UserId == userId)?.Role
+        var result = await _boardsCollection
+            .AsQueryable()
+            .Where(x => x.Id == card.BoardId)
+            .Select(x => new
+            {
+                x.Members,
+                MaxWIP = x.Swimlanes
+                    .Where(s => s.Id == card.SwimlaneId)
+                    .Select(s => s.Lists
+                        .Where(l => l.Id == card.ListId)
+                        .Select(l => l.MaxWIP)
+                        .FirstOrDefault())
+                    .FirstOrDefault()
+            })
+            .FirstOrDefaultAsync(cancellationToken)
+            ?? throw new RecordDoesNotExist("Board has not been found.");
+        Member member = result.Members.FirstOrDefault(x => x.UserId == userId)
             ?? throw new ForbidenException("User is not a member of this board.");
-        if (role == BoardRole.Viewer)
+        if (member.Role == BoardRole.Viewer)
             throw new ForbidenException("User does not have permission to create card.");
-        if (card.AssignedUsers.Any(x => !members.Any(m => m.UserId == x)))
+        if (card.AssignedUsers.Any(x => !result.Members.Any(m => m.UserId == x)))
             throw new ForbidenException("One or more assigned users are not members of this board.");
+        if (result.MaxWIP.HasValue && result.MaxWIP.Value > 0)
+        {
+            long currentWIP = await _cardsCollection.CountDocumentsAsync(x => x.BoardId == card.BoardId
+                && x.ListId == card.ListId, cancellationToken: cancellationToken);
+            if (currentWIP >= result.MaxWIP.Value)
+                throw new ForbidenException("Maximum WIP limit reached for this list.");
+        }
         await _cardsCollection.InsertOneAsync(card, cancellationToken: cancellationToken);
     }
 
     public async Task UpdateCardAsync(ObjectId cardId, ObjectId userId, Card card, CancellationToken cancellationToken = default)
     {
-        HashSet<Member> members = await _boardsCollection.AsQueryable().Where(x => x.Id == card.BoardId).Select(x => x.Members).FirstOrDefaultAsync(cancellationToken);
-        BoardRole role = members.FirstOrDefault(x => x.UserId == userId)?.Role
+        var result = await _boardsCollection
+            .AsQueryable()
+            .Where(x => x.Id == card.BoardId)
+            .Select(x => new
+            {
+                x.Members,
+                MaxWIP = x.Swimlanes
+                    .Where(s => s.Id == card.SwimlaneId)
+                    .Select(s => s.Lists
+                        .Where(l => l.Id == card.ListId)
+                        .Select(l => l.MaxWIP)
+                        .FirstOrDefault())
+                    .FirstOrDefault()
+            })
+            .FirstOrDefaultAsync(cancellationToken)
+            ?? throw new RecordDoesNotExist("Board has not been found.");
+        BoardRole role = result.Members.FirstOrDefault(x => x.UserId == userId)?.Role
             ?? throw new ForbidenException("User is not a member of this board.");
         if (role == BoardRole.Viewer)
             throw new ForbidenException("User does not have permission to create card.");
-        if (card.AssignedUsers.Any(x => !members.Any(m => m.UserId == x)))
+        if (card.AssignedUsers.Any(x => !result.Members.Any(m => m.UserId == x)))
             throw new ForbidenException("One or more assigned users are not members of this board.");
+        if (result.MaxWIP.HasValue && result.MaxWIP.Value > 0)
+        {
+            long currentWIP = await _cardsCollection.CountDocumentsAsync(x => x.BoardId == card.BoardId
+                && x.ListId == card.ListId, cancellationToken: cancellationToken);
+            var oldListId = await _cardsCollection
+                .AsQueryable()
+                .Where(x => x.Id == cardId)
+                .Select(x => x.ListId)
+                .FirstOrDefaultAsync(cancellationToken);
+            if (oldListId != card.ListId && currentWIP >= result.MaxWIP.Value)
+                throw new ForbidenException("Maximum WIP limit reached for this list.");
+        }
         card.UpdatedAt = DateTime.UtcNow;
         var update = Builders<Card>.Update
             .Set(c => c.ListId, card.ListId)
@@ -356,14 +404,35 @@ public class CardService
                 (c, b) => new
                 {
                     CardAssignedUsers = c.AssignedUsers,
-                    BoardMembers = b.Members
+                    BoardMembers = b.Members,
+                    BoardId = b.Id,
+                    MaxWIP = b.Swimlanes
+                        .Where(s => s.Id == c.SwimlaneId)
+                        .Select(s => s.Lists
+                            .Where(l => l.Id == listId)
+                            .Select(l => l.MaxWIP)
+                            .FirstOrDefault())
+                        .FirstOrDefault()
                 }
             )
             .FirstOrDefaultAsync(cancellationToken)
             ?? throw new RecordDoesNotExist("Card has not been found");
-        var member = result.BoardMembers.FirstOrDefault(m => m.UserId == userId);
-        if (member?.Role == BoardRole.Viewer && !result.CardAssignedUsers.Contains(userId))
+        var member = result.BoardMembers.FirstOrDefault(m => m.UserId == userId)
+            ?? throw new ForbidenException("User is not a member of this board.");
+        if (member.Role == BoardRole.Viewer && !result.CardAssignedUsers.Contains(userId))
             throw new ForbidenException("User does not have permission to move this card");
+        if (result.MaxWIP.HasValue && result.MaxWIP.Value > 0)
+        {
+            long currentWIP = await _cardsCollection.CountDocumentsAsync(x => x.BoardId == result.BoardId
+                && x.ListId == listId, cancellationToken: cancellationToken);
+            var oldListId = await _cardsCollection
+                .AsQueryable()
+                .Where(x => x.Id == cardId)
+                .Select(x => x.ListId)
+                .FirstOrDefaultAsync(cancellationToken);
+            if (oldListId != listId && currentWIP >= result.MaxWIP.Value)
+                throw new ForbidenException("Maximum WIP limit reached for this list.");
+        }
         var update = Builders<Card>.Update
             .Set(c => c.ListId, listId);
         await _cardsCollection.UpdateOneAsync(x => x.Id == cardId, update, cancellationToken: cancellationToken);
@@ -371,11 +440,26 @@ public class CardService
 
     public async Task DeleteCardAsync(ObjectId cardId, ObjectId userId, CancellationToken cancellationToken = default)
     {
-        Card card = await _cardsCollection.Find(x => x.Id == cardId).FirstOrDefaultAsync(cancellationToken)
-                    ?? throw new RecordDoesNotExist("Card has not been found.");
-        BoardRole role = await _boardService.CheckUserBoardRoleAsync(card.BoardId, userId, cancellationToken)
-             ?? throw new ForbidenException("User is not a member of this board.");
-        if (role == BoardRole.Viewer)
+        var result = await _cardsCollection
+            .AsQueryable()
+            .Where(card => card.Id == cardId)
+            .Join(
+                _boardsCollection,
+                c => c.BoardId,
+                b => b.Id,
+                (c, b) => new
+                {
+                    CardId = c.Id,
+                    BoardRole = b.Members
+                        .Where(x => x.UserId == userId)
+                        .Select(x => x.Role)
+                        .FirstOrDefault(),
+                }
+            )
+            .FirstOrDefaultAsync(cancellationToken);
+        if (result == null || result.CardId == default)
+            throw new RecordDoesNotExist("Card has not been found.");
+        if (result.BoardRole == BoardRole.Viewer)
             throw new ForbidenException("User does not have permission to delete card.");
         await _cardsCollection.DeleteOneAsync(x => x.Id == cardId, null, cancellationToken: cancellationToken);
     }

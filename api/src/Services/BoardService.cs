@@ -1,9 +1,11 @@
-﻿using Boardly.Api.Entities.Board;
+﻿using Boardly.Api.Entities;
+using Boardly.Api.Entities.Board;
 using Boardly.Api.Exceptions;
 using Boardly.Api.Models.Dtos;
 using MongoDB.Bson;
 using MongoDB.Bson.Serialization;
 using MongoDB.Driver;
+using MongoDB.Driver.Linq;
 
 namespace Boardly.Api.Services;
 
@@ -11,6 +13,7 @@ public class BoardService
 {
     private readonly IMongoCollection<Board> _boardsCollection;
     private readonly IMongoCollection<Card> _cardsCollection;
+    private readonly IMongoCollection<User> _usersCollection;
 
     public BoardService(MongoDbProvider mongoDbProvider)
     {
@@ -27,10 +30,13 @@ public class BoardService
 
     public async Task<Board?> GetRawBoardByIdAsync(ObjectId id, ObjectId userId, CancellationToken cancellationToken = default)
     {
-        var board = await _boardsCollection.Find(x => x.Id == id).FirstOrDefaultAsync(cancellationToken);
+        var board = await _boardsCollection
+            .AsQueryable()
+            .Where(x => x.Id == id)
+            .FirstOrDefaultAsync(cancellationToken);
         if (board == null)
             return null;
-        if (board.Members.All(x => x.UserId != userId))
+        if (!board.Members.Any(x => x.UserId == userId))
             throw new ForbidenException("User is not a member of this board.");
         return board;
     }
@@ -165,10 +171,12 @@ public class BoardService
         })];
     }
 
-    public async Task<IEnumerable<Board>> GetRawBoardsByUserIdAsync(ObjectId userId, CancellationToken cancellationToken = default)
+    public async Task<List<Board>> GetRawBoardsByUserIdAsync(ObjectId userId, CancellationToken cancellationToken = default)
     {
-        var filter = Builders<Board>.Filter.ElemMatch(b => b.Members, m => m.UserId == userId);
-        return await _boardsCollection.Find(filter).ToListAsync(cancellationToken);
+        return await _boardsCollection
+            .AsQueryable()
+            .Where(b => b.Members.Any(m => m.UserId == userId))
+            .ToListAsync(cancellationToken);
     }
 
     public async Task UpdateBoardAsync(Board board, ObjectId userId, CancellationToken cancellationToken = default)
@@ -176,12 +184,16 @@ public class BoardService
         IEnumerable<Member> owners = board.Members.Where(x => x.Role == BoardRole.Owner);
         if (owners.Count() != 1)
             throw new ArgumentException("Board must have at least one member that is an owner.");
-        var existingBoard = await _boardsCollection.Find(b => b.Id == board.Id, null).FirstOrDefaultAsync(cancellationToken)
+        var members = await _boardsCollection
+            .AsQueryable()
+            .Where(x => x.Id == board.Id)
+            .Select(x => x.Members)
+            .FirstOrDefaultAsync(cancellationToken)
             ?? throw new RecordDoesNotExist("Board has not been found.");
-        BoardRole? role = existingBoard.Members.FirstOrDefault(x => x.UserId == userId)?.Role;
+        BoardRole? role = members.FirstOrDefault(x => x.UserId == userId)?.Role;
         if (role == null || (role != BoardRole.Owner && role != BoardRole.Admin))
             throw new ForbidenException("User is not authorized to update this board.");
-        IEnumerable<Member> existingOwners = existingBoard.Members.Where(x => x.Role == BoardRole.Owner);
+        IEnumerable<Member> existingOwners = members.Where(x => x.Role == BoardRole.Owner);
         if (existingOwners.Count() != 1)
             throw new InvalidOperationException("An unexpected error occurred while updating board. Board has more or less than one owner!");
         if (existingOwners.First() != owners.First() && existingOwners.First().UserId != userId)
@@ -192,7 +204,6 @@ public class BoardService
             .Set(b => b.Title, board.Title)
             .Set(b => b.Members, board.Members)
             .Set(b => b.UpdatedAt, board.UpdatedAt);
-
         UpdateResult result = await _boardsCollection.UpdateOneAsync(filter, update, cancellationToken: cancellationToken);
         if (result.ModifiedCount == 0)
             throw new RecordDoesNotExist("Board has not been found.");
@@ -200,10 +211,12 @@ public class BoardService
 
     public async Task<BoardRole?> CheckUserBoardRoleAsync(ObjectId id, ObjectId userId, CancellationToken cancellationToken = default)
     {
-        HashSet<Member>? members = null;
-        members = await _boardsCollection.Find(b => b.Id == id).Project(x => x.Members).FirstOrDefaultAsync(cancellationToken);
-        if (members == null)
-            throw new RecordDoesNotExist("Board has not been found.");
+        var members = await _boardsCollection
+            .AsQueryable()
+            .Where(x => x.Id == id)
+            .Select(x => x.Members)
+            .FirstOrDefaultAsync(cancellationToken)
+            ?? throw new RecordDoesNotExist("Board has not been found.");
         return members.FirstOrDefault(x => x.UserId == userId)?.Role;
     }
 

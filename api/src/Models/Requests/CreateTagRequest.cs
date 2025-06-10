@@ -5,7 +5,7 @@ namespace Boardly.Api.Models.Requests;
 
 public class CreateTagRequest
 {
-    [Required]
+    [Required, MaxLength(30)]
     public string Title { get; init; } = null!;
 
     [Required]
