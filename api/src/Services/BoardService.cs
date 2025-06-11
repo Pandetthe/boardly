@@ -3,7 +3,6 @@ using Boardly.Api.Entities.Board;
 using Boardly.Api.Exceptions;
 using Boardly.Api.Models.Dtos;
 using MongoDB.Bson;
-using MongoDB.Bson.Serialization;
 using MongoDB.Driver;
 using MongoDB.Driver.Linq;
 
@@ -14,14 +13,12 @@ public class BoardService
     private readonly IMongoCollection<Board> _boardsCollection;
     private readonly IMongoCollection<Card> _cardsCollection;
     private readonly IMongoCollection<User> _usersCollection;
-    private readonly ILogger<BoardService> _logger;
 
     public BoardService(MongoDbProvider mongoDbProvider, ILogger<BoardService> logger)
     {
         _boardsCollection = mongoDbProvider.GetBoardsCollection();
         _cardsCollection = mongoDbProvider.GetCardsCollection();
         _usersCollection = mongoDbProvider.GetUsersCollection();
-        _logger = logger;
     }
 
     public async Task CreateBoardAsync(Board board, CancellationToken cancellationToken = default)
