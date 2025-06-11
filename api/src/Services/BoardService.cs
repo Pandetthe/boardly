@@ -14,11 +14,14 @@ public class BoardService
     private readonly IMongoCollection<Board> _boardsCollection;
     private readonly IMongoCollection<Card> _cardsCollection;
     private readonly IMongoCollection<User> _usersCollection;
+    private readonly ILogger<BoardService> _logger;
 
-    public BoardService(MongoDbProvider mongoDbProvider)
+    public BoardService(MongoDbProvider mongoDbProvider, ILogger<BoardService> logger)
     {
         _boardsCollection = mongoDbProvider.GetBoardsCollection();
         _cardsCollection = mongoDbProvider.GetCardsCollection();
+        _usersCollection = mongoDbProvider.GetUsersCollection();
+        _logger = logger;
     }
 
     public async Task CreateBoardAsync(Board board, CancellationToken cancellationToken = default)
@@ -43,64 +46,44 @@ public class BoardService
 
     public async Task<BoardWithUser?> GetBoardByIdAsync(ObjectId id, ObjectId userId, CancellationToken cancellationToken = default)
     {
-        var pipeline = new[]
-        {
-            new BsonDocument("$match", new BsonDocument("_id", id)),
-            new BsonDocument("$match", new BsonDocument("members.userId", userId)),
-            new BsonDocument("$unwind", "$members"),
-            new BsonDocument("$lookup", new BsonDocument
-            {
-                { "from", "users" },
-                { "localField", "members.userId" },
-                { "foreignField", "_id" },
-                { "as", "user" }
-            }),
-            new BsonDocument("$unwind", "$user"),
-            new BsonDocument("$group", new BsonDocument
-            {
-                { "_id", "$_id" },
-                { "title", new BsonDocument("$first", "$title") },
-                { "swimlanes", new BsonDocument("$first", "$swimlanes") },
-                { "createdAt", new BsonDocument("$first", "$createdAt") },
-                { "updatedAt", new BsonDocument("$first", "$updatedAt") },
-                { "members", new BsonDocument("$push", new BsonDocument
-                    {
-                        { "userId", "$members.userId" },
-                        { "role", "$members.role" },
-                        { "isActive", "$members.isActive" },
-                        { "nickname", "$user.nickname" }
-                    })
-                }
-            })
-        };
-
-        var doc = await _boardsCollection
-            .Aggregate<BsonDocument>(pipeline, cancellationToken: cancellationToken)
-            .FirstOrDefaultAsync(cancellationToken) ?? throw new ForbidenException("User is not a member of this board.");
-        if (doc == null)
-            return null;
-        BoardWithUser board = new()
-        {
-            Id = doc["_id"].AsObjectId,
-            Title = doc["title"].AsString,
-            Swimlanes = [.. doc["swimlanes"].AsBsonArray.Select(s => BsonSerializer.Deserialize<Swimlane>(s.AsBsonDocument))],
-            CreatedAt = doc["createdAt"].ToUniversalTime(),
-            UpdatedAt = doc["updatedAt"].ToUniversalTime(),
-            Members = [.. doc["members"].AsBsonArray.Select(m =>
-            {
-                var member = m.AsBsonDocument;
-                return new MemberWithUser
+        var result = await _boardsCollection
+            .AsQueryable()
+            .Where(x => x.Id == id)
+            .SelectMany(x => x.Members.Select(member => new { Board = x, Member = member }))
+            .Join(
+                _usersCollection,
+                x => x.Member.UserId,
+                user => user.Id,
+                (x, user) => new
                 {
-                    UserId = member["userId"].AsObjectId,
-                    Role = Enum.Parse<BoardRole>(member["role"].AsString),
-                    IsActive = member["isActive"].AsBoolean,
-                    Nickname = member["nickname"].AsString
-                };
-            })]
-        };
-        if (board.Members.All(x => x.UserId != userId))
+                    x.Board,
+                    Member = new MemberWithUser
+                    {
+                        UserId = x.Member.UserId,
+                        Role = x.Member.Role,
+                        IsActive = x.Member.IsActive,
+                        Nickname = user.Nickname
+                    }
+                }
+            )
+            .GroupBy(x => x.Board.Id)
+            .Select(x => new
+            {
+                x.First().Board,
+                Members = x.Select(m => m.Member),
+            })
+            .FirstOrDefaultAsync(cancellationToken);
+        if (!result.Members.Any(x => x.UserId == userId))
             throw new ForbidenException("User is not a member of this board.");
-        return board;
+        return new BoardWithUser
+        {
+            Id = result.Board.Id,
+            Title = result.Board.Title,
+            Members = [.. result.Members],
+            Swimlanes = [.. result.Board.Swimlanes],
+            CreatedAt = result.Board.CreatedAt.ToUniversalTime(),
+            UpdatedAt = result.Board.UpdatedAt.ToUniversalTime()
+        };
     }
 
     public async Task ChangeUserActivity(ObjectId id, ObjectId userId, bool isActive, CancellationToken cancellationToken = default)
@@ -117,58 +100,42 @@ public class BoardService
 
     public async Task<IEnumerable<BoardWithUser>> GetBoardsByUserIdAsync(ObjectId userId, CancellationToken cancellationToken = default)
     {
-        var pipeline = new[]
-        {
-            new BsonDocument("$match", new BsonDocument("members.userId", userId)),
-            new BsonDocument("$unwind", "$members"),
-            new BsonDocument("$lookup", new BsonDocument
-            {
-                { "from", "users" },
-                { "localField", "members.userId" },
-                { "foreignField", "_id" },
-                { "as", "user" }
-            }),
-            new BsonDocument("$unwind", "$user"),
-            new BsonDocument("$group", new BsonDocument
-            {
-                { "_id", "$_id" },
-                { "title", new BsonDocument("$first", "$title") },
-                { "swimlanes", new BsonDocument("$first", "$swimlanes") },
-                { "createdAt", new BsonDocument("$first", "$createdAt") },
-                { "updatedAt", new BsonDocument("$first", "$updatedAt") },
-                { "members", new BsonDocument("$push", new BsonDocument
-                    {
-                        { "userId", "$members.userId" },
-                        { "role", "$members.role" },
-                        { "isActive", "$members.isActive" },
-                        { "nickname", "$user.nickname" }
-                    })
-                }
-            })
-        };
-
-        var documents = await _boardsCollection
-            .Aggregate<BsonDocument>(pipeline, cancellationToken: cancellationToken)
-            .ToListAsync(cancellationToken);
-        return [.. documents.Select(doc => new BoardWithUser
-        {
-            Id = doc["_id"].AsObjectId,
-            Title = doc["title"].AsString,
-            Swimlanes = [.. doc["swimlanes"].AsBsonArray.Select(s => BsonSerializer.Deserialize<Swimlane>(s.AsBsonDocument))],
-            CreatedAt = doc["createdAt"].ToUniversalTime(),
-            UpdatedAt = doc["updatedAt"].ToUniversalTime(),
-            Members = [.. doc["members"].AsBsonArray.Select(m =>
-            {
-                var member = m.AsBsonDocument;
-                return new MemberWithUser
+        var result = await _boardsCollection
+            .AsQueryable()
+            .Where(x => x.Members.Any(y => y.UserId == userId))
+            .SelectMany(x => x.Members.Select(member => new { Board = x, Member = member }))
+            .Join(
+                _usersCollection,
+                x => x.Member.UserId,
+                user => user.Id,
+                (x, user) => new
                 {
-                    UserId = member["userId"].AsObjectId,
-                    Role = Enum.Parse<BoardRole>(member["role"].AsString),
-                    IsActive = member["isActive"].AsBoolean,
-                    Nickname = member["nickname"].AsString
-                };
-            })]
-        })];
+                    x.Board,
+                    Member = new MemberWithUser
+                    {
+                        UserId = x.Member.UserId,
+                        Role = x.Member.Role,
+                        IsActive = x.Member.IsActive,
+                        Nickname = user.Nickname
+                    }
+                }
+            )
+            .GroupBy(x => x.Board.Id)
+            .Select(x => new
+            {
+                x.First().Board,
+                Members = x.Select(m => m.Member),
+            })
+            .ToListAsync(cancellationToken);
+        return result.Select(b => new BoardWithUser
+        {
+            Id = b.Board.Id,
+            Title = b.Board.Title,
+            Members = [.. b.Members],
+            Swimlanes = [.. b.Board.Swimlanes],
+            CreatedAt = b.Board.CreatedAt.ToUniversalTime(),
+            UpdatedAt = b.Board.UpdatedAt.ToUniversalTime()
+        });
     }
 
     public async Task<List<Board>> GetRawBoardsByUserIdAsync(ObjectId userId, CancellationToken cancellationToken = default)
