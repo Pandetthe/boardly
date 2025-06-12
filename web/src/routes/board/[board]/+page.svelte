@@ -143,12 +143,12 @@
 
 <ManageSwimlanePopup bind:this={swimlanePopup} boardId={data.board.id}/>
 <div class="w-full overflow-y-scroll">
-	<div class="tabs gap-3 p-3">
+	<div class="tabs gap-3 p-3 h-full">
 		{#each data.board.swimlanes as swimlane}
 			<label
 				class="tab border-border bg-component hover:bg-component-hover hover:border-border-hover w-40 flex-row justify-between rounded-md border-1 pr-2 [--tab-bg:orange]"
 			>
-				<input type="radio" name="tabs" />
+				<input type="radio" name="tabs"/>
 				{swimlane.title}
 				{#if $board.members.some(member => member.userId === data.user.id && (member.role == BoardRole.Admin || member.role == BoardRole.Owner))}
 				<button

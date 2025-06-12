@@ -31,18 +31,30 @@
         color = newColor;
     }
 
+    let isEditor = false;
+    let canGrab = false;
+
     const me = getContext('user');
     const board = getContext('board');
+
+    board.subscribe(b => {
+        isEditor = b.members.some(member => member.userId === me.id && member.role != BoardRole.Viewer);
+        canGrab = isEditor || assignedUsers.some(u => u.id == me.id);
+    });
+
 </script>
 
-<li class="border-2 border-{color} bg-component rounded-xl mb-5 drop-shadow-2xl drop-shadow-{color}-shadow {assignedUsers.some(u => u.id == me.id) || $board.members.some(member => member.userId === me.id && member.role != BoardRole.Viewer)? '' : 'nodrag'}" data-id={id}>
+<li class="{canGrab ? 'cursor-grab': 'nodrag'} border-2 border-{color} bg-component rounded-xl mb-5 drop-shadow-2xl drop-shadow-{color}-shadow" data-id={id}>
+    <div class="flex gap-2 absolute top-0 left-0 z-50 rounded-xl w-full h-full bg-radial from-component-hover to-transparent justify-center items-center text-text text-xl">
+        <ProfileIcon user={me} size="medium" /> is editing
+    </div>
     <div class="card gap-6 p-6">
         <div class="flex justify-between items-start">
             <h1 class="card-title text-{color} text-2xl font-black drop-shadow-xl drop-shadow-{color}-shadow">
                 {title}
             </h1>
-            {#if $board.members.some(member => member.userId === me.id && member.role != BoardRole.Viewer)}
-            <button class="btn-xs btn-ghost z-50 aspect-square p-1" aria-label="More options" on:click={() => {popup.show(id)}}>
+            {#if isEditor}
+            <button class="btn-xs btn-ghost z-50 aspect-square p-1 cursor-pointer" aria-label="More options" on:click={() => {popup.show(id)}}>
                 <Menu />
             </button>
             {/if}

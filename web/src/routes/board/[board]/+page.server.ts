@@ -32,10 +32,12 @@ export const load = (async ({ cookies, params, depends }) => {
                 'Authorization': `Bearer ${accessToken}`,
             },
         });
+
         if (res.ok && cards.ok && user.ok) {
             const rawBoard = await res.json() as DetailedBoardReponse;
             const rawCards = await cards.json();
             const rawUser = await user.json();
+
             return { board: parseDetailedBoard(rawBoard) satisfies DetailedBoard, cards: rawCards, user: rawUser };
         }
     } catch (error) {

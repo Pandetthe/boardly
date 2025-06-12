@@ -17,7 +17,6 @@
     let tagsToDelete: { id: string, title: string, color: string }[] = $state([]);
 
     export function show(swimlane: DetailedSwimlaneRequest | null = null) {
-        console.log(swimlane);
         isEditMode = swimlane !== null;
         visible = true;
         if (!isEditMode) {

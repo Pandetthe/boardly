@@ -117,10 +117,14 @@
 
     function removeUser(member) {
         assignedUsers = assignedUsers.filter((user) => user.id !== member.id);
-        console.log(assignedUsers);
     }
 
     let pageNameInvalid = false;
+
+    let boardMembers;
+    board.subscribe(b => {
+        boardMembers = b.members;
+    });
 
 </script>
 
@@ -147,7 +151,7 @@
     </PopupAccordion>
 
     <PopupAccordion label="Assign to" name="card-creation" ready={false}>
-    <UserFinder members={board.members} showRole={false} onSelect={(member) => addUser(member)} />
+    <UserFinder members={boardMembers} showRole={false} onSelect={(member) => addUser(member)} />
       <UserManager users={assignedUsers} onRemove={(member) => removeUser(member)} />
     </PopupAccordion>
 

@@ -65,6 +65,7 @@
             .filter(
                 x => x.nickname.toLocaleLowerCase().includes(input.value.toLocaleLowerCase())
             )
+            .slice(0,5)
             .map(member => ({
                 id: member.userId,
                 nickname: member.nickname

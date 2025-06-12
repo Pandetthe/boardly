@@ -48,7 +48,6 @@
         console.error("Failed to move card");
         return;
       }
-      $cardsContext = []
     }
   
     onMount(() => {
@@ -78,7 +77,7 @@
     const board = getContext("board");
   </script>
   
-  <div class="w-full max-w-150 rounded-2xl bg-{color}-bg p-5 h-fit">
+  <div class="w-full max-w-150 rounded-2xl bg-{color}-bg p-5 h-fit min-w-100">
     <ManageCardPopup
       bind:this={popup}
       pageTags={tags}
