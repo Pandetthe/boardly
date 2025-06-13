@@ -9,9 +9,9 @@ public class BoardWithUser
 
     public string Title { get; set; } = null!;
 
-    public HashSet<MemberWithUser> Members { get; set; } = [];
+    public IEnumerable<MemberWithUser> Members { get; set; } = [];
 
-    public HashSet<Swimlane> Swimlanes { get; set; } = [];
+    public IEnumerable<Swimlane> Swimlanes { get; set; } = [];
 
     public DateTime CreatedAt { get; init; } = DateTime.UtcNow;
 

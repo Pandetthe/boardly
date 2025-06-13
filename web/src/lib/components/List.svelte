@@ -48,7 +48,6 @@
         console.error("Failed to move card");
         return;
       }
-      $cardsContext = []
     }
   
     onMount(() => {

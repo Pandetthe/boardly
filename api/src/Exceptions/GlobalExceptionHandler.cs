@@ -28,8 +28,9 @@ public class GlobalExceptionHandler : IExceptionHandler
                 RecordDoesNotExist => StatusCodes.Status404NotFound,
                 RecordAlreadyExists => StatusCodes.Status400BadRequest,
                 ArgumentException => StatusCodes.Status400BadRequest,
-                ForbidenException => StatusCodes.Status403Forbidden,
                 UnauthorizedException => StatusCodes.Status401Unauthorized,
+                ForbiddenException => StatusCodes.Status403Forbidden,
+                PreconditionFailedException => StatusCodes.Status412PreconditionFailed,
                 NotImplementedException => StatusCodes.Status501NotImplemented,
                 _ => StatusCodes.Status500InternalServerError
             },

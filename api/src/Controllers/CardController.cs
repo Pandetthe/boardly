@@ -68,7 +68,7 @@ public class CardController : ControllerBase
             Tags = data.Tags ?? [],
             AssignedUsers = data.AssignedUsers ?? []
         };
-        await _cardService.CreateCardAsync(userId, card, cancellationToken);
+        await _cardService.CreateCardAsync(card, userId, cancellationToken);
         await _boardHubContext.Clients.Group(boardId.ToString()).SendAsync("CardCreate", cancellationToken);
         return Ok(new IdResponse(card.Id));
     }
@@ -86,7 +86,7 @@ public class CardController : ControllerBase
         card.Tags = data.Tags ?? [];
         card.AssignedUsers = data.AssignedUsers ?? [];
 
-        await _cardService.UpdateCardAsync(cardId, userId, card, cancellationToken);
+        await _cardService.UpdateCardAsync(card, userId, cancellationToken);
         await _boardHubContext.Clients.Group(boardId.ToString()).SendAsync("CardUpdate", cancellationToken);
         return Ok(new MessageResponse("Card updated successfully!"));
     }
@@ -94,20 +94,29 @@ public class CardController : ControllerBase
     [HttpPatch("{cardId}/move")]
     [Consumes("application/json")]
     [ProducesResponseType(typeof(MessageResponse), StatusCodes.Status200OK, "application/json")]
-    public async Task<IActionResult> MoveCardAsync(ObjectId boardId, ObjectId cardId, [FromBody] MoveCardRequest data, CancellationToken cancellationToken)
+    public async Task<IActionResult> MoveCardAsync(
+        ObjectId boardId,
+        ObjectId cardId,
+        [FromHeader(Name = "If-Match")] DateTime? ifMatch,
+        [FromBody] MoveCardRequest data,
+        CancellationToken cancellationToken)
     {
         ObjectId userId = User.GetUserId();
-        await _cardService.MoveCardAsync(cardId, userId, data.ListId, cancellationToken);
+        await _cardService.MoveCardAsync(cardId, userId, data.ListId, ifMatch.GetValueOrDefault(), cancellationToken);
         await _boardHubContext.Clients.Group(boardId.ToString()).SendAsync("CardMove", cancellationToken);
         return Ok(new MessageResponse("Card moved successfully!"));
     }
     
     [HttpDelete("{cardId}")]
     [ProducesResponseType(typeof(MessageResponse), StatusCodes.Status200OK,  "application/json")]
-    public async Task<IActionResult> DeleteCardAsync(ObjectId boardId, ObjectId cardId, CancellationToken cancellationToken)
+    public async Task<IActionResult> DeleteCardAsync
+        (ObjectId boardId,
+        ObjectId cardId,
+        [FromHeader(Name = "If-Match")] DateTime? ifMatch,
+        CancellationToken cancellationToken)
     {
         ObjectId userId = User.GetUserId();
-        await _cardService.DeleteCardAsync(cardId, userId, cancellationToken);
+        await _cardService.DeleteCardAsync(cardId, userId, ifMatch.GetValueOrDefault(), cancellationToken);
         await _boardHubContext.Clients.Group(boardId.ToString()).SendAsync("CardDelete", cancellationToken);
         return Ok(new MessageResponse("Card deleted successfully!"));
     }

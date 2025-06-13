@@ -7,12 +7,16 @@ using System.Text.RegularExpressions;
 
 namespace Boardly.Api.Services;
 
-public class UserService(MongoDbProvider mongoDbProvider, ILogger<UserService> logger,
-    IPasswordHasher<User> passwordHasher)
+public class UserService
 {
-    private readonly IPasswordHasher<User> _passwordHasher = passwordHasher;
-    private readonly IMongoCollection<User> _usersCollection = mongoDbProvider.GetUsersCollection();
-    private readonly ILogger<UserService> _logger = logger;
+    private readonly IPasswordHasher<User> _passwordHasher;
+    private readonly IMongoCollection<User> _usersCollection;
+
+    public UserService(MongoDbProvider mongoDbProvider, IPasswordHasher<User> passwordHasher)
+    {
+        _usersCollection = mongoDbProvider.GetUsersCollection();
+        _passwordHasher = passwordHasher;
+    }
 
     public async Task AddUserAsync(User user, CancellationToken cancellationToken = default)
     {

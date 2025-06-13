@@ -26,6 +26,9 @@ public class MongoDbProvider : IDisposable
 
         MongoClientSettings settings = MongoClientSettings.FromConnectionString(connectionString);
         settings.LoggingSettings = new(loggerFactory);
+        settings.ReadConcern = ReadConcern.Snapshot;
+        settings.WriteConcern = WriteConcern.WMajority;
+        settings.ReadPreference = ReadPreference.PrimaryPreferred;
 
         Client = new(settings);
         Database = Client.GetDatabase(databaseName);

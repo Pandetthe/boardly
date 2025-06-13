@@ -9,6 +9,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
 using MongoDB.Bson;
+using MongoDB.Driver.Linq;
 
 namespace Boardly.Api.Controllers;
 
@@ -21,31 +22,45 @@ namespace Boardly.Api.Controllers;
 public class ListController : ControllerBase
 {
     private readonly ListService _listService;
-    private readonly IHubContext<BoardHub> _boardHubContext;
+    private readonly BoardService _boardService;
+    private readonly IHubContext<BoardHub, IBoardClient> _boardHubContext;
 
-    public ListController(ListService listService, IHubContext<BoardHub> boardHubContext)
+    public ListController(ListService listService, BoardService boardService,
+        IHubContext<BoardHub, IBoardClient> boardHubContext)
     {
         _listService = listService;
+        _boardService = boardService;
         _boardHubContext = boardHubContext;
     }
 
     [HttpGet]
     [Consumes("application/json")]
     [ProducesResponseType(typeof(List<ListResponse>), StatusCodes.Status200OK, "application/json")]
-    public async Task<IActionResult> GetAllListsAsync(ObjectId boardId, ObjectId swimlaneId, CancellationToken cancellationToken)
+    public async Task<IActionResult> GetAllListsAsync(
+        [FromRoute] ObjectId boardId,
+        [FromRoute] ObjectId swimlaneId,
+        CancellationToken cancellationToken)
     {
         ObjectId userId = User.GetUserId();
-        List<List> swimlanes = [.. await _listService.GetListsBySwimlaneIdAsync(boardId, swimlaneId, userId, cancellationToken)];
+        if (await _boardService.GetUserBoardRoleAsync(boardId, userId, cancellationToken) == null)
+            throw new ForbiddenException("User is not a member of this board.");
+        List<List> swimlanes = await _listService.GetListBySwimlaneId(boardId, swimlaneId).ToListAsync(cancellationToken);
         return Ok(swimlanes.Select(x => new ListResponse(x)).ToList());
     }
 
     [HttpGet("{listId}")]
     [Consumes("application/json")]
     [ProducesResponseType(typeof(DetailedListResponse), StatusCodes.Status200OK, "application/json")]
-    public async Task<IActionResult> GetListByIdAsync(ObjectId boardId, ObjectId swimlaneId, ObjectId listId, CancellationToken cancellationToken)
+    public async Task<IActionResult> GetListByIdAsync(
+        [FromRoute] ObjectId boardId,
+        [FromRoute] ObjectId swimlaneId,
+        [FromRoute] ObjectId listId,
+        CancellationToken cancellationToken)
     {
         ObjectId userId = User.GetUserId();
-        List list = await _listService.GetListByIdAsync(boardId, swimlaneId, listId, userId, cancellationToken)
+        if (await _boardService.GetUserBoardRoleAsync(boardId, userId, cancellationToken) == null)
+            throw new ForbiddenException("User is not a member of this board.");
+        List list = await _listService.GetListBySwimlaneId(boardId, swimlaneId).FirstOrDefaultAsync(l => l.Id == listId, cancellationToken)
             ?? throw new RecordDoesNotExist("List has not been found.");
         return Ok(new DetailedListResponse(list));
     }
@@ -53,7 +68,12 @@ public class ListController : ControllerBase
     [HttpPost]
     [Consumes("application/json")]
     [ProducesResponseType(typeof(IdResponse), StatusCodes.Status200OK, "application/json")]
-    public async Task<IActionResult> CreateListAsync(ObjectId boardId, ObjectId swimlaneId, CreateUpdateListRequest data, CancellationToken cancellationToken)
+    public async Task<IActionResult> CreateListAsync(
+        [FromRoute] ObjectId boardId,
+        [FromRoute] ObjectId swimlaneId,
+        [FromBody] CreateUpdateListRequest data,
+        [FromHeader(Name = "If-Match")] DateTime? ifMatch,
+        CancellationToken cancellationToken)
     {
         ObjectId userId = User.GetUserId();
         var list = new List
@@ -63,15 +83,23 @@ public class ListController : ControllerBase
             Color = data.Color
         };
 
-        await _listService.CreateListAsync(boardId, swimlaneId, userId, list, cancellationToken);
-        await _boardHubContext.Clients.Group(boardId.ToString()).SendAsync("ListCreate", cancellationToken);
+        (List newList, DateTime updatedAt) = await _listService.CreateAndFindListAsync(boardId,
+            swimlaneId, userId, list, ifMatch.GetValueOrDefault(), cancellationToken);
+        await _boardHubContext.Clients.Group(boardId.ToString()).ListCreated(
+            new ListResponse(newList), updatedAt, cancellationToken);
         return Ok(new IdResponse(list.Id));
     }
 
     [HttpPatch("{listId}")]
     [Consumes("application/json")]
     [ProducesResponseType(typeof(MessageResponse), StatusCodes.Status200OK, "application/json")]
-    public async Task<IActionResult> UpdateListAsync(ObjectId boardId, ObjectId swimlaneId, ObjectId listId, CreateUpdateListRequest data, CancellationToken cancellationToken)
+    public async Task<IActionResult> UpdateListAsync(
+        [FromRoute] ObjectId boardId,
+        [FromRoute] ObjectId swimlaneId,
+        [FromRoute] ObjectId listId,
+        [FromBody] CreateUpdateListRequest data,
+        [FromHeader(Name = "If-Match")] DateTime? ifMatch,
+        CancellationToken cancellationToken)
     {
         ObjectId userId = User.GetUserId();
         var list = new List
@@ -82,18 +110,26 @@ public class ListController : ControllerBase
             Color = data.Color
         };
 
-        await _listService.UpdateListAsync(boardId, swimlaneId, userId, list, cancellationToken);
-        await _boardHubContext.Clients.Group(boardId.ToString()).SendAsync("ListUpdate", cancellationToken);
+        (List newList, DateTime updatedAt) = await _listService.UpdateAndFindListAsync(boardId,
+            swimlaneId, userId, list, ifMatch.GetValueOrDefault(), cancellationToken);
+        await _boardHubContext.Clients.Group(boardId.ToString()).ListUpdated(
+            new ListResponse(newList), updatedAt, cancellationToken);
         return Ok(new MessageResponse("Successfully updated list!"));
     }
 
     [HttpDelete("{listId}")]
     [ProducesResponseType(typeof(MessageResponse), StatusCodes.Status200OK, "application/json")]
-    public async Task<IActionResult> DeleteListAsync(ObjectId boardId, ObjectId swimlaneId, ObjectId listId, CancellationToken cancellationToken)
+    public async Task<IActionResult> DeleteListAsync(
+        [FromRoute] ObjectId boardId,
+        [FromRoute] ObjectId swimlaneId,
+        [FromRoute] ObjectId listId,
+        [FromHeader(Name = "If-Match")] DateTime? ifMatch,
+        CancellationToken cancellationToken)
     {
         ObjectId userId = User.GetUserId();
-        await _listService.DeleteListAsync(boardId, swimlaneId, listId, userId, cancellationToken);
-        await _boardHubContext.Clients.Group(boardId.ToString()).SendAsync("ListDelete", cancellationToken);
+        DateTime updatedAt = await _listService.DeleteListAsync(boardId, swimlaneId,
+            listId, userId, ifMatch.GetValueOrDefault(), cancellationToken);
+        await _boardHubContext.Clients.Group(boardId.ToString()).ListDeleted(swimlaneId, listId, updatedAt, cancellationToken);
         return Ok(new MessageResponse("List successfully deleted!"));
     }
 }

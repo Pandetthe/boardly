@@ -3,6 +3,7 @@ using Boardly.Api.Exceptions;
 using MongoDB.Bson;
 using MongoDB.Driver;
 using MongoDB.Driver.Linq;
+using System.Collections.Generic;
 
 namespace Boardly.Api.Services;
 
@@ -10,72 +11,56 @@ public class ListService
 {
     private readonly IMongoCollection<Board> _boardsCollection;
     private readonly IMongoCollection<Card> _cardsCollection;
-    private readonly BoardService _boardService;
+    private readonly MongoClient _mongoClient;
 
-    public ListService(MongoDbProvider mongoDbProvider, BoardService boardService)
+    public ListService(MongoDbProvider mongoDbProvider)
     {
         _boardsCollection = mongoDbProvider.GetBoardsCollection();
         _cardsCollection = mongoDbProvider.GetCardsCollection();
-        _boardService = boardService;
+        _mongoClient = mongoDbProvider.Client;
     }
 
-    public async Task<List?> GetListByIdAsync(ObjectId boardId, ObjectId swimlaneId, ObjectId listId, ObjectId userId, CancellationToken cancellationToken = default)
+    public IQueryable<List> GetListBySwimlaneId(ObjectId boardId, ObjectId swimlaneId)
     {
-        var result = await _boardsCollection
+        return _boardsCollection
             .AsQueryable()
             .Where(b => b.Id == boardId)
-            .Select(x => new
-            {
-                Member = x.Members.FirstOrDefault(x => x.UserId == userId),
-                List = x.Swimlanes.Where(y => y.Id == swimlaneId).Select(y => y.Lists.FirstOrDefault(l => l.Id == listId)).FirstOrDefault()
-            })
-            .FirstOrDefaultAsync(cancellationToken);
-        if (result.Member == null)
-            throw new ForbidenException("User is not a member of this board.");
-        return result.List;
+            .SelectMany(b => b.Swimlanes.Where(s => s.Id == swimlaneId).SelectMany(s => s.Lists));
     }
 
-    public async Task<IEnumerable<List>> GetListsBySwimlaneIdAsync(ObjectId boardId, ObjectId swimlaneId, ObjectId userId, CancellationToken cancellationToken = default)
+    public IQueryable<List> GetListBySwimlaneId(IClientSessionHandle session, ObjectId boardId, ObjectId swimlaneId)
     {
-        var result = await _boardsCollection
-            .AsQueryable()
-            .Where(x => x.Id == boardId)
-            .Select(x => new
-            {
-                x.Id,
-                Member = x.Members.FirstOrDefault(m => m.UserId == userId),
-                Lists = x.Swimlanes.Where(y => y.Id == swimlaneId).Select(y => y.Lists).FirstOrDefault()
-            })
-            .FirstOrDefaultAsync(cancellationToken);
-        if (result == null || result.Id == default)
-            throw new RecordDoesNotExist("Board has not been found.");
-        if (result.Lists == null)
-            throw new RecordDoesNotExist("Swimlane has not been found.");
-        if (result.Member == null)
-            throw new ForbidenException("User is not a member of this board.");
-        return result.Lists;
-    }
-
-    public async Task CreateListAsync(ObjectId boardId, ObjectId swimlaneId, ObjectId userId, List list, CancellationToken cancellationToken = default)
-    {
-        var result = await _boardsCollection
-            .AsQueryable()
+        return _boardsCollection
+            .AsQueryable(session)
             .Where(b => b.Id == boardId)
-            .Select(x => new
+            .SelectMany(b => b.Swimlanes.Where(s => s.Id == swimlaneId).SelectMany(s => s.Lists));
+    }
+
+    public async Task<DateTime> CreateListAsync(ObjectId boardId, ObjectId swimlaneId, ObjectId userId, List list,
+        IClientSessionHandle session, DateTime updatedAt = default, CancellationToken cancellationToken = default)
+    {
+        var result = await _boardsCollection
+            .AsQueryable(session)
+            .Where(b => b.Id == boardId)
+            .Select(b => new
             {
-                Member = x.Members.FirstOrDefault(m => m.UserId == userId)
+                Member = b.Members.FirstOrDefault(m => m.UserId == userId),
+                b.UpdatedAt
             })
             .FirstOrDefaultAsync(cancellationToken)
             ?? throw new RecordDoesNotExist("Board has not been found.");
-        if (result.Member == null)
-            throw new ForbidenException("User is not a member of this board.");
-        if (result.Member.Role != BoardRole.Owner && result.Member.Role != BoardRole.Admin)
-            throw new ForbidenException("User is not authorized to create a swimlane on this board.");
+        if (updatedAt != default && updatedAt != result.UpdatedAt)
+            throw new PreconditionFailedException("Board has been modified by another user since it was last read.");
+        if (result.Member?.Role != BoardRole.Owner && result.Member?.Role != BoardRole.Admin)
+            throw new ForbiddenException("User is not authorized to create a list on this board.");
 
         var filter = Builders<Board>.Filter.Eq(b => b.Id, boardId);
+        if (updatedAt != default)
+            filter &= Builders<Board>.Filter.Eq(b => b.UpdatedAt, updatedAt);
+        var now = DateTime.UtcNow;
         var update = Builders<Board>.Update
             .Push("swimlanes.$[sw].lists", list)
-            .Set(b => b.UpdatedAt, DateTime.UtcNow);
+            .Set(b => b.UpdatedAt, now);
 
         var arrayFilters = new List<ArrayFilterDefinition>
         {
@@ -83,64 +68,122 @@ public class ListService
         };
         var updateOptions = new UpdateOptions { ArrayFilters = arrayFilters };
 
-        var updateResult = await _boardsCollection.UpdateOneAsync(filter, update, updateOptions, cancellationToken);
+        var updateResult = await _boardsCollection.UpdateOneAsync(session, filter, update, updateOptions, cancellationToken);
 
-        if (updateResult.ModifiedCount == 0)
-            throw new RecordDoesNotExist("Swimlane has not been found.");
+        if (updatedAt != default && updateResult.MatchedCount == 0)
+            throw new PreconditionFailedException("Board has been modified by another user since it was last read.");
+        if (updateResult.MatchedCount != 0 && updateResult.ModifiedCount == 0)
+            throw new InvalidOperationException("An unexpected error occurred while creating list. Board has not been modified.");
+        return now;
     }
 
-    public async Task UpdateListAsync(ObjectId boardId, ObjectId swimlaneId, ObjectId userId, List list, CancellationToken cancellationToken = default)
+    public async Task<(List, DateTime)> CreateAndFindListAsync(ObjectId boardId, ObjectId swimlaneId, ObjectId userId,
+    List list, DateTime updatedAt = default, CancellationToken cancellationToken = default)
+    {
+        using var session = await _mongoClient.StartSessionAsync(cancellationToken: cancellationToken);
+        return await session.WithTransactionAsync(async (s, ctx) =>
+        {
+            var newUpdatedAt = await CreateListAsync(boardId, userId, swimlaneId, list, s, updatedAt, ctx);
+            return (await GetListBySwimlaneId(s, boardId, swimlaneId).SingleAsync(s => s.Id == list.Id, ctx), newUpdatedAt);
+        }, cancellationToken: cancellationToken);
+    }
+
+    public async Task<DateTime> UpdateListAsync(ObjectId boardId, ObjectId swimlaneId, ObjectId userId, List list,
+        IClientSessionHandle session, DateTime updatedAt = default, CancellationToken cancellationToken = default)
     {
         var result = await _boardsCollection
-            .AsQueryable()
+            .AsQueryable(session)
             .Where(b => b.Id == boardId)
-            .Select(x => new
+            .Select(b => new
             {
-                Member = x.Members.FirstOrDefault(x => x.UserId == userId),
-                Swimlane = x.Swimlanes.FirstOrDefault(x => x.Id == swimlaneId)
+                Member = b.Members.FirstOrDefault(m => m.UserId == userId),
+                List = b.Swimlanes.Where(s => s.Id == swimlaneId).Select(s => s.Lists.FirstOrDefault(l => l.Id == list.Id)).FirstOrDefault(),
+                b.UpdatedAt
             }).FirstOrDefaultAsync(cancellationToken)
             ?? throw new RecordDoesNotExist("Board has not been found.");
-        if (result.Member == null)
-            throw new ForbidenException("User is not a member of this board.");
-        if (result.Member.Role != BoardRole.Owner && result.Member.Role != BoardRole.Admin)
-            throw new ForbidenException("User is not authorized to update a swimlane on this board.");
-        if (result.Swimlane == null)
-            throw new RecordDoesNotExist("Swimlane has not been found.");
+        if (updatedAt != default && updatedAt != result.UpdatedAt)
+            throw new PreconditionFailedException("Board has been modified by another user since it was last read.");
+        if (result.Member?.Role != BoardRole.Owner && result.Member?.Role != BoardRole.Admin)
+            throw new ForbiddenException("User is not authorized to update a list on this board.");
+        if (result.List == null)
+            throw new RecordDoesNotExist("List has not been found.");
         var filter = Builders<Board>.Filter.Eq(b => b.Id, boardId);
+        if (updatedAt != default)
+            filter &= Builders<Board>.Filter.Eq(b => b.UpdatedAt, updatedAt);
+        var now = DateTime.UtcNow;
         var update = Builders<Board>.Update
             .Set("swimlanes.$[sw].lists.$[lst].title", list.Title)
             .Set("swimlanes.$[sw].lists.$[lst].color", list.Color)
-            .Set(b => b.UpdatedAt, DateTime.UtcNow);
+            .Set("swimlanes.$[sw].lists.$[lst].maxWIP", list.MaxWIP)
+            .Set(b => b.UpdatedAt, now);
         var arrayFilters = new List<ArrayFilterDefinition>
         {
             new BsonDocumentArrayFilterDefinition<BsonDocument>(new BsonDocument("sw._id", swimlaneId)),
             new BsonDocumentArrayFilterDefinition<BsonDocument>(new BsonDocument("lst._id", list.Id))
         };
         var updateOptions = new UpdateOptions { ArrayFilters = arrayFilters };
-        var updateResult = await _boardsCollection.UpdateOneAsync(filter, update, updateOptions, cancellationToken);
-        if (updateResult.ModifiedCount == 0)
-            throw new RecordDoesNotExist("List has not been found.");
+        var updateResult = await _boardsCollection.UpdateOneAsync(session, filter, update, updateOptions, cancellationToken);
+        if (updatedAt != default && updateResult.MatchedCount == 0)
+            throw new PreconditionFailedException("Board has been modified by another user since it was last read.");
+        if (updateResult.MatchedCount != 0 && updateResult.ModifiedCount == 0)
+            throw new InvalidOperationException("An unexpected error occurred while updating list. Board has not been modified.");
+        return now;
     }
 
-    public async Task DeleteListAsync(ObjectId boardId, ObjectId swimlaneId, ObjectId listId, ObjectId userId, CancellationToken cancellationToken = default)
+    public async Task<(List, DateTime)> UpdateAndFindListAsync(ObjectId boardId, ObjectId swimlaneId, ObjectId userId,
+        List list, DateTime updatedAt = default, CancellationToken cancellationToken = default)
     {
-        BoardRole role = await _boardService.CheckUserBoardRoleAsync(boardId, userId, cancellationToken)
-            ?? throw new ForbidenException("You are not a member of this board.");
-        if (role != BoardRole.Owner && role != BoardRole.Admin)
-            throw new ForbidenException("User is not authorized to delete this swimlane.");
-        var boardFilter = Builders<Board>.Filter.Eq(b => b.Id, boardId);
-        var update = Builders<Board>.Update.PullFilter(
-            "swimlanes.$[sw].lists",
-            Builders<BsonDocument>.Filter.Eq("_id", listId)
-        );
-        var arrayFilters = new List<ArrayFilterDefinition>
+        using var session = await _mongoClient.StartSessionAsync(cancellationToken: cancellationToken);
+        return await session.WithTransactionAsync(async (s, ctx) =>
         {
-            new BsonDocumentArrayFilterDefinition<BsonDocument>(new BsonDocument("sw._id", swimlaneId))
-        };
-        var updateOptions = new UpdateOptions { ArrayFilters = arrayFilters };
-        UpdateResult result = await _boardsCollection.UpdateOneAsync(boardFilter, update, updateOptions, cancellationToken);
-        if (result.ModifiedCount == 0)
-            throw new RecordDoesNotExist("List has not been found.");
-        await _cardsCollection.DeleteManyAsync(x => x.ListId == listId, cancellationToken: cancellationToken);
+            var newUpdatedAt = await UpdateListAsync(boardId, userId, swimlaneId, list, s, updatedAt, ctx);
+            return (await GetListBySwimlaneId(s, boardId, swimlaneId).SingleAsync(s => s.Id == list.Id, ctx), newUpdatedAt);
+        }, cancellationToken: cancellationToken);
+    }
+
+    public async Task<DateTime> DeleteListAsync(ObjectId boardId, ObjectId swimlaneId, ObjectId listId, ObjectId userId,
+        DateTime updatedAt = default, CancellationToken cancellationToken = default)
+    {
+        using var session = await _mongoClient.StartSessionAsync(cancellationToken: cancellationToken);
+        return await session.WithTransactionAsync(async (s, ctx) =>
+        {
+            var result = await _boardsCollection
+                .AsQueryable(s)
+                .Where(b => b.Id == boardId)
+                .Select(b => new
+                {
+                    List = b.Swimlanes.Where(s => s.Id == swimlaneId).Select(s => s.Lists.FirstOrDefault(l => l.Id == listId)).FirstOrDefault(),
+                    Member = b.Members.FirstOrDefault(m => m.UserId == userId),
+                    b.UpdatedAt
+                })
+                .FirstOrDefaultAsync(ctx)
+                ?? throw new RecordDoesNotExist("Board has not been found.");
+            if (updatedAt != default && updatedAt != result.UpdatedAt)
+                throw new PreconditionFailedException("Board has been modified by another user since it was last read.");
+            if (result.Member?.Role != BoardRole.Owner && result.Member?.Role != BoardRole.Admin)
+                throw new ForbiddenException("User is not authorized to delete this list.");
+            if (result.List == null)
+                throw new RecordDoesNotExist("List has not been found.");
+            var filter = Builders<Board>.Filter.Eq(b => b.Id, boardId);
+            if (updatedAt != default)
+                filter &= Builders<Board>.Filter.Eq(b => b.UpdatedAt, updatedAt);
+            var now = DateTime.UtcNow;
+            var update = Builders<Board>.Update.PullFilter(
+                "swimlanes.$[sw].lists",
+                Builders<BsonDocument>.Filter.Eq("_id", listId))
+                .Set(b => b.UpdatedAt, now);
+            var arrayFilters = new List<ArrayFilterDefinition>
+            {
+                new BsonDocumentArrayFilterDefinition<BsonDocument>(new BsonDocument("sw._id", swimlaneId))
+            };
+            var updateOptions = new UpdateOptions { ArrayFilters = arrayFilters };
+            UpdateResult updateResult = await _boardsCollection.UpdateOneAsync(s, filter, update, updateOptions, ctx);
+            if (updatedAt != default && updateResult.MatchedCount == 0)
+                throw new PreconditionFailedException("Board has been modified by another user since it was last read.");
+            if (updateResult.MatchedCount != 0 && updateResult.ModifiedCount == 0)
+                throw new InvalidOperationException("An unexpected error occurred while deleting list. Board has not been modified.");
+            await _cardsCollection.DeleteManyAsync(s, x => x.ListId == listId, cancellationToken: ctx);
+            return now;
+        }, cancellationToken: cancellationToken);
     }
 }
