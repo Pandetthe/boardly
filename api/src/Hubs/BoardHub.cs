@@ -188,7 +188,7 @@ public class BoardHub : Hub<IBoardClient>
         }
     }
 
-    public async Task MoveCard(ObjectId swimlaneId, ObjectId cardId, ObjectId newListId, DateTime updatedAt)
+    public async Task MoveCard(ObjectId swimlaneId, ObjectId cardId, ObjectId newListId, DateTime updatedAt = default)
     {
         ObjectId? userId = Context.User?.GetUserId();
         if (userId == null)
