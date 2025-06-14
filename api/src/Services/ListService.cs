@@ -19,18 +19,11 @@ public class ListService
         _mongoClient = mongoDbProvider.Client;
     }
 
-    public IQueryable<List> GetListBySwimlaneId(ObjectId boardId, ObjectId swimlaneId)
+    public IQueryable<List> GetListBySwimlaneId(ObjectId boardId, ObjectId swimlaneId, IClientSessionHandle? session = null)
     {
-        return _boardsCollection
-            .AsQueryable()
-            .Where(b => b.Id == boardId)
-            .SelectMany(b => b.Swimlanes.Where(s => s.Id == swimlaneId).SelectMany(s => s.Lists));
-    }
-
-    public IQueryable<List> GetListBySwimlaneId(IClientSessionHandle session, ObjectId boardId, ObjectId swimlaneId)
-    {
-        return _boardsCollection
-            .AsQueryable(session)
+        return (session == null 
+            ? _boardsCollection.AsQueryable()
+            : _boardsCollection.AsQueryable(session))
             .Where(b => b.Id == boardId)
             .SelectMany(b => b.Swimlanes.Where(s => s.Id == swimlaneId).SelectMany(s => s.Lists));
     }
@@ -77,13 +70,13 @@ public class ListService
     }
 
     public async Task<(List, DateTime)> CreateAndFindListAsync(ObjectId boardId, ObjectId swimlaneId, ObjectId userId,
-    List list, DateTime updatedAt = default, CancellationToken cancellationToken = default)
+        List list, DateTime updatedAt = default, CancellationToken cancellationToken = default)
     {
         using var session = await _mongoClient.StartSessionAsync(cancellationToken: cancellationToken);
         return await session.WithTransactionAsync(async (s, ctx) =>
         {
             var newUpdatedAt = await CreateListAsync(boardId, swimlaneId, userId, list, s, updatedAt, ctx);
-            return (await GetListBySwimlaneId(s, boardId, swimlaneId).SingleAsync(s => s.Id == list.Id, ctx), newUpdatedAt);
+            return (await GetListBySwimlaneId(boardId, swimlaneId, s).SingleAsync(s => s.Id == list.Id, ctx), newUpdatedAt);
         }, cancellationToken: cancellationToken);
     }
 
@@ -136,7 +129,7 @@ public class ListService
         return await session.WithTransactionAsync(async (s, ctx) =>
         {
             var newUpdatedAt = await UpdateListAsync(boardId, swimlaneId, userId, list, s, updatedAt, ctx);
-            return (await GetListBySwimlaneId(s, boardId, swimlaneId).SingleAsync(s => s.Id == list.Id, ctx), newUpdatedAt);
+            return (await GetListBySwimlaneId(boardId, swimlaneId, s).SingleAsync(s => s.Id == list.Id, ctx), newUpdatedAt);
         }, cancellationToken: cancellationToken);
     }
 

@@ -40,7 +40,7 @@ public class CardController : ControllerBase
     public async Task<IActionResult> GetAllCardsAsync(ObjectId boardId, CancellationToken cancellationToken)
     {
         ObjectId userId = User.GetUserId();
-        if (await _boardService.GetUserBoardRoleAsync(boardId, userId, cancellationToken) == null)
+        if (await _boardService.GetUserBoardRoleAsync(boardId, userId, null, cancellationToken) == null)
             throw new ForbiddenException("User is not a member of this board.");
         List<CardWithAssignedUserAndTags> cards = await _cardService.GetCardsByBoardId(boardId, null, cancellationToken);
         return Ok(cards.Select(c => new CardResponse(c)));
@@ -51,7 +51,7 @@ public class CardController : ControllerBase
     public async Task<IActionResult> GetCardAsync(ObjectId boardId, ObjectId cardId, CancellationToken cancellationToken)
     {
         ObjectId userId = User.GetUserId();
-        if (await _boardService.GetUserBoardRoleAsync(boardId, userId, cancellationToken) == null)
+        if (await _boardService.GetUserBoardRoleAsync(boardId, userId, null, cancellationToken) == null)
             throw new ForbiddenException("User is not a member of this board.");
         CardWithAssignedUserAndTags card = await _cardService.GetCardById(boardId, cardId, null, cancellationToken)
             ?? throw new RecordDoesNotExist("Card has not been found.");

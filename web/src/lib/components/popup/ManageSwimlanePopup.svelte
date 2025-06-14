@@ -111,6 +111,7 @@
                 },
                 body: JSON.stringify(tag)
             });
+            console.log(tag);
         }
         for (const tag of tagsToAdd) {
             const res = await fetch(`/api/boards/${boardId}/swimlanes/${currentSwimlaneId}/tags`, {

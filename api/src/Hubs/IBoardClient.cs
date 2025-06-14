@@ -22,9 +22,9 @@ public interface IBoardClient
 
     Task ListDeleted(ObjectId swimlaneId, ObjectId listId, DateTime updatedAt, CancellationToken cancellationToken = default);
 
-    Task TagCreated(TagResponse tag, DateTime updatedAt, CancellationToken cancellationToken = default);
+    Task TagCreated(ObjectId swimlaneId, TagResponse tag, DateTime updatedAt, CancellationToken cancellationToken = default);
 
-    Task TagUpdated(TagResponse tag, DateTime updatedAt, CancellationToken cancellationToken = default);
+    Task TagUpdated(ObjectId swimlaneId, TagResponse tag, DateTime updatedAt, CancellationToken cancellationToken = default);
 
     Task TagDeleted(ObjectId swimlaneId, ObjectId tagId, DateTime updatedAt, CancellationToken cancellationToken = default);
 

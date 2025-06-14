@@ -14,6 +14,7 @@
 	import type { SimplifiedUserResponse } from '$lib/types/api/users';
 	import type { DetailedSwimlaneResponse, SwimlaneResponse } from '$lib/types/api/swimlanes';
 	import type { ListResponse } from '$lib/types/api/lists';
+	import type { Tag, TagResponse } from '$lib/types/api/tags';
 
 	let { data }: PageProps = $props();
 
@@ -43,6 +44,7 @@
 		}
 
 		conn.on("BoardUpdated", (boardResponse: BoardResponse) => {
+      console.log("BoardUpdated");
 			board.update(b => ({ ...b, ...parseBoard(boardResponse) }));
 		});
 
@@ -51,10 +53,12 @@
 		});
 
 		conn.on("CardCreated", (cardResponse: CardResponse) => {
+      console.log("CardCreated");
 			cards.update(cards => [...cards, parseCard(cardResponse)]);
 		});
 
 		conn.on("CardUpdated", (cardResponse: CardResponse) => {
+      console.log("CardUpdated");
 			cards.update(cards => 
 				cards.map(card => 
 					card.id === cardResponse.id && card.swimlaneId === cardResponse.swimlaneId ? parseCard(cardResponse) : card
@@ -63,10 +67,12 @@
 		});
 
 		conn.on("CardDeleted", (cardId: string) => {
+      console.log("CardDeleted");
 			cards.update(cards => cards.filter(card => card.id !== cardId));
 		});
 
 		conn.on("CardMoved", (cardId: string, swimlaneId: string, listId: string, updatedAtStr: string) => {
+      console.log("CardMoved");
 			const updatedAt = new Date(updatedAtStr);
 			cards.update(cards => 
 				cards.map(card => 
@@ -75,6 +81,7 @@
 			);
 		});
     conn.on("CardLocked", (cardId: string, user: SimplifiedUserResponse) => {
+      console.log("CardLocked");
       cards.update(cards => 
         cards.map(card => 
           card.id === cardId ? {
@@ -85,6 +92,7 @@
       );
     });
     conn.on("CardUnlocked", (cardId: string) => {
+      console.log("CardUnlocked");
       cards.update(cards => 
         cards.map(card => 
           card.id === cardId ? {
@@ -96,6 +104,7 @@
     });
 
 		conn.on("SwimlaneCreated", (swimlaneResponse: DetailedSwimlaneResponse, updatedAtStr: string) => {
+      console.log("SwimlaneCreated");
       const updatedAt = new Date(updatedAtStr);
 			board.update(b => {
         b.swimlanes.push(swimlaneResponse);
@@ -105,6 +114,7 @@
 		});
 
 		conn.on("SwimlaneUpdated", (swimlaneResponse: SwimlaneResponse, updatedAtStr: string) => {
+      console.log("SwimlaneUpdated");
 			const updatedAt = new Date(updatedAtStr);
 			board.update(b => {
         const index = b.swimlanes.findIndex(s => s.id === swimlaneResponse.id);
@@ -117,15 +127,20 @@
 		});
 
 		conn.on("SwimlaneDeleted", (swimlaneId: string, updatedAtStr: string) => {
+      console.log("SwimlaneDeleted");
 			const updatedAt = new Date(updatedAtStr);
       board.update(b => {
         b.swimlanes = b.swimlanes.filter(s => s.id !== swimlaneId);
         b.updatedAt = updatedAt;
         return b;
       });
+      if (selectedSwimlaneId === swimlaneId) {
+        selectedSwimlaneId = $board.swimlanes[0]?.id;
+      }
 		});
 
 		conn.on("ListUpdated", (swimlaneId: string, listResponse: ListResponse, updatedAtStr: string) => {
+      console.log("ListUpdated");
 			board.update(b => {
         const updatedAt = new Date(updatedAtStr);
         const swimlane = b.swimlanes.find(s => s.id === swimlaneId);
@@ -144,6 +159,7 @@
       });
 		});
 		conn.on("ListCreated", (swimlaneId: string, listResponse: ListResponse, updatedAtStr: string) => {
+      console.log("ListCreated");
 			board.update(b => {
         const updatedAt = new Date(updatedAtStr);
         const swimlane = b.swimlanes.find(s => s.id === swimlaneId);
@@ -157,6 +173,7 @@
       });
 		});
 		conn.on("ListDeleted", (swimlaneId: string, listId: string, updatedAtStr: string) => {
+      console.log("ListDeleted");
       const updatedAt = new Date(updatedAtStr);
       cards.update(cards => cards.filter(card => !(card.swimlaneId === swimlaneId && card.listId === listId)));
       board.update(b => {
@@ -171,16 +188,72 @@
       });
 		});
 
-		conn.on("TagUpdated", () => {
-
+		conn.on("TagUpdated", (swimlaneId: string, tagResponse: TagResponse, updatedAtStr: string) => {
+      console.log("TagUpdated");
+			const updatedAt = new Date(updatedAtStr);
+      cards.update(cards => {
+        cards.forEach(card => {
+          if (card.swimlaneId === swimlaneId) {
+            const tagIndex = card.tags.findIndex(t => t.id === tagResponse.id);
+            if (tagIndex !== -1) {
+              card.tags[tagIndex] = { ...card.tags[tagIndex], ...tagResponse };
+              console.log("Updated tag in card", card.id, card.tags[tagIndex]);
+            }
+          }
+        });
+        return cards;
+      })
+			board.update(b => {
+				const swimlane = b.swimlanes.find(s => s.id === swimlaneId);
+				if (swimlane) {
+					const tagIndex = swimlane.tags.findIndex(t => t.id === tagResponse.id);
+					if (tagIndex !== -1) {
+						swimlane.tags[tagIndex] = { ...swimlane.tags[tagIndex], ...tagResponse };
+					} else {
+						invalidate('api:board');
+					}
+				} else {
+					invalidate('api:board');
+				}
+				b.updatedAt = updatedAt;
+				return b;
+			});
 		});
 
-		conn.on("TagCreated", () => {
-
+		conn.on("TagCreated", (swimlaneId: string, tagResponse: TagResponse, updatedAtStr: string) => {
+      console.log("TagCreated");
+      const updatedAt = new Date(updatedAtStr);
+      board.update(b => {
+        const swimlane = b.swimlanes.find(s => s.id === swimlaneId);
+        if (swimlane) {
+          swimlane.tags.push(tagResponse);
+        } else {
+          invalidate('api:board');
+        }
+        b.updatedAt = updatedAt;
+        return b;
+      });
 		});
 
-		conn.on("TagDeleted", (tagId: string) => {
-			
+		conn.on("TagDeleted", (swimlaneId: string, tagId: string, updatedAtStr: string) => {
+      console.log("TagDeleted");
+      const updatedAt = new Date(updatedAtStr);
+      cards.update(cards => cards.map(card => {
+        if (card.swimlaneId === swimlaneId) {
+          card.tags = card.tags.filter(t => t.id !== tagId);
+        }
+        return card;
+      }));
+      board.update(b => {
+        const swimlane = b.swimlanes.find(s => s.id === swimlaneId);
+        if (swimlane) {
+          swimlane.tags = swimlane.tags.filter(t => t.id !== tagId);
+        } else {
+          invalidate('api:board');
+        }
+        b.updatedAt = updatedAt;
+        return b;
+      });
 		});
   }
 

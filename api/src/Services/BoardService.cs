@@ -23,17 +23,19 @@ public class BoardService
         _mongoClient = mongoDbProvider.Client;
     }
 
-    public IQueryable<Board> GetRawBoardsByUserId(ObjectId userId)
+    public IQueryable<Board> GetRawBoardsByUserId(ObjectId userId, IClientSessionHandle? session = null)
     {
-        return _boardsCollection
-            .AsQueryable()
+        return (session == null
+            ? _boardsCollection.AsQueryable()
+            : _boardsCollection.AsQueryable(session))
             .Where(b => b.Members.Any(m => m.UserId == userId));
     }
 
-    public IQueryable<BoardWithUser> GetBoardsByUserId(ObjectId userId)
+    public IQueryable<BoardWithUser> GetBoardsByUserId(ObjectId userId, IClientSessionHandle? session = null)
     {
-        return _boardsCollection
-            .AsQueryable()
+        return (session == null
+            ? _boardsCollection.AsQueryable()
+            : _boardsCollection.AsQueryable(session))
             .Where(b => b.Members.Any(m => m.UserId == userId))
             .SelectMany(x => x.Members.Select(member => new { Board = x, Member = member }))
             .Join(
@@ -64,50 +66,18 @@ public class BoardService
             });
     }
 
-    public IQueryable<BoardWithUser> GetBoardsByUserId(ObjectId userId, IClientSessionHandle session)
+    public IQueryable<Member> GetBoardMembers(ObjectId boardId, IClientSessionHandle? session = null)
     {
-        return _boardsCollection
-            .AsQueryable(session)
-            .Where(b => b.Members.Any(m => m.UserId == userId))
-            .SelectMany(x => x.Members.Select(member => new { Board = x, Member = member }))
-            .Join(
-                _usersCollection,
-                x => x.Member.UserId,
-                user => user.Id,
-                (x, user) => new
-                {
-                    x.Board,
-                    Member = new MemberWithUser
-                    {
-                        UserId = x.Member.UserId,
-                        Role = x.Member.Role,
-                        IsActive = x.Member.IsActive,
-                        Nickname = user.Nickname
-                    }
-                }
-            )
-            .GroupBy(x => x.Board.Id)
-            .Select(x => new BoardWithUser
-            {
-                Id = x.First().Board.Id,
-                Title = x.First().Board.Title,
-                CreatedAt = x.First().Board.CreatedAt,
-                UpdatedAt = x.First().Board.UpdatedAt,
-                Swimlanes = x.First().Board.Swimlanes,
-                Members = x.Select(m => m.Member),
-            });
-    }
-
-    public IQueryable<Member> GetBoardMembers(ObjectId boardId)
-    {
-        return _boardsCollection
-            .AsQueryable()
+        return (session == null
+            ? _boardsCollection.AsQueryable()
+            : _boardsCollection.AsQueryable(session))
             .Where(b => b.Id == boardId)
             .SelectMany(b => b.Members);
     }
 
-    public async Task<BoardRole?> GetUserBoardRoleAsync(ObjectId boardId, ObjectId userId, CancellationToken cancellationToken = default) =>
-        (await GetBoardMembers(boardId).FirstOrDefaultAsync(m => m.UserId == userId, cancellationToken))?.Role;
+    public async Task<BoardRole?> GetUserBoardRoleAsync(ObjectId boardId, ObjectId userId,
+        IClientSessionHandle? session = null, CancellationToken cancellationToken = default) =>
+        (await GetBoardMembers(boardId, session).FirstOrDefaultAsync(m => m.UserId == userId, cancellationToken))?.Role;
 
     public async Task CreateBoardAsync(Board board, CancellationToken cancellationToken = default)
     {

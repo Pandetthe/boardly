@@ -39,7 +39,7 @@ public class SwimlaneController : ControllerBase
     public async Task<IActionResult> GetAllSwimlanesAsync(ObjectId boardId, CancellationToken cancellationToken)
     {
         ObjectId userId = User.GetUserId();
-        if (await _boardService.GetUserBoardRoleAsync(boardId, userId, cancellationToken) == null)
+        if (await _boardService.GetUserBoardRoleAsync(boardId, userId, null, cancellationToken) == null)
             throw new ForbiddenException("User is not a member of this board.");
         List<Swimlane> swimlanes = await _swimlaneService.GetSwimlanesByBoardId(boardId).ToListAsync(cancellationToken);
         return Ok(swimlanes.Select(x => new SwimlaneResponse(x)).ToList());
@@ -50,7 +50,7 @@ public class SwimlaneController : ControllerBase
     public async Task<IActionResult> GetSwimlaneByIdAsync(ObjectId boardId, ObjectId swimlaneId, CancellationToken cancellationToken)
     {
         ObjectId userId = User.GetUserId();
-        if (await _boardService.GetUserBoardRoleAsync(boardId, userId, cancellationToken) == null)
+        if (await _boardService.GetUserBoardRoleAsync(boardId, userId, null, cancellationToken) == null)
             throw new ForbiddenException("User is not a member of this board.");
         Swimlane swimlane = await _swimlaneService.GetSwimlanesByBoardId(boardId).FirstOrDefaultAsync(s => s.Id == swimlaneId, cancellationToken)
             ?? throw new RecordDoesNotExist("Swimlane has not been found.");

@@ -15,7 +15,6 @@ public class CardService
     private readonly IMongoCollection<Card> _cardsCollection;
     private readonly IMongoCollection<Board> _boardsCollection;
     private readonly IMongoCollection<User> _usersCollection;
-    public ConcurrentDictionary<ObjectId, ObjectId> LockedCards { get; } = [];
     private readonly MongoClient _mongoClient;
 
     public CardService(MongoDbProvider mongoDbProvider)
@@ -26,10 +25,14 @@ public class CardService
         _mongoClient = mongoDbProvider.Client;
     }
 
+    public ConcurrentDictionary<ObjectId, ObjectId> LockedCards { get; } = [];
+
     public async Task<List<CardWithAssignedUserAndTags>> GetCardsByBoardId(ObjectId boardId, IClientSessionHandle? session = null,
         CancellationToken cancellationToken = default)
     {
-        List<CardWithAssignedUserAndTags> data = await (session == null ? _cardsCollection.AsQueryable() : _cardsCollection.AsQueryable(session))
+        List<CardWithAssignedUserAndTags> data = await (session == null
+            ? _cardsCollection.AsQueryable()
+            : _cardsCollection.AsQueryable(session))
             .Where(c => c.BoardId == boardId)
             .SelectMany(c => c.AssignedUsers.DefaultIfEmpty(), (card, assignedUserId) => new { card, assignedUserId })
             .GroupJoin(_usersCollection,
@@ -97,7 +100,9 @@ public class CardService
     public async Task<CardWithAssignedUserAndTags?> GetCardById(ObjectId cardId, ObjectId boardId,
         IClientSessionHandle? session = null, CancellationToken cancellationToken = default)
     {
-        CardWithAssignedUserAndTags? data = await (session == null ? _cardsCollection.AsQueryable() : _cardsCollection.AsQueryable(session))
+        CardWithAssignedUserAndTags? data = await (session == null
+            ? _cardsCollection.AsQueryable()
+            : _cardsCollection.AsQueryable(session))
             .Where(c => c.BoardId == boardId && c.Id == cardId)
             .SelectMany(c => c.AssignedUsers.DefaultIfEmpty(), (card, assignedUserId) => new { card, assignedUserId })
             .GroupJoin(_usersCollection,
@@ -167,7 +172,9 @@ public class CardService
 
     private IQueryable<SimplifiedUser> GetSimplifiedUser(IClientSessionHandle? session = null)
     {
-        return (session == null ? _usersCollection.AsQueryable() : _usersCollection.AsQueryable(session))
+        return (session == null
+            ? _usersCollection.AsQueryable()
+            : _usersCollection.AsQueryable(session))
             .Select(x => new SimplifiedUser
             {
                 Id = x.Id,
@@ -219,8 +226,10 @@ public class CardService
             throw new RecordDoesNotExist("List has not been found.");
         if (result.List.MaxWIP.HasValue && result.List.MaxWIP.Value > 0)
         {
-            long currentWIP = await _cardsCollection.CountDocumentsAsync(session, c => c.BoardId == card.BoardId
-                && c.SwimlaneId == card.SwimlaneId && c.ListId == card.ListId, cancellationToken: cancellationToken);
+            var filter = Builders<Card>.Filter.Eq(c => c.BoardId, card.BoardId)
+                & Builders<Card>.Filter.Eq(c => c.SwimlaneId, card.SwimlaneId)
+                & Builders<Card>.Filter.Eq(c => c.ListId, card.ListId);
+            long currentWIP = await _cardsCollection.CountDocumentsAsync(session, filter, cancellationToken: cancellationToken);
             if (currentWIP >= result.List.MaxWIP.Value)
                 throw new ForbiddenException("Maximum cards WIP limit reached for this list.");
         }
@@ -239,7 +248,7 @@ public class CardService
         }, cancellationToken: cancellationToken);
     }
 
-    public async Task UpdateCardAsync(Card card, ObjectId userId, IClientSessionHandle session, CancellationToken cancellationToken = default)
+    public async Task UpdateCardAsync(Card card, ObjectId userId, IClientSessionHandle session , CancellationToken cancellationToken = default)
     {
         if (LockedCards.TryGetValue(card.Id, out var lockedUserId) && lockedUserId != userId)
             throw new ForbiddenException("Card is locked by another user. Please try again later.");
@@ -272,8 +281,10 @@ public class CardService
             .FirstOrDefaultAsync(cancellationToken);
         if (result.MaxWIP.HasValue && result.MaxWIP.Value > 0)
         {
-            long currentWIP = await _cardsCollection.CountDocumentsAsync(session, x => x.BoardId == card.BoardId
-                && x.ListId == card.ListId, cancellationToken: cancellationToken);
+            var countFilter = Builders<Card>.Filter.Eq(c => c.BoardId, card.BoardId)
+                & Builders<Card>.Filter.Eq(c => c.SwimlaneId, card.SwimlaneId)
+                & Builders<Card>.Filter.Eq(c => c.ListId, card.ListId);
+            long currentWIP = await _cardsCollection.CountDocumentsAsync(session, countFilter, cancellationToken: cancellationToken);
             if (oldCard.ListId != card.ListId && currentWIP >= result.MaxWIP.Value)
                 throw new ForbiddenException("Maximum WIP limit reached for this list.");
         }

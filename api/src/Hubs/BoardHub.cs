@@ -48,7 +48,7 @@ public partial class BoardHub : Hub<IBoardClient>
             return;
         }
 
-        BoardRole? role = await _boardService.GetUserBoardRoleAsync(boardId, userId.Value, Context.ConnectionAborted);
+        BoardRole? role = await _boardService.GetUserBoardRoleAsync(boardId, userId.Value, null, Context.ConnectionAborted);
         if (role == null)
         {
             _logger.LogWarning("Connection {ConnectionId} aborted: user {UserId} has no role on board {BoardId}", connectionId, userId, boardId);

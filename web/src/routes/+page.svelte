@@ -20,7 +20,6 @@
 	});
 
     setContext('user', data.user);
-
 </script>
 
 <svelte:head>

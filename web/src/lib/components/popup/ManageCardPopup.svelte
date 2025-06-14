@@ -9,7 +9,6 @@
 	import type { Tag } from "$lib/types/api/tags";
 	import { get, writable, type Writable } from "svelte/store";
 	import type { Member } from "$lib/types/api/members";
-	import { on } from "events";
 
   const { swimlaneTags, listId, swimlaneId }: { swimlaneTags: Tag[]; listId: string; swimlaneId: string; } = $props();
   let currentCard: CreateCardRequest | UpdateCardRequest = $state({ title: '', description: null, tags: [], assignedUsers: [], dueDate: null });
@@ -31,7 +30,7 @@
       currentCard.assignedUsers = [];
       currentCard.dueDate = null;
       currentCardId = null;
-      swimlaneTagsObjects.update(tags => tags.map(tag => ({ ...tag, checked: false })));
+      swimlaneTagsObjects.update(_ => swimlaneTags.map(t => ({ ...t, checked: false })));
       return;
     }
     if (!card)
@@ -41,7 +40,7 @@
     currentCard.dueDate = card.dueDate?.toISOString() ?? null;
     updatedAt = card.updatedAt;
     if (card.tags) {
-      swimlaneTagsObjects.update(tags => tags.map(tag => ({ ...tag, checked: card.tags.some(t => t.id === tag.id) })));
+      swimlaneTagsObjects.update(_ => swimlaneTags.map(t => ({ ...t, checked: card.tags.some(tag => tag.id === t.id) })));
     }
     currentCard.tags = card.tags.map(t => t.id);  
     currentCard.assignedUsers = card.assignedUsers.map(u => u.id);

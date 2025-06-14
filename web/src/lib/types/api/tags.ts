@@ -1,4 +1,6 @@
-export interface Tag {
+export type Tag = TagResponse;
+
+export interface TagResponse {
     id: string;
     title: string;
     color: string;

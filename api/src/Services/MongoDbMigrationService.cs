@@ -35,6 +35,15 @@ public class MongoDbMigrationService(MongoDbProvider mongoDbProvider) : IHostedS
         );
 
         await _mongoDbProvider.GetBoardsCollection().Indexes.CreateOneAsync(textBoardIndex, null, cancellationToken);
+
+        CreateIndexModel<Card> cardIndex = new(
+            Builders<Card>.IndexKeys.Ascending(c => c.BoardId)
+                .Ascending(c => c.ListId)
+                .Ascending(c => c.SwimlaneId),
+            new() { Name = "board_list_swimlane" }
+        );
+
+        await _mongoDbProvider.GetCardsCollection().Indexes.CreateOneAsync(cardIndex, null, cancellationToken);
     }
 
     public Task StopAsync(CancellationToken cancellationToken) => Task.CompletedTask;

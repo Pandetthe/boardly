@@ -12,15 +12,13 @@
 	import type { Board } from "$lib/types/api/boards";
 	import type { Tag } from "$lib/types/api/tags";
 	import type { User } from "$lib/types/api/users";
+	import type { List as ListType } from "$lib/types/api/lists";
   
-  export let listId: string;
+  export let list: ListType;
   export let swimlaneId: string;
-  export let title: string;
-  export let color: string;
   export let swimlaneTags: Tag[];
-  export let maxWIP: number | null;
 
-  let list: HTMLUListElement;
+  let htmlList: HTMLUListElement;
   let popup: ManageCardPopup;
 
   const cardsContext = getContext<Writable<CardType[]>>("cards");
@@ -29,7 +27,7 @@
   const board = getContext<Writable<Board>>("board");
   let filteredCards = derived(cardsContext, ($cardsContext) =>
     $cardsContext
-      .filter((card) => card.listId === listId && card.swimlaneId === swimlaneId)
+      .filter((card) => card.listId === list.id && card.swimlaneId === swimlaneId)
       .sort((a, b) => a.id < b.id ? -1 : 1)
   );
 
@@ -40,7 +38,7 @@
 
     for (const { id, item } of cardsToDelete) {
       const card = cards.find(card => card.id === id && card.swimlaneId === swimlaneId);
-      if (card && card.listId !== listId) {
+      if (card && card.listId !== list.id) {
         item.remove();
       } else {
         remaining.push({ id, item });
@@ -64,7 +62,7 @@
   }
 
   onMount(() => {
-    const sortable = Sortable.create(list, {
+    const sortable = Sortable.create(htmlList, {
       group: "shared",
       animation: 150,
       emptyInsertThreshold: 50,
@@ -85,31 +83,31 @@
   });
 </script>
 
-<div class="w-full max-w-150 rounded-2xl bg-{color}-bg p-5 h-fit">
+<div class="w-full max-w-150 rounded-2xl bg-{list.color}-bg p-5 h-fit">
   <ManageCardPopup
     bind:this={popup}
     swimlaneTags={swimlaneTags}
-    listId={listId}
+    listId={list.id}
     swimlaneId={swimlaneId}
   />
-  <h1 class="font-bold text-{color}">{title}</h1>
-  {#if maxWIP}
-    <p class="text-center text-gray-500">{$filteredCards.length}/{maxWIP}</p>
+  <h1 class="font-bold text-{list.color}">{list.title}</h1>
+  {#if list.maxWIP}
+    <p class="text-center text-gray-500">{$filteredCards.length}/{list.maxWIP}</p>
   {/if}
   <div class="divider mb-3 mt-0"></div>
-  <ul bind:this={list} class="flex flex-col" data-id={listId}>
+  <ul bind:this={htmlList} class="flex flex-col" data-id={list.id}>
     {#each $filteredCards as card (card.id)}
       <Card
         {popup}
         card={card}
-        color={color}
+        color={list.color}
       />
     {/each}
   </ul>
-  {#if $board.members.some(member => member.userId === me.id && member.role != BoardRole.Viewer) && $filteredCards.length < (maxWIP ?? Infinity)}
+  {#if $board.members.some(member => member.userId === me.id && member.role != BoardRole.Viewer) && $filteredCards.length < (list.maxWIP ?? Infinity)}
   <button
-    class="btn btn-dash h-15 w-full nodrag border-{color} text-{color} hover:bg-transparent border-2 rounded-2xl text-2xl"
-    on:click={() => popup.show()}
+    class="btn btn-dash h-15 w-full nodrag border-{list.color} text-{list.color} hover:bg-transparent border-2 rounded-2xl text-2xl"
+    onclick={() => popup?.show()}
   >
     <Plus />
   </button>

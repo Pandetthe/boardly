@@ -12,25 +12,18 @@ public class SwimlaneService
     private readonly IMongoCollection<Card> _cardsCollection;
     private readonly MongoClient _mongoClient;
 
-    public SwimlaneService(MongoDbProvider mongoDbProvider, BoardService boardService)
+    public SwimlaneService(MongoDbProvider mongoDbProvider)
     {
         _boardsCollection = mongoDbProvider.GetBoardsCollection();
         _cardsCollection = mongoDbProvider.GetCardsCollection();
         _mongoClient = mongoDbProvider.Client;
     }
 
-    public IQueryable<Swimlane> GetSwimlanesByBoardId(ObjectId boardId)
+    public IQueryable<Swimlane> GetSwimlanesByBoardId(ObjectId boardId, IClientSessionHandle? session = null)
     {
-        return _boardsCollection
-            .AsQueryable()
-            .Where(b => b.Id == boardId)
-            .SelectMany(b => b.Swimlanes);
-    }
-
-    public IQueryable<Swimlane> GetSwimlanesByBoardId(IClientSessionHandle session, ObjectId boardId)
-    {
-        return _boardsCollection
-            .AsQueryable(session)
+        return (session == null
+            ? _boardsCollection.AsQueryable()
+            : _boardsCollection.AsQueryable(session))
             .Where(b => b.Id == boardId)
             .SelectMany(b => b.Swimlanes);
     }
@@ -74,7 +67,7 @@ public class SwimlaneService
         return await session.WithTransactionAsync(async (s, ctx) =>
         {
             var newUpdatedAt = await CreateSwimlaneAsync(boardId, userId, swimlane, s, updatedAt, ctx);
-            return (await GetSwimlanesByBoardId(s, boardId).SingleAsync(s => s.Id == swimlane.Id, ctx), newUpdatedAt);
+            return (await GetSwimlanesByBoardId(boardId, s).SingleAsync(s => s.Id == swimlane.Id, ctx), newUpdatedAt);
         }, cancellationToken: cancellationToken);
     }
 
@@ -128,7 +121,7 @@ public class SwimlaneService
         return await session.WithTransactionAsync(async (s, ctx) =>
         {
             var newUpdatedAt = await UpdateSwimlaneAsync(boardId, userId, swimlane, s, updatedAt, ctx);
-            return (await GetSwimlanesByBoardId(s, boardId).SingleAsync(s => s.Id == swimlane.Id, ctx), newUpdatedAt);
+            return (await GetSwimlanesByBoardId(boardId, s).SingleAsync(s => s.Id == swimlane.Id, ctx), newUpdatedAt);
         }, cancellationToken: cancellationToken);
     }
 
