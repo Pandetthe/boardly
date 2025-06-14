@@ -9,7 +9,6 @@ namespace Boardly.Api.Services;
 public class MongoDbProvider : IDisposable
 {
     public readonly IMongoDatabase Database;
-
     public readonly MongoClient Client;
 
     public MongoDbProvider(IConfiguration configuration, ILoggerFactory loggerFactory)
@@ -28,7 +27,7 @@ public class MongoDbProvider : IDisposable
         settings.LoggingSettings = new(loggerFactory);
         settings.ReadConcern = ReadConcern.Snapshot;
         settings.WriteConcern = WriteConcern.WMajority;
-        settings.ReadPreference = ReadPreference.PrimaryPreferred;
+        settings.ReadPreference = ReadPreference.Primary;
 
         Client = new(settings);
         Database = Client.GetDatabase(databaseName);

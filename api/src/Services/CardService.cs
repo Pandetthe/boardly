@@ -14,339 +14,194 @@ public class CardService
 {
     private readonly IMongoCollection<Card> _cardsCollection;
     private readonly IMongoCollection<Board> _boardsCollection;
-    public ConcurrentDictionary<ObjectId, ObjectId> CardEditingUsers { get; } = [];
+    private readonly IMongoCollection<User> _usersCollection;
+    public ConcurrentDictionary<ObjectId, ObjectId> LockedCards { get; } = [];
     private readonly MongoClient _mongoClient;
 
     public CardService(MongoDbProvider mongoDbProvider)
     {
         _cardsCollection = mongoDbProvider.GetCardsCollection();
         _boardsCollection = mongoDbProvider.GetBoardsCollection();
+        _usersCollection = mongoDbProvider.GetUsersCollection();
         _mongoClient = mongoDbProvider.Client;
     }
 
-    public async Task<IEnumerable<Card>> GetRawCardsByBoardIdAsync(ObjectId boardId, ObjectId userId, CancellationToken cancellationToken = default)
+    public async Task<List<CardWithAssignedUserAndTags>> GetCardsByBoardId(ObjectId boardId, IClientSessionHandle? session = null,
+        CancellationToken cancellationToken = default)
     {
-        var member = await _boardsCollection
-            .AsQueryable()
-            .Where(b => b.Id == boardId)
-            .Select(b => b.Members.FirstOrDefault(m => m.UserId == userId))
-            .FirstOrDefaultAsync(cancellationToken)
-            ?? throw new ForbiddenException("User is not a member of this board.");
-        return await _cardsCollection.Find(x => x.BoardId == boardId).ToListAsync(cancellationToken);
-    }
-
-    public async Task<IEnumerable<CardWithAssignedUserAndTags>> GetCardsByBoardIdAsync(ObjectId boardId, ObjectId userId, CancellationToken cancellationToken = default)
-    {
-        var member = await _boardsCollection
-            .AsQueryable()
-            .Where(b => b.Id == boardId)
-            .Select(b => b.Members.FirstOrDefault(m => m.UserId == userId))
-            .FirstOrDefaultAsync(cancellationToken)
-            ?? throw new ForbiddenException("User is not a member of this board.");
-        var pipeline = new []
-        {
-            new BsonDocument("$match", new BsonDocument("boardId", boardId)),
-            new BsonDocument("$unwind", new BsonDocument
+        List<CardWithAssignedUserAndTags> data = await (session == null ? _cardsCollection.AsQueryable() : _cardsCollection.AsQueryable(session))
+            .Where(c => c.BoardId == boardId)
+            .SelectMany(c => c.AssignedUsers.DefaultIfEmpty(), (card, assignedUserId) => new { card, assignedUserId })
+            .GroupJoin(_usersCollection,
+                c => c.assignedUserId,
+                u => u.Id,
+                (x, u) => new { x.card, x.assignedUserId, user = u.FirstOrDefault() })
+            .SelectMany(x => x.card.Tags.DefaultIfEmpty(), (x, tagId) => new { x.card, x.assignedUserId, x.user, tagId })
+            .Join(_boardsCollection,
+                x => x.card.BoardId,
+                board => board.Id,
+                (x, board) => new { x.card, x.assignedUserId, x.user, x.tagId, board })
+            .Select(x => new
             {
-                { "path", "$assignedUsers" },
-                { "preserveNullAndEmptyArrays", true }
-            }),
-            new BsonDocument("$lookup", new BsonDocument
-            {
-                { "from", "users" },
-                { "localField", "assignedUsers" },
-                { "foreignField", "_id" },
-                { "as", "user" }
-            }),
-            new BsonDocument("$unwind", new BsonDocument
-            {
-                { "path", "$user" },
-                { "preserveNullAndEmptyArrays", true }
-            }),
-            new BsonDocument("$unwind", new BsonDocument
-            {
-                { "path", "$tags" },
-                { "preserveNullAndEmptyArrays", true }
-            }),
-            new BsonDocument("$lookup", new BsonDocument
-            {
-                { "from", "boards" },
-                { "localField", "boardId" },
-                { "foreignField", "_id" },
-                { "as", "board" }
-            }),
-            new BsonDocument("$unwind", new BsonDocument("path", "$board")),
-            new BsonDocument("$addFields", new BsonDocument("swimlane",
-                new BsonDocument("$first", new BsonDocument("$filter", new BsonDocument
-            {
-                { "input", "$board.swimlanes" },
-                { "as", "sw" },
-                { "cond", new BsonDocument("$eq", new BsonArray
-                    {
-                        "$$sw._id",
-                        "$swimlaneId"
-                    }) }
-            })))),
-            new BsonDocument("$addFields", new BsonDocument("tag", new BsonDocument("$first",
-                new BsonDocument("$filter", new BsonDocument
-            {
-                { "input", "$swimlane.tags" },
-                { "as", "tg" },
-                { "cond", new BsonDocument("$eq", new BsonArray
-                    {
-                        "$$tg._id",
-                        "$tags"
-                    }) }
-            })))),
-            new BsonDocument("$group", new BsonDocument
-            {
-                { "_id", "$_id" },
-                { "boardId", new BsonDocument("$first", "$boardId") },
-                { "swimlaneId", new BsonDocument("$first", "$swimlaneId") },
-                { "listId", new BsonDocument("$first", "$listId") },
-                { "title", new BsonDocument("$first", "$title") },
-                { "description", new BsonDocument("$first", "$description") },
-                { "dueDate", new BsonDocument("$first", "$dueDate") },
-                { "createdAt", new BsonDocument("$first", "$createdAt") },
-                { "updatedAt", new BsonDocument("$first", "$updatedAt") },
-                { "tags", new BsonDocument("$push", new BsonDocument("$cond", new BsonArray
-                    { new BsonDocument("$ne", new BsonArray
-                        {
-                            new BsonDocument("$type", "$tag"),
-                            "missing"
-                        }),
-                        new BsonDocument
-                        {
-                            { "_id", "$tag._id" },
-                            { "title", "$tag.title" },
-                            { "color", "$tag.color" }
-                        },
-                        "$$REMOVE"
-                    }))
+                x.card.Id,
+                x.card.BoardId,
+                x.card.SwimlaneId,
+                x.card.ListId,
+                x.card.Title,
+                x.card.Description,
+                x.card.DueDate,
+                x.card.CreatedAt,
+                x.card.UpdatedAt,
+                Tag = x.board.Swimlanes
+                    .Where(s => s.Id == x.card.SwimlaneId)
+                    .Select(s => s.Tags.FirstOrDefault(t => t.Id == x.tagId))
+                    .FirstOrDefault(),
+                AssignedUser = x.user == null ? null : new SimplifiedUser
+                {
+                    Id = x.user.Id,
+                    Nickname = x.user.Nickname,
                 },
-                { "assignedUsers", new BsonDocument("$push", new BsonDocument("$cond", new BsonArray
-                    { new BsonDocument("$ne", new BsonArray
-                        {
-                            new BsonDocument("$type", "$user"),
-                            "missing"
-                        }),
-                        new BsonDocument
-                        {
-                            { "_id", "$user._id" },
-                            { "nickname", "$user.nickname" }
-                        },
-                        "$$REMOVE"
-                    }))
-                }
             })
-        };
-        var documents = await _cardsCollection
-            .Aggregate<BsonDocument>(pipeline, cancellationToken: cancellationToken)
-            .ToListAsync(cancellationToken);
-        return [.. documents.Select(doc => new CardWithAssignedUserAndTags
+            .GroupBy(x => x.Id)
+            .Select(g => new CardWithAssignedUserAndTags
+            {
+                Id = g.Key,
+                BoardId = g.First().BoardId,
+                SwimlaneId = g.First().SwimlaneId,
+                ListId = g.First().ListId,
+                Title = g.First().Title,
+                Description = g.First().Description,
+                DueDate = g.First().DueDate,
+                CreatedAt = g.First().CreatedAt,
+                UpdatedAt = g.First().UpdatedAt,
+                Tags = g.Where(x => x.Tag != null).Select(x => x.Tag!),
+                AssignedUsers = g.Where(x => x.AssignedUser != null).Select(x => x.AssignedUser!),
+            }).ToListAsync(cancellationToken: cancellationToken);
+        var lockedUserIds = LockedCards.Values.Distinct().ToList();
+        var lockedUsers = await GetSimplifiedUser(session).Where(u => lockedUserIds.Contains(u.Id)).ToListAsync(cancellationToken);
+        var lockedUsersDict = lockedUsers.ToDictionary(u => u.Id, u => u);
+        foreach (var card in data)
         {
-            Id = doc["_id"].AsObjectId,
-            BoardId = doc["boardId"].AsObjectId,
-            SwimlaneId = doc["swimlaneId"].AsObjectId,
-            ListId = doc["listId"].AsObjectId,
-            Title = doc["title"].AsString,
-            Description = doc["description"].IsString ? doc["description"].AsString : null,
-            DueDate = doc["dueDate"].ToNullableUniversalTime(),
-            CreatedAt = doc["createdAt"].ToUniversalTime(),
-            UpdatedAt = doc["updatedAt"].ToUniversalTime(),
-            Tags = [.. doc["tags"].AsBsonArray.Select(t =>
+            if (LockedCards.TryGetValue(card.Id, out var lockedUserId) && lockedUsersDict.TryGetValue(lockedUserId, out var lockedUser))
             {
-                var tag = t.AsBsonDocument;
-                return new Entities.Board.Tag
+                card.LockedByUser = new SimplifiedUser
                 {
-                    Id = tag["_id"].AsObjectId,
-                    Title = tag["title"].AsString,
-                    Color = Enum.Parse<Color>(tag["color"].AsString)
+                    Id = lockedUser.Id,
+                    Nickname = lockedUser.Nickname
                 };
-            })],
-            AssignedUsers = [.. doc["assignedUsers"].AsBsonArray.Select(m =>
-            {
-                var member = m.AsBsonDocument;
-                return new AssignedUser
-                {
-                    Id = member["_id"].AsObjectId,
-                    Nickname = member["nickname"].AsString
-                };
-            })]
-        })];
+            }
+        }
+        return data;
     }
 
-    public async Task<Card?> GetRawCardByIdAsync(ObjectId boardId, ObjectId cardId, ObjectId userId, CancellationToken cancellationToken = default)
+    public async Task<CardWithAssignedUserAndTags?> GetCardById(ObjectId cardId, ObjectId boardId,
+        IClientSessionHandle? session = null, CancellationToken cancellationToken = default)
     {
-        var member = await _boardsCollection
-            .AsQueryable()
-            .Where(b => b.Id == boardId)
-            .Select(b => b.Members.FirstOrDefault(m => m.UserId == userId))
-            .FirstOrDefaultAsync(cancellationToken)
-            ?? throw new ForbiddenException("User is not a member of this board.");
-        return await _cardsCollection.Find(x => x.Id == cardId && x.BoardId == boardId).FirstOrDefaultAsync(cancellationToken);
-    }
-
-    public async Task<CardWithAssignedUserAndTags?> GetCardByIdAsync(ObjectId boardId, ObjectId cardId, ObjectId userId, CancellationToken cancellationToken = default)
-    {
-        var member = await _boardsCollection
-            .AsQueryable()
-            .Where(b => b.Id == boardId)
-            .Select(b => b.Members.FirstOrDefault(m => m.UserId == userId))
-            .FirstOrDefaultAsync(cancellationToken)
-            ?? throw new ForbiddenException("User is not a member of this board.");
-        var pipeline = new []
-        {
-            new BsonDocument("$match", new BsonDocument("_id", cardId)),
-            new BsonDocument("$match", new BsonDocument("boardId", boardId)),
-            new BsonDocument("$unwind", new BsonDocument
+        CardWithAssignedUserAndTags? data = await (session == null ? _cardsCollection.AsQueryable() : _cardsCollection.AsQueryable(session))
+            .Where(c => c.BoardId == boardId && c.Id == cardId)
+            .SelectMany(c => c.AssignedUsers.DefaultIfEmpty(), (card, assignedUserId) => new { card, assignedUserId })
+            .GroupJoin(_usersCollection,
+                c => c.assignedUserId,
+                u => u.Id,
+                (x, u) => new { x.card, x.assignedUserId, user = u.FirstOrDefault() })
+            .SelectMany(x => x.card.Tags.DefaultIfEmpty(), (x, tagId) => new { x.card, x.assignedUserId, x.user, tagId })
+            .Join(_boardsCollection,
+                x => x.card.BoardId,
+                board => board.Id,
+                (x, board) => new { x.card, x.assignedUserId, x.user, x.tagId, board })
+            .Select(x => new
             {
-                { "path", "$assignedUsers" },
-                { "preserveNullAndEmptyArrays", true }
-            }),
-            new BsonDocument("$lookup", new BsonDocument
-            {
-                { "from", "users" },
-                { "localField", "assignedUsers" },
-                { "foreignField", "_id" },
-                { "as", "user" }
-            }),
-            new BsonDocument("$unwind", new BsonDocument
-            {
-                { "path", "$user" },
-                { "preserveNullAndEmptyArrays", true }
-            }),
-            new BsonDocument("$unwind", new BsonDocument
-            {
-                { "path", "$tags" },
-                { "preserveNullAndEmptyArrays", true }
-            }),
-            new BsonDocument("$lookup", new BsonDocument
-            {
-                { "from", "boards" },
-                { "localField", "boardId" },
-                { "foreignField", "_id" },
-                { "as", "board" }
-            }),
-            new BsonDocument("$unwind", new BsonDocument("path", "$board")),
-            new BsonDocument("$addFields", new BsonDocument("swimlane",
-                new BsonDocument("$first", new BsonDocument("$filter", new BsonDocument
-            {
-                { "input", "$board.swimlanes" },
-                { "as", "sw" },
-                { "cond", new BsonDocument("$eq", new BsonArray
-                    {
-                        "$$sw._id",
-                        "$swimlaneId"
-                    }) }
-            })))),
-            new BsonDocument("$addFields", new BsonDocument("tag", new BsonDocument("$first",
-                new BsonDocument("$filter", new BsonDocument
-            {
-                { "input", "$swimlane.tags" },
-                { "as", "tg" },
-                { "cond", new BsonDocument("$eq", new BsonArray
-                    {
-                        "$$tg._id",
-                        "$tags"
-                    }) }
-            })))),
-            new BsonDocument("$group", new BsonDocument
-            {
-                { "_id", "$_id" },
-                { "boardId", new BsonDocument("$first", "$boardId") },
-                { "swimlaneId", new BsonDocument("$first", "$swimlaneId") },
-                { "listId", new BsonDocument("$first", "$listId") },
-                { "title", new BsonDocument("$first", "$title") },
-                { "description", new BsonDocument("$first", "$description") },
-                { "dueDate", new BsonDocument("$first", "$dueDate") },
-                { "createdAt", new BsonDocument("$first", "$createdAt") },
-                { "updatedAt", new BsonDocument("$first", "$updatedAt") },
-                { "tags", new BsonDocument("$push", new BsonDocument("$cond", new BsonArray
-                    { new BsonDocument("$ne", new BsonArray
-                        {
-                            new BsonDocument("$type", "$tag"),
-                            "missing"
-                        }),
-                        new BsonDocument
-                        {
-                            { "_id", "$tag._id" },
-                            { "title", "$tag.title" },
-                            { "color", "$tag.color" }
-                        },
-                        "$$REMOVE"
-                    }))
+                x.card.Id,
+                x.card.BoardId,
+                x.card.SwimlaneId,
+                x.card.ListId,
+                x.card.Title,
+                x.card.Description,
+                x.card.DueDate,
+                x.card.CreatedAt,
+                x.card.UpdatedAt,
+                Tag = x.board.Swimlanes
+                    .Where(s => s.Id == x.card.SwimlaneId)
+                    .Select(s => s.Tags.FirstOrDefault(t => t.Id == x.tagId))
+                    .FirstOrDefault(),
+                AssignedUser = x.user == null ? null : new SimplifiedUser
+                {
+                    Id = x.user.Id,
+                    Nickname = x.user.Nickname,
                 },
-                { "assignedUsers", new BsonDocument("$push", new BsonDocument("$cond", new BsonArray
-                    { new BsonDocument("$ne", new BsonArray
-                        {
-                            new BsonDocument("$type", "$user"),
-                            "missing"
-                        }),
-                        new BsonDocument
-                        {
-                            { "_id", "$user._id" },
-                            { "nickname", "$user.nickname" }
-                        },
-                        "$$REMOVE"
-                    }))
-                }
             })
-        };
-        var doc = await _cardsCollection
-            .Aggregate<BsonDocument>(pipeline, cancellationToken: cancellationToken)
-            .FirstOrDefaultAsync(cancellationToken);
-        return new CardWithAssignedUserAndTags
+            .GroupBy(x => x.Id)
+            .Select(g => new CardWithAssignedUserAndTags
+            {
+                Id = g.Key,
+                BoardId = g.First().BoardId,
+                SwimlaneId = g.First().SwimlaneId,
+                ListId = g.First().ListId,
+                Title = g.First().Title,
+                Description = g.First().Description,
+                DueDate = g.First().DueDate,
+                CreatedAt = g.First().CreatedAt,
+                UpdatedAt = g.First().UpdatedAt,
+                Tags = g.Where(x => x.Tag != null).Select(x => x.Tag!),
+                AssignedUsers = g.Where(x => x.AssignedUser != null).Select(x => x.AssignedUser!),
+            }).FirstOrDefaultAsync(cancellationToken: cancellationToken);
+        if (data == null)
+            return null;
+        if (LockedCards.TryGetValue(data.Id, out var lockedUserId))
         {
-            Id = doc["_id"].AsObjectId,
-            BoardId = doc["boardId"].AsObjectId,
-            SwimlaneId = doc["swimlaneId"].AsObjectId,
-            ListId = doc["listId"].AsObjectId,
-            Title = doc["title"].AsString,
-            Description = doc["description"].IsString ? doc["description"].AsString : null,
-            DueDate = doc["dueDate"].ToNullableUniversalTime(),
-            CreatedAt = doc["createdAt"].ToUniversalTime(),
-            UpdatedAt = doc["updatedAt"].ToUniversalTime(),
-            Tags = [.. doc["tags"].AsBsonArray.Select(t =>
+            var lockedUser = await GetLockingUserById(lockedUserId, session, cancellationToken);
+            if (lockedUser != null)
             {
-                var tag = t.AsBsonDocument;
-                return new Entities.Board.Tag
+                data.LockedByUser = new SimplifiedUser
                 {
-                    Id = tag["_id"].AsObjectId,
-                    Title = tag["title"].AsString,
-                    Color = Enum.Parse<Color>(tag["color"].AsString)
+                    Id = lockedUser.Id,
+                    Nickname = lockedUser.Nickname
                 };
-            })],
-            AssignedUsers = [.. doc["assignedUsers"].AsBsonArray.Select(m =>
-            {
-                var member = m.AsBsonDocument;
-                return new AssignedUser
-                {
-                    Id = member["_id"].AsObjectId,
-                    Nickname = member["nickname"].AsString
-                };
-            })]
-        };
+            }
+        }
+        return data;
     }
 
-    public bool StartCardEditing(ObjectId cardId, ObjectId userId) =>
-        CardEditingUsers.TryAdd(cardId, userId);
+    public bool LockCard(ObjectId cardId, ObjectId userId) =>
+        LockedCards.TryAdd(cardId, userId);
 
-    public bool ForceEndCardEditing(ObjectId cardId) =>
-        CardEditingUsers.TryRemove(cardId, out _);
-
-    public async Task FinishCardEditing(Card card, ObjectId userId, CancellationToken cancellationToken = default)
+    private IQueryable<SimplifiedUser> GetSimplifiedUser(IClientSessionHandle? session = null)
     {
-        if (!CardEditingUsers.TryGetValue(card.Id, out ObjectId value) || value != userId)
-            throw new InvalidOperationException("User is not editing this card.");
-        await UpdateCardAsync(card, userId, cancellationToken);
-        CardEditingUsers.TryRemove(card.Id, out _);
+        return (session == null ? _usersCollection.AsQueryable() : _usersCollection.AsQueryable(session))
+            .Select(x => new SimplifiedUser
+            {
+                Id = x.Id,
+                Nickname = x.Nickname,
+            });
     }
 
-    public async Task CreateCardAsync(Card card, ObjectId userId, CancellationToken cancellationToken = default)
+    public async Task<SimplifiedUser?> GetLockingUserById(ObjectId id, IClientSessionHandle? session = null, CancellationToken cancellationToken = default)
+    {
+        return await GetSimplifiedUser(session).FirstOrDefaultAsync(u => u.Id == id, cancellationToken);
+    }
+
+    public void UnlockAllLockedByUser(ObjectId userId)
+    {
+        var keysToRemove = LockedCards
+            .Where(kvp => kvp.Value == userId)
+            .Select(kvp => kvp.Key)
+            .ToList();
+        foreach (var key in keysToRemove)
+            LockedCards.TryRemove(key, out _);
+    }
+
+    public void UnlockCard(ObjectId cardId, ObjectId userId)
+    {
+        if (LockedCards.TryGetValue(cardId, out var lockedUserId) && lockedUserId == userId)
+        {
+            LockedCards.TryRemove(cardId, out _);
+        }
+    }
+
+    public async Task CreateCardAsync(Card card, ObjectId userId, IClientSessionHandle session, CancellationToken cancellationToken = default)
     {
         var result = await _boardsCollection
-            .AsQueryable()
+            .AsQueryable(session)
             .Where(b => b.Id == card.BoardId)
             .Select(b => new
             {
@@ -364,20 +219,32 @@ public class CardService
             throw new RecordDoesNotExist("List has not been found.");
         if (result.List.MaxWIP.HasValue && result.List.MaxWIP.Value > 0)
         {
-            long currentWIP = await _cardsCollection.CountDocumentsAsync(c => c.BoardId == card.BoardId
+            long currentWIP = await _cardsCollection.CountDocumentsAsync(session, c => c.BoardId == card.BoardId
                 && c.SwimlaneId == card.SwimlaneId && c.ListId == card.ListId, cancellationToken: cancellationToken);
             if (currentWIP >= result.List.MaxWIP.Value)
                 throw new ForbiddenException("Maximum cards WIP limit reached for this list.");
         }
         card.CreatedAt = DateTime.UtcNow;
         card.UpdatedAt = DateTime.UtcNow;
-        await _cardsCollection.InsertOneAsync(card, cancellationToken: cancellationToken);
+        await _cardsCollection.InsertOneAsync(session, card, cancellationToken: cancellationToken);
     }
 
-    public async Task UpdateCardAsync(Card card, ObjectId userId, CancellationToken cancellationToken = default)
+    public async Task<CardWithAssignedUserAndTags> CreateAndFindCardAsync(Card card, ObjectId userId, CancellationToken cancellationToken = default)
     {
+        using var session = await _mongoClient.StartSessionAsync(cancellationToken: cancellationToken);
+        return await session.WithTransactionAsync(async (s, ct) =>
+        {
+            await CreateCardAsync(card, userId, s, ct);
+            return await GetCardById(card.Id, card.BoardId, s, ct) ?? throw new InvalidOperationException("Card cannot just disappear!!!");
+        }, cancellationToken: cancellationToken);
+    }
+
+    public async Task UpdateCardAsync(Card card, ObjectId userId, IClientSessionHandle session, CancellationToken cancellationToken = default)
+    {
+        if (LockedCards.TryGetValue(card.Id, out var lockedUserId) && lockedUserId != userId)
+            throw new ForbiddenException("Card is locked by another user. Please try again later.");
         var result = await _boardsCollection
-            .AsQueryable()
+            .AsQueryable(session)
             .Where(b => b.Id == card.BoardId)
             .Select(b => new
             {
@@ -399,13 +266,13 @@ public class CardService
         if (card.AssignedUsers.Any(x => !result.Members.Any(m => m.UserId == x)))
             throw new ForbiddenException("One or more assigned users are not members of this board.");
         var oldCard = await _cardsCollection
-            .AsQueryable()
+            .AsQueryable(session)
             .Where(x => x.Id == card.Id)
             .Select(x => new { x.ListId, x.UpdatedAt })
             .FirstOrDefaultAsync(cancellationToken);
         if (result.MaxWIP.HasValue && result.MaxWIP.Value > 0)
         {
-            long currentWIP = await _cardsCollection.CountDocumentsAsync(x => x.BoardId == card.BoardId
+            long currentWIP = await _cardsCollection.CountDocumentsAsync(session, x => x.BoardId == card.BoardId
                 && x.ListId == card.ListId, cancellationToken: cancellationToken);
             if (oldCard.ListId != card.ListId && currentWIP >= result.MaxWIP.Value)
                 throw new ForbiddenException("Maximum WIP limit reached for this list.");
@@ -415,7 +282,6 @@ public class CardService
             throw new PreconditionFailedException("Card has been modified or deleted by another user since it was last read.");
         var now = DateTime.UtcNow;
         var update = Builders<Card>.Update
-            .Set(c => c.ListId, card.ListId)
             .Set(c => c.Title, card.Title)
             .Set(c => c.Description, card.Description)
             .Set(c => c.DueDate, card.DueDate)
@@ -425,12 +291,23 @@ public class CardService
         var filter = Builders<Card>.Filter.Eq(c => c.Id, card.Id);
         if (card.UpdatedAt != default)
             filter &= Builders<Card>.Filter.Eq(c => c.UpdatedAt, card.UpdatedAt);
-        UpdateResult updateResult = await _cardsCollection.UpdateOneAsync(filter, update, cancellationToken: cancellationToken);
+        UpdateResult updateResult = await _cardsCollection.UpdateOneAsync(session, filter, update, cancellationToken: cancellationToken);
         if (updateResult.MatchedCount == 0 && card.UpdatedAt != default)
             throw new PreconditionFailedException("Card has been modified or deleted by another user by another user since it was last read.");
         else if (updateResult.MatchedCount != 0 && updateResult.ModifiedCount == 0)
             throw new InvalidOperationException("An unexpected error occurred while updating card. Card has not been modified.");
         card.UpdatedAt = now;
+        UnlockCard(card.Id, userId);
+    }
+
+    public async Task<CardWithAssignedUserAndTags> UpdateAndFindCardAsync(Card card, ObjectId userId, CancellationToken cancellationToken = default)
+    {
+        using var session = await _mongoClient.StartSessionAsync(cancellationToken: cancellationToken);
+        return await session.WithTransactionAsync(async (s, ct) =>
+        {
+            await UpdateCardAsync(card, userId, s, ct);
+            return await GetCardById(card.Id, card.BoardId, s, ct) ?? throw new InvalidOperationException("Card cannot just disappear!!!");
+        }, cancellationToken: cancellationToken);
     }
 
     public async Task<DateTime> MoveCardAsync(ObjectId cardId, ObjectId userId, ObjectId listId, 
@@ -500,8 +377,13 @@ public class CardService
 
     public async Task DeleteCardAsync(ObjectId cardId, ObjectId userId, DateTime updatedAt = default, CancellationToken cancellationToken = default)
     {
-        var result = await _cardsCollection
-            .AsQueryable()
+        if (LockedCards.TryGetValue(cardId, out var lockedUserId) && lockedUserId != userId)
+            throw new ForbiddenException("Card is locked by another user. Please try again later.");
+        using var session = await _mongoClient.StartSessionAsync(cancellationToken: cancellationToken);
+        await session.WithTransactionAsync(async (s, ctx) =>
+        {
+            var result = await _cardsCollection
+            .AsQueryable(s)
             .Where(card => card.Id == cardId)
             .Join(
                 _boardsCollection,
@@ -517,18 +399,21 @@ public class CardService
                         .FirstOrDefault(),
                 }
             )
-            .FirstOrDefaultAsync(cancellationToken);
-        if (result == null || result.CardId == default)
-            throw new RecordDoesNotExist("Card has not been found.");
-        if (updatedAt != default && updatedAt != result.UpdatedAt)
-            throw new PreconditionFailedException("Board has been modified or deleted by another user since it was last read.");
-        if (result.BoardRole == BoardRole.Viewer)
-            throw new ForbiddenException("User does not have permission to delete card.");
-        var filter = Builders<Card>.Filter.Eq(c => c.Id, cardId);
-        if (updatedAt != default)
-            filter &= Builders<Card>.Filter.Eq(c => c.UpdatedAt, updatedAt);
-        DeleteResult deleteResult = await _cardsCollection.DeleteOneAsync(filter, null, cancellationToken: cancellationToken);
-        if (deleteResult.DeletedCount == 0 && updatedAt != default)
-            throw new PreconditionFailedException("Card has been modified or deleted by another user since it was last read.");
+            .FirstOrDefaultAsync(ctx);
+            if (result == null || result.CardId == default)
+                throw new RecordDoesNotExist("Card has not been found.");
+            if (updatedAt != default && updatedAt != result.UpdatedAt)
+                throw new PreconditionFailedException("Card has been modified or deleted by another user since it was last read.");
+            if (result.BoardRole == BoardRole.Viewer)
+                throw new ForbiddenException("User does not have permission to delete card.");
+            var filter = Builders<Card>.Filter.Eq(c => c.Id, cardId);
+            if (updatedAt != default)
+                filter &= Builders<Card>.Filter.Eq(c => c.UpdatedAt, updatedAt);
+            DeleteResult deleteResult = await _cardsCollection.DeleteOneAsync(s, filter, null, cancellationToken: ctx);
+            if (deleteResult.DeletedCount == 0 && updatedAt != default)
+                throw new PreconditionFailedException("Card has been modified or deleted by another user since it was last read.");
+            return Task.CompletedTask;
+        }, cancellationToken: cancellationToken);
+        UnlockCard(cardId, userId);
     }
 }

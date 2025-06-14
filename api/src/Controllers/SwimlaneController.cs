@@ -79,6 +79,7 @@ public class SwimlaneController : ControllerBase
             Lists = [..data.Lists?.Select(list => new List
             {
                 Title = list.Title,
+                Color = list.Color,
                 MaxWIP = list.MaxWIP,
             }) ?? []],
         };

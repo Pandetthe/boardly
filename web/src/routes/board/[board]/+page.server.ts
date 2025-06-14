@@ -2,6 +2,8 @@ import { parseDetailedBoard, type DetailedBoard, type DetailedBoardReponse } fro
 import type { PageServerLoad } from './$types';
 import { env } from '$env/dynamic/private';
 import { redirect } from '@sveltejs/kit';
+import { parseCard, type Card, type CardResponse } from '$lib/types/api/cards';
+import { parseUser, type User, type UserResponse } from '$lib/types/api/users';
 
 export const load = (async ({ cookies, params, depends }) => {
     depends('api:board');
@@ -34,12 +36,16 @@ export const load = (async ({ cookies, params, depends }) => {
         });
         if (res.ok && cards.ok && user.ok) {
             const rawBoard = await res.json() as DetailedBoardReponse;
-            const rawCards = await cards.json();
-            const rawUser = await user.json();
-            return { board: parseDetailedBoard(rawBoard) satisfies DetailedBoard, cards: rawCards, user: rawUser };
+            const rawCards = await cards.json() as CardResponse[];
+            const rawUser = await user.json() as UserResponse;
+            return {
+                board: parseDetailedBoard(rawBoard) satisfies DetailedBoard,
+                cards: rawCards.map(parseCard) satisfies Card[],
+                user: parseUser(rawUser) satisfies User
+            };
         }
     } catch (error) {
-        console.error('Error while fetching boards:', error);
+        console.error('Error while fetching data:', error);
     }
     redirect(302, "/");
 }) satisfies PageServerLoad;

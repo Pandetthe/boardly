@@ -1,6 +1,7 @@
 import { parseBoard, type Board, type BoardResponse } from '$lib/types/api/boards';
 import type { PageServerLoad } from './$types';
 import { env } from '$env/dynamic/private';
+import { parseUser, type UserResponse } from '$lib/types/api/users';
 
 export const load = (async ({ cookies, depends }) => {
     depends('api:boards');
@@ -25,8 +26,8 @@ export const load = (async ({ cookies, depends }) => {
         });
         if (res.ok && user.ok) {
             const rawBoards = await res.json() as BoardResponse[];
-            const rawUser = await user.json();
-            return { boards: rawBoards.map(parseBoard) satisfies Board[], user: rawUser};
+            const rawUser = await user.json() as UserResponse;
+            return { boards: rawBoards.map(parseBoard) satisfies Board[], user: parseUser(rawUser)};
         }
     } catch (error) {
         console.error('Error while fetching boards:', error);

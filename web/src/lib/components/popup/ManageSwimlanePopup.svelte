@@ -2,7 +2,7 @@
     import PopupAccordion from "$lib/components/popup/PopupAccordion.svelte";
     import Popup from "$lib/components/popup/Popup.svelte";
     import { Check, X } from "lucide-svelte";
-    import type { DetailedSwimlane, DetailedSwimlaneRequest, Swimlane, UpdateSwimlaneRequest } from "$lib/types/api/swimlanes";
+    import type { DetailedSwimlane, DetailedSwimlaneRequest } from "$lib/types/api/swimlanes";
     import { invalidate } from "$app/navigation";
     
     const { boardId } = $props<{ boardId: string }>();
@@ -16,8 +16,7 @@
     let tagsToAdd: { title: string, color: string }[] = $state([]);
     let tagsToDelete: { id: string, title: string, color: string }[] = $state([]);
 
-    export function show(swimlane: DetailedSwimlaneRequest | null = null) {
-        console.log(swimlane);
+    export function show(swimlane: DetailedSwimlane | null = null) {
         isEditMode = swimlane !== null;
         visible = true;
         if (!isEditMode) {

@@ -10,6 +10,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
 using MongoDB.Bson;
+using MongoDB.Driver.Linq;
 
 namespace Boardly.Api.Controllers;
 
@@ -23,12 +24,15 @@ namespace Boardly.Api.Controllers;
 public class CardController : ControllerBase
 {
     private readonly CardService _cardService;
-    private readonly IHubContext<BoardHub> _boardHubContext;
+    private readonly BoardService _boardService;
+    private readonly IHubContext<BoardHub, IBoardClient> _boardHubContext;
 
-    public CardController(CardService cardService, IHubContext<BoardHub> boardHubContext)
+    public CardController(CardService cardService, BoardService boardService,
+        IHubContext<BoardHub, IBoardClient> boardHubContext)
     {
-        _boardHubContext = boardHubContext;
         _cardService = cardService;
+        _boardService = boardService;
+        _boardHubContext = boardHubContext;
     }
 
     [HttpGet]
@@ -36,9 +40,10 @@ public class CardController : ControllerBase
     public async Task<IActionResult> GetAllCardsAsync(ObjectId boardId, CancellationToken cancellationToken)
     {
         ObjectId userId = User.GetUserId();
-        IEnumerable<CardWithAssignedUserAndTags> cards =
-            await _cardService.GetCardsByBoardIdAsync(boardId, userId, cancellationToken);
-        return Ok(cards.Select(x => new CardResponse(x)));
+        if (await _boardService.GetUserBoardRoleAsync(boardId, userId, cancellationToken) == null)
+            throw new ForbiddenException("User is not a member of this board.");
+        List<CardWithAssignedUserAndTags> cards = await _cardService.GetCardsByBoardId(boardId, null, cancellationToken);
+        return Ok(cards.Select(c => new CardResponse(c)));
     }
 
     [HttpGet("{cardId}")]
@@ -46,7 +51,9 @@ public class CardController : ControllerBase
     public async Task<IActionResult> GetCardAsync(ObjectId boardId, ObjectId cardId, CancellationToken cancellationToken)
     {
         ObjectId userId = User.GetUserId();
-        CardWithAssignedUserAndTags card = await _cardService.GetCardByIdAsync(boardId, cardId, userId, cancellationToken)
+        if (await _boardService.GetUserBoardRoleAsync(boardId, userId, cancellationToken) == null)
+            throw new ForbiddenException("User is not a member of this board.");
+        CardWithAssignedUserAndTags card = await _cardService.GetCardById(boardId, cardId, null, cancellationToken)
             ?? throw new RecordDoesNotExist("Card has not been found.");
         return Ok(new CardResponse(card));
     }
@@ -68,26 +75,36 @@ public class CardController : ControllerBase
             Tags = data.Tags ?? [],
             AssignedUsers = data.AssignedUsers ?? []
         };
-        await _cardService.CreateCardAsync(card, userId, cancellationToken);
-        await _boardHubContext.Clients.Group(boardId.ToString()).SendAsync("CardCreate", cancellationToken);
+        CardWithAssignedUserAndTags newCard = await _cardService.CreateAndFindCardAsync(card, userId, cancellationToken);
+        await _boardHubContext.Clients.Group(boardId.ToString()).CardCreated(new CardResponse(newCard), cancellationToken);
         return Ok(new IdResponse(card.Id));
     }
 
     [HttpPatch("{cardId}")]
     [Consumes("application/json")]
     [ProducesResponseType(typeof(MessageResponse), StatusCodes.Status200OK, "application/json")]
-    public async Task<IActionResult> UpdateCardAsync(ObjectId boardId, ObjectId cardId, [FromBody] UpdateCardRequest data, CancellationToken cancellationToken)
+    public async Task<IActionResult> UpdateCardAsync(
+        ObjectId boardId,
+        ObjectId cardId,
+        [FromHeader(Name = "If-Match")] DateTime? ifMatch,
+        [FromBody] UpdateCardRequest data,
+        CancellationToken cancellationToken)
     {
         ObjectId userId = User.GetUserId();
-        var card = await _cardService.GetRawCardByIdAsync(boardId, cardId, userId, cancellationToken) ?? throw new RecordDoesNotExist("Card has not been found.");
-        card.Title = data.Title;
-        card.DueDate = data.DueDate;
-        card.Description = data.Description;
-        card.Tags = data.Tags ?? [];
-        card.AssignedUsers = data.AssignedUsers ?? [];
+        var card = new Card
+        {
+            Id = cardId,
+            BoardId = boardId,
+            Title = data.Title,
+            DueDate = data.DueDate,
+            Description = data.Description,
+            Tags = data.Tags ?? [],
+            AssignedUsers = data.AssignedUsers ?? [],
+            UpdatedAt = ifMatch.GetValueOrDefault(),
+        };
 
-        await _cardService.UpdateCardAsync(card, userId, cancellationToken);
-        await _boardHubContext.Clients.Group(boardId.ToString()).SendAsync("CardUpdate", cancellationToken);
+        CardWithAssignedUserAndTags newCard = await _cardService.UpdateAndFindCardAsync(card, userId, cancellationToken);
+        await _boardHubContext.Clients.Group(boardId.ToString()).CardUpdated(new CardResponse(newCard), cancellationToken);
         return Ok(new MessageResponse("Card updated successfully!"));
     }
     
@@ -102,8 +119,8 @@ public class CardController : ControllerBase
         CancellationToken cancellationToken)
     {
         ObjectId userId = User.GetUserId();
-        await _cardService.MoveCardAsync(cardId, userId, data.ListId, ifMatch.GetValueOrDefault(), cancellationToken);
-        await _boardHubContext.Clients.Group(boardId.ToString()).SendAsync("CardMove", cancellationToken);
+        DateTime updatedAt = await _cardService.MoveCardAsync(cardId, userId, data.ListId, ifMatch.GetValueOrDefault(), cancellationToken);
+        await _boardHubContext.Clients.Group(boardId.ToString()).CardMoved(cardId, default, data.ListId, updatedAt, cancellationToken);
         return Ok(new MessageResponse("Card moved successfully!"));
     }
     
@@ -117,7 +134,7 @@ public class CardController : ControllerBase
     {
         ObjectId userId = User.GetUserId();
         await _cardService.DeleteCardAsync(cardId, userId, ifMatch.GetValueOrDefault(), cancellationToken);
-        await _boardHubContext.Clients.Group(boardId.ToString()).SendAsync("CardDelete", cancellationToken);
+        await _boardHubContext.Clients.Group(boardId.ToString()).CardDeleted(cardId, cancellationToken);
         return Ok(new MessageResponse("Card deleted successfully!"));
     }
 }

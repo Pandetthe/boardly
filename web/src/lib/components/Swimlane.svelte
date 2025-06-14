@@ -1,26 +1,19 @@
 <script lang="ts">
     import List from "$lib/components/List.svelte";
-	import Card from "$lib/components/Card.svelte";
+	import type { DetailedSwimlane } from "$lib/types/api/swimlanes";
 
-    let cardRefs: Record<number, Card> = {};
-    export let lists;    
-    export let users;
-    export let boardId: string;
-    export let swimlaneId: string;
-    export let tags;
+    export let swimlane: DetailedSwimlane;
 </script>
 
 <div class="max-w:screen-lg mx-auto flex flex-col gap-5 md:flex-row justify-center">
-    {#each lists as list}
+    {#each swimlane.lists as list}
         <List
-            cardRefs={cardRefs}
             title={list.title}
             color={list.color.toLowerCase()}
-            users={users}
-            boardId={boardId}
-            swimlaneId={swimlaneId}
+            swimlaneId={swimlane.id}
             listId={list.id}
-            tags={tags}
+            swimlaneTags={swimlane.tags}
+            maxWIP={list.maxWIP}
         />
     {/each}
 </div>

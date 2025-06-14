@@ -7,6 +7,7 @@ using Boardly.Api.OpenAPI;
 using Boardly.Api.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.IdentityModel.Tokens;
 using Scalar.AspNetCore;
 using Serilog;
@@ -43,7 +44,17 @@ public class Program
                     logEvent.Properties.TryGetValue("SourceContext", out var sc) &&
                     sc.ToString().Contains("Microsoft.AspNetCore.Diagnostics.ExceptionHandlerMiddleware")));
 
-            builder.Services.AddSignalR();
+            builder.Services.AddSignalR(options =>
+            {
+                options.AddFilter<GlobalHubExceptionFilter>();
+            })
+                .AddJsonProtocol(options =>
+                {
+                    options.PayloadSerializerOptions.Converters.Add(new ObjectIdJsonConverter());
+                    options.PayloadSerializerOptions.Converters.Add(
+                        new JsonStringEnumConverter(JsonNamingPolicy.CamelCase, allowIntegerValues: false)
+                    );
+                });
             builder.Services.AddCors(options =>
             {
                 options.AddDefaultPolicy(policy =>

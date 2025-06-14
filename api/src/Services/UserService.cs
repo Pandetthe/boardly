@@ -1,8 +1,10 @@
 ﻿using Boardly.Api.Entities;
 using Boardly.Api.Exceptions;
+using Boardly.Api.Models.Dtos;
 using Microsoft.AspNetCore.Identity;
 using MongoDB.Bson;
 using MongoDB.Driver;
+using MongoDB.Driver.Linq;
 using System.Text.RegularExpressions;
 
 namespace Boardly.Api.Services;

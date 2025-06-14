@@ -1,20 +1,188 @@
 <script lang="ts">
+  import type { PageProps } from './$types';
+  import { parseBoard, type Board, type BoardResponse, type DetailedBoard } from '$lib/types/api/boards';
 	import Swimlane from '$lib/components/Swimlane.svelte';
 	import ManageSwimlanePopup from '$lib/components/popup/ManageSwimlanePopup.svelte';
 	import { Menu, Plus } from 'lucide-svelte';
 	import { onDestroy, onMount } from 'svelte';
-	import type { PageProps } from './$types';
 	import * as signalR from '@microsoft/signalr';
 	import { setContext } from 'svelte'
-	import { goto, invalidate, invalidateAll } from '$app/navigation';
+	import { goto, invalidate } from '$app/navigation';
+	import { writable } from 'svelte/store';
+	import { BoardRole } from '$lib/types/api/members';
+	import { parseCard, type Card, type CardResponse } from '$lib/types/api/cards';
+	import type { SimplifiedUserResponse } from '$lib/types/api/users';
+	import type { DetailedSwimlaneResponse, SwimlaneResponse } from '$lib/types/api/swimlanes';
+	import type { ListResponse } from '$lib/types/api/lists';
 
 	let { data }: PageProps = $props();
 
-	import { writable } from 'svelte/store';
-	import { BoardRole } from '$lib/types/api/members';
+	const cards = writable<Card[]>(data.cards);
+	const board = writable<DetailedBoard>(data.board);
+	let conn: signalR.HubConnection | undefined;
+	const connectionStore = writable<signalR.HubConnection | undefined>(undefined);
+	setContext('cards', cards);
+	setContext('board', board);
+  setContext('user', data.user);
+  setContext('signalRConnection', connectionStore);
+	let swimlanePopup: ManageSwimlanePopup | undefined = $state(undefined);
+  let selectedSwimlaneId = $state(data.board.swimlanes[0]?.id);
 
-	const cards = writable(data.cards);
-	const board = writable(data.board);
+	async function start() {
+		conn = new signalR.HubConnectionBuilder()
+			.withUrl(`/api/hubs/board?boardId=${data.board.id}`)
+			.withAutomaticReconnect()
+			.configureLogging(signalR.LogLevel.Information)
+			.build();
+		connectionStore.set(conn);
+		try {
+			await conn.start();
+			console.log('SignalR connection started');
+		} catch (err) {
+			console.error("Error while starting connection: ", err);
+		}
+
+		conn.on("BoardUpdated", (boardResponse: BoardResponse) => {
+			board.update(b => ({ ...b, ...parseBoard(boardResponse) }));
+		});
+
+		conn.on("BoardDeleted", () => {
+			goto('/');
+		});
+
+		conn.on("CardCreated", (cardResponse: CardResponse) => {
+			cards.update(cards => [...cards, parseCard(cardResponse)]);
+		});
+
+		conn.on("CardUpdated", (cardResponse: CardResponse) => {
+			cards.update(cards => 
+				cards.map(card => 
+					card.id === cardResponse.id && card.swimlaneId === cardResponse.swimlaneId ? parseCard(cardResponse) : card
+				)
+			);
+		});
+
+		conn.on("CardDeleted", (cardId: string) => {
+			cards.update(cards => cards.filter(card => card.id !== cardId));
+		});
+
+		conn.on("CardMoved", (cardId: string, swimlaneId: string, listId: string, updatedAtStr: string) => {
+			const updatedAt = new Date(updatedAtStr);
+			cards.update(cards => 
+				cards.map(card => 
+					card.id === cardId && card.swimlaneId === swimlaneId ? { ...card, listId, updatedAt } : card
+				)
+			);
+		});
+    conn.on("CardLocked", (cardId: string, user: SimplifiedUserResponse) => {
+      cards.update(cards => 
+        cards.map(card => 
+          card.id === cardId ? {
+            ...card,
+            lockedByUser: user
+          } : card
+        )
+      );
+    });
+    conn.on("CardUnlocked", (cardId: string) => {
+      cards.update(cards => 
+        cards.map(card => 
+          card.id === cardId ? {
+            ...card,
+            lockedByUser: null
+          } : card
+        )
+      );
+    });
+
+		conn.on("SwimlaneCreated", (swimlaneResponse: DetailedSwimlaneResponse, updatedAtStr: string) => {
+      const updatedAt = new Date(updatedAtStr);
+			board.update(b => {
+        b.swimlanes.push(swimlaneResponse);
+        b.updatedAt = updatedAt;
+        return b;
+      });
+		});
+
+		conn.on("SwimlaneUpdated", (swimlaneResponse: SwimlaneResponse, updatedAtStr: string) => {
+			const updatedAt = new Date(updatedAtStr);
+			board.update(b => {
+        const index = b.swimlanes.findIndex(s => s.id === swimlaneResponse.id);
+        if (index !== -1) {
+          b.swimlanes[index] = { ...b.swimlanes[index], ...swimlaneResponse };
+        }
+        b.updatedAt = updatedAt;
+        return b;
+      });
+		});
+
+		conn.on("SwimlaneDeleted", (swimlaneId: string, updatedAtStr: string) => {
+			const updatedAt = new Date(updatedAtStr);
+      board.update(b => {
+        b.swimlanes = b.swimlanes.filter(s => s.id !== swimlaneId);
+        b.updatedAt = updatedAt;
+        return b;
+      });
+		});
+
+		conn.on("ListUpdated", (swimlaneId: string, listResponse: ListResponse, updatedAtStr: string) => {
+			board.update(b => {
+        const updatedAt = new Date(updatedAtStr);
+        const swimlane = b.swimlanes.find(s => s.id === swimlaneId);
+        if (swimlane) {
+          const listIndex = swimlane.lists.findIndex(l => l.id === listResponse.id);
+          if (listIndex !== -1) {
+            swimlane.lists[listIndex] = listResponse;
+          } else {
+            invalidate('api:board');
+          }
+        } else {
+          invalidate('api:board');
+        }
+        b.updatedAt = updatedAt;
+        return b;
+      });
+		});
+		conn.on("ListCreated", (swimlaneId: string, listResponse: ListResponse, updatedAtStr: string) => {
+			board.update(b => {
+        const updatedAt = new Date(updatedAtStr);
+        const swimlane = b.swimlanes.find(s => s.id === swimlaneId);
+        if (swimlane) {
+          swimlane.lists.push(listResponse);
+        } else {
+          invalidate('api:board');
+        }
+        b.updatedAt = updatedAt;
+        return b;
+      });
+		});
+		conn.on("ListDeleted", (swimlaneId: string, listId: string, updatedAtStr: string) => {
+      const updatedAt = new Date(updatedAtStr);
+      cards.update(cards => cards.filter(card => !(card.swimlaneId === swimlaneId && card.listId === listId)));
+      board.update(b => {
+        const swimlane = b.swimlanes.find(s => s.id === swimlaneId);
+        if (swimlane) {
+          swimlane.lists = swimlane.lists.filter(l => l.id !== listId);
+        } else {
+          invalidate('api:board');
+        }
+        b.updatedAt = updatedAt;
+        return b;
+      });
+		});
+
+		conn.on("TagUpdated", () => {
+
+		});
+
+		conn.on("TagCreated", () => {
+
+		});
+
+		conn.on("TagDeleted", (tagId: string) => {
+			
+		});
+  }
 
 	$effect(() => {
 		if (data?.cards) {
@@ -24,102 +192,6 @@
 			board.set(data.board);
 		}
 	});
-
-	setContext('cards', cards);
-	setContext('board', board);
-    setContext('user', data.user);
-
-	let swimlanePopup: ManageSwimlanePopup | undefined = $state(undefined);
-
-	let conn: signalR.HubConnection;
-
-	async function start() {
-		conn = new signalR.HubConnectionBuilder()
-			.withUrl(`/api/hubs/board?boardId=${data.board.id}`)
-			.withAutomaticReconnect()
-			.configureLogging(signalR.LogLevel.Information)
-			.build();
-
-		try {
-			await conn.start();
-			console.log('SignalR connection started');
-		} catch (err) {
-			console.error("Error while starting connection: ", err);
-		}
-
-		conn.on("BoardUpdate", () => {
-			console.log("BoardUpdate received");
-			invalidate('api:board');
-		});
-
-		conn.on("BoardDelete", () => {
-			console.log("BoardDelete received");
-			goto('/');
-		});
-
-		conn.on("CardCreate", () => {
-			console.log("CardCreate received");
-			invalidate('api:board');
-		});
-
-		conn.on("CardUpdate", () => {
-			console.log("CardUpdate received");
-			invalidate('api:board');
-		});
-
-		conn.on("CardDelete", () => {
-			console.log("CardDelete received");
-			invalidate('api:board');
-		});
-
-		conn.on("CardMove", async () => {
-			console.log("CardMove received");
-			invalidate('api:board');
-		});
-
-		conn.on("SwimlaneCreate", () => {
-			console.log("SwimlaneCreate received");
-			invalidate('api:board');
-		});
-
-		conn.on("SwimlaneUpdate", () => {
-			console.log("SwimlaneUpdate received");
-			invalidate('api:board');
-		});
-
-		conn.on("SwimlaneDelete", () => {
-			console.log("SwimlaneDelete received");
-			invalidate('api:board');
-		});
-
-		conn.on("ListUpdate", () => {
-			console.log("ListUpdate received");
-			invalidate('api:board');
-		});
-		conn.on("ListCreate", () => {
-			console.log("ListCreate received");
-			invalidate('api:board');
-		});
-		conn.on("ListDelete", () => {
-			console.log("ListDelete received");
-			invalidate('api:board');
-		});
-
-		conn.on("TagUpdate", () => {
-			console.log("TagUpdate received");
-			invalidate('api:board');
-		});
-
-		conn.on("TagCreate", () => {
-			console.log("TagCreate received");
-			invalidate('api:board');
-		});
-
-		conn.on("TagDelete", () => {
-			console.log("TagDelete received");
-			invalidate('api:board');
-		});
-    }
 
 	onMount(async () => {
 		await start();
@@ -134,21 +206,20 @@
 			});
 		}
 	});
-
 </script>
 
 <svelte:head>
-    <title>{data.board.title}</title> 
+    <title>{$board.title}</title> 
 </svelte:head>
 
 <ManageSwimlanePopup bind:this={swimlanePopup} boardId={data.board.id}/>
-<div class="w-full overflow-y-scroll">
+<div class="w-full overflow-y-auto">
 	<div class="tabs gap-3 p-3">
-		{#each data.board.swimlanes as swimlane}
+		{#each $board.swimlanes as swimlane}
 			<label
 				class="tab border-border bg-component hover:bg-component-hover hover:border-border-hover w-40 flex-row justify-between rounded-md border-1 pr-2 [--tab-bg:orange]"
 			>
-				<input type="radio" name="tabs" />
+				<input type="radio" name="tabs" value={swimlane.id} bind:group={selectedSwimlaneId} />
 				{swimlane.title}
 				{#if $board.members.some(member => member.userId === data.user.id && (member.role == BoardRole.Admin || member.role == BoardRole.Owner))}
 				<button
@@ -156,13 +227,13 @@
 					aria-label="More options"
 					onclick={() => swimlanePopup?.show(swimlane)}
 				>
-				<Menu />
+				  <Menu />
 				</button>
 				{/if}
 			</label>
 			<div class="tab-content">
 				<div class="divider mt-0 pt-0"></div>
-				<Swimlane tags={swimlane.tags} lists={swimlane.lists} users={[]} boardId={data.board.id} swimlaneId={swimlane.id}/>
+				<Swimlane swimlane={swimlane} />
 			</div>
 		{/each}
 		{#if $board.members.some(member => member.userId === data.user.id && (member.role == BoardRole.Admin || member.role == BoardRole.Owner))}

@@ -19,10 +19,12 @@ public class CardWithAssignedUserAndTags
     
     public DateTime? DueDate { get; set; }
 
-    public HashSet<AssignedUser> AssignedUsers { get; set; } = [];
+    public IEnumerable<SimplifiedUser> AssignedUsers { get; set; } = [];
 
-    public HashSet<Tag> Tags { get; set; } = [];
-    
+    public IEnumerable<Tag> Tags { get; set; } = [];
+
+    public SimplifiedUser? LockedByUser { get; set; }
+
     public DateTime CreatedAt { get; set; }
     
     public DateTime UpdatedAt { get; set; }

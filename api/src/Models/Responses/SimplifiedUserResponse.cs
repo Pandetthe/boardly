@@ -3,11 +3,11 @@ using MongoDB.Bson;
 
 namespace Boardly.Api.Models.Responses;
 
-public record AssignedUserResponse(
+public record SimplifiedUserResponse(
     ObjectId Id,
     string Nickname)
 {
-    public AssignedUserResponse(AssignedUser user)
+    public SimplifiedUserResponse(SimplifiedUser user)
         : this(user.Id, user.Nickname)
     {
     }

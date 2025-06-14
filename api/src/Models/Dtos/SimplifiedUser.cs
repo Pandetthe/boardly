@@ -2,7 +2,7 @@
 
 namespace Boardly.Api.Models.Dtos;
 
-public class AssignedUser
+public class SimplifiedUser
 {
     public ObjectId Id { get; set; }
 
@@ -12,7 +12,7 @@ public class AssignedUser
 
     public override bool Equals(object? obj)
     {
-        if (obj is AssignedUser other)
+        if (obj is SimplifiedUser other)
         {
             return Id == other.Id;
         }

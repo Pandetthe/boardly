@@ -22,9 +22,9 @@ namespace Boardly.Api.Controllers;
 public class TagController : ControllerBase
 {
     private readonly TagService _tagService;
-    private readonly IHubContext<BoardHub> _boardHubContext;
+    private readonly IHubContext<BoardHub, IBoardClient> _boardHubContext;
 
-    public TagController(TagService tagService, IHubContext<BoardHub> boardHubContext)
+    public TagController(TagService tagService, IHubContext<BoardHub, IBoardClient> boardHubContext)
     {
         _tagService = tagService;
         _boardHubContext = boardHubContext;
@@ -61,7 +61,7 @@ public class TagController : ControllerBase
             Color = data.Color
         };
         await _tagService.CreateTagAsync(boardId, swimlaneId, userId, tag, cancellationToken);
-        await _boardHubContext.Clients.Group(boardId.ToString()).SendAsync("TagCreate", cancellationToken);
+        //await _boardHubContext.Clients.Group(boardId.ToString()).TagCreated(new TagResponse(tag), cancellationToken);
         return Ok(new IdResponse(tag.Id));
     }
 
@@ -78,7 +78,7 @@ public class TagController : ControllerBase
             Color = data.Color,
         };
         await _tagService.UpdateTagAsync(boardId, swimlaneId, userId, tag, cancellationToken);
-        await _boardHubContext.Clients.Group(boardId.ToString()).SendAsync("TagUpdate", cancellationToken);
+        //await _boardHubContext.Clients.Group(boardId.ToString()).SendAsync("TagUpdate", cancellationToken);
         return Ok(new MessageResponse("Successfully updated tag!"));
     }
 
@@ -88,7 +88,7 @@ public class TagController : ControllerBase
     {
         ObjectId userId = User.GetUserId();
         await _tagService.DeleteTagAsync(boardId, swimlaneId, tagId, userId, cancellationToken);
-        await _boardHubContext.Clients.Group(boardId.ToString()).SendAsync("TagDelete", cancellationToken);
+        //await _boardHubContext.Clients.Group(boardId.ToString()).SendAsync("TagDelete", cancellationToken);
         return Ok(new MessageResponse("Tag successfully deleted!"));
     }
 }

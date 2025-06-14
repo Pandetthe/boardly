@@ -3,7 +3,6 @@ using Boardly.Api.Exceptions;
 using MongoDB.Bson;
 using MongoDB.Driver;
 using MongoDB.Driver.Linq;
-using System.Collections.Generic;
 
 namespace Boardly.Api.Services;
 
@@ -83,7 +82,7 @@ public class ListService
         using var session = await _mongoClient.StartSessionAsync(cancellationToken: cancellationToken);
         return await session.WithTransactionAsync(async (s, ctx) =>
         {
-            var newUpdatedAt = await CreateListAsync(boardId, userId, swimlaneId, list, s, updatedAt, ctx);
+            var newUpdatedAt = await CreateListAsync(boardId, swimlaneId, userId, list, s, updatedAt, ctx);
             return (await GetListBySwimlaneId(s, boardId, swimlaneId).SingleAsync(s => s.Id == list.Id, ctx), newUpdatedAt);
         }, cancellationToken: cancellationToken);
     }
@@ -136,7 +135,7 @@ public class ListService
         using var session = await _mongoClient.StartSessionAsync(cancellationToken: cancellationToken);
         return await session.WithTransactionAsync(async (s, ctx) =>
         {
-            var newUpdatedAt = await UpdateListAsync(boardId, userId, swimlaneId, list, s, updatedAt, ctx);
+            var newUpdatedAt = await UpdateListAsync(boardId, swimlaneId, userId, list, s, updatedAt, ctx);
             return (await GetListBySwimlaneId(s, boardId, swimlaneId).SingleAsync(s => s.Id == list.Id, ctx), newUpdatedAt);
         }, cancellationToken: cancellationToken);
     }

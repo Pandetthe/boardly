@@ -1,5 +1,5 @@
 import type { Member, MemberResponse } from "./members";
-import { parseDetailedSwimlane, type CreateSwimlaneRequest, type DetailedSwimlane, type DetailedSwimlaneResponse } from "./swimlanes";
+import type { CreateSwimlaneRequest, DetailedSwimlane, DetailedSwimlaneResponse } from "./swimlanes";
 
 export interface CreateBoardRequest extends UpdateBoardRequest {
     swimlanes: CreateSwimlaneRequest[];
@@ -43,6 +43,6 @@ export interface DetailedBoardReponse extends BoardResponse {
 export function parseDetailedBoard(raw: DetailedBoardReponse): DetailedBoard {
     return {
         ...parseBoard(raw),
-        swimlanes: raw.swimlanes.map(s => parseDetailedSwimlane(s)),
+        swimlanes: raw.swimlanes 
     };
 }

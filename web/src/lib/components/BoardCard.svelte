@@ -6,19 +6,22 @@
 	import type { Board } from '$lib/types/api/boards';
 	import { idToColor } from '$lib/utils';
 	import ProfileIcon from './ProfileIcon.svelte';
+	import { getContext } from 'svelte';
+	import type { User } from '$lib/types/api/users';
 
-    export let board: Board;
+  export let board: Board;
 	export let popup: ManageBoardPopup;
 	export let editEnabled: boolean;
 
 	async function showPopup(e: MouseEvent) {
+    e.stopPropagation();
 		await invalidate('api:boards');
 		popup.show(board);
-		e.stopPropagation();
 	}
 
 	const color = idToColor(board.id);
-    const src = GeoPattern.generate(board.title, {"color": color}).toDataUrl().slice(5, -2);
+  const src = GeoPattern.generate(board.title, {"color": color}).toDataUrl().slice(5, -2);
+	const me = getContext<User>('user');
 
 </script>
 
@@ -35,14 +38,14 @@
 		<div class="card-title flex justify-between items-center">
 			{board.title}
 			<div class="flex -space-x-2">
-				{#each board.members.filter(x => x.isActive) as member (member.userId)}
-					<ProfileIcon user={member} noTooltip={false}/>
+				{#each board.members.filter(x => x.isActive && x.userId !== me.id) as member (member.userId)}
+        <ProfileIcon user={member} noTooltip={false}/>
 				{/each}
 			</div>
 			{#if editEnabled}
-				<button class="btn btn-ghost z-10 w-10 p-0" onclick={showPopup}>
-					<Menu />
-				</button>
+      <button class="btn btn-ghost z-10 w-10 p-0" onclick={showPopup}>
+        <Menu />
+      </button>
 			{/if}
 		</div>
 		<p class="left text-left text-text-secondary">Updated at: {board.updatedAt.toLocaleString()}</p>

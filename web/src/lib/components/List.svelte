@@ -1,114 +1,118 @@
 <script lang="ts">
-    import Sortable from "sortablejs";
-    import { onMount, onDestroy } from "svelte";
-    import type { ICard } from "$lib/types/api/cards";
-    import Card from "$lib/components/Card.svelte";
-    import { Plus } from "lucide-svelte";
-    import ManageCardPopup from "$lib/components/popup/ManageCardPopup.svelte";
-    import { getContext } from "svelte";
-    import type { Writable } from "svelte/store";
-    import { derived } from "svelte/store";
-	import { invalidate } from "$app/navigation";
+  import Sortable, { type SortableEvent } from "sortablejs";
+  import { onMount, onDestroy } from "svelte";
+  import type { Card as CardType } from "$lib/types/api/cards";
+  import Card from "$lib/components/Card.svelte";
+  import { Plus } from "lucide-svelte";
+  import ManageCardPopup from "$lib/components/popup/ManageCardPopup.svelte";
+  import { getContext } from "svelte";
+  import type { Writable } from "svelte/store";
+  import { derived, get } from "svelte/store";
 	import { BoardRole } from "$lib/types/api/members";
+	import type { Board } from "$lib/types/api/boards";
+	import type { Tag } from "$lib/types/api/tags";
+	import type { User } from "$lib/types/api/users";
   
-    export let listId: string;
-    export let swimlaneId: string;
-    export let boardId: string;
-    export let title: string;
-    export let color: string;
-    export let tags: { id: string; title: string; color: string }[];
-  
-    let list: HTMLUListElement;
-    let popup: ManageCardPopup;
+  export let listId: string;
+  export let swimlaneId: string;
+  export let title: string;
+  export let color: string;
+  export let swimlaneTags: Tag[];
+  export let maxWIP: number | null;
 
-    const cardsContext = getContext<Writable<ICard[]>>("cards");
+  let list: HTMLUListElement;
+  let popup: ManageCardPopup;
 
-    let filteredCards = derived(cardsContext, ($cardsContext) =>
-      $cardsContext
-        .filter((card) => card.listId === listId && card.swimlaneId === swimlaneId)
-        .sort((a, b) => a.id < b.id ? -1 : 1)
-    );
-  
-    async function process(evt: any) {
-      const movedCardId = evt.item.dataset.id;
-      const newListId = evt.to.dataset.id;
-  
-      const res = await fetch(`/api/boards/${boardId}/cards/${movedCardId}/move`, {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          listId: newListId,
-          swimlaneId: swimlaneId,
-        }),
-      });
-  
-      if (!res.ok) {
-        console.error("Failed to move card");
-        return;
+  const cardsContext = getContext<Writable<CardType[]>>("cards");
+  const signalRConnection = getContext<Writable<signalR.HubConnection | undefined>>("signalRConnection");
+  const me = getContext<User>("user");
+  const board = getContext<Writable<Board>>("board");
+  let filteredCards = derived(cardsContext, ($cardsContext) =>
+    $cardsContext
+      .filter((card) => card.listId === listId && card.swimlaneId === swimlaneId)
+      .sort((a, b) => a.id < b.id ? -1 : 1)
+  );
+
+  const cardsToDelete: { id: string; item: HTMLElement }[] = [];
+
+  cardsContext.subscribe((cards) => {
+    const remaining: typeof cardsToDelete = [];
+
+    for (const { id, item } of cardsToDelete) {
+      const card = cards.find(card => card.id === id && card.swimlaneId === swimlaneId);
+      if (card && card.listId !== listId) {
+        item.remove();
+      } else {
+        remaining.push({ id, item });
       }
     }
-  
-    onMount(() => {
-      const sortable = Sortable.create(list, {
-        group: "shared",
-        animation: 150,
-        emptyInsertThreshold: 50,
-        ghostClass: "ghost",
-        dragClass: "drag",
-        onAdd: process,
-        onEnd: (evt) => {
-            if (evt.from.dataset.id === evt.to.dataset.id) {
-                return;
-            }
-            evt.item.remove();
-            invalidate('api:board');
-        },
-        filter: ".nodrag",
-      });
 
-      onDestroy(() => {
-        sortable.destroy();
-      });
+    cardsToDelete.length = 0;
+    cardsToDelete.push(...remaining);
+  });
+
+  async function process(evt: SortableEvent) {
+    const conn = get(signalRConnection);
+    if (!conn) {
+      console.error("SignalR connection is not established.");
+      return;
+    }
+    const movedCardId = evt.item.dataset.id as string;
+    const movedCardUpdatedAt = evt.item.dataset.updatedat as string;
+    const newListId = evt.to.dataset.id as string;
+    await conn.invoke("MoveCard", swimlaneId, movedCardId, newListId, movedCardUpdatedAt);
+  }
+
+  onMount(() => {
+    const sortable = Sortable.create(list, {
+      group: "shared",
+      animation: 150,
+      emptyInsertThreshold: 50,
+      ghostClass: "ghost",
+      dragClass: "drag",
+      sort: false,
+      onAdd: process,
+      onEnd: (evt) => {
+          if (evt.from.dataset.id !== evt.to.dataset.id && evt.item.dataset.id) 
+            cardsToDelete.push({ id: evt.item.dataset.id, item: evt.item });
+      },
+      filter: ".nodrag",
     });
 
-    const me = getContext("user");
-    const board = getContext("board");
-  </script>
-  
-  <div class="w-full max-w-150 rounded-2xl bg-{color}-bg p-5 h-fit">
-    <ManageCardPopup
-      bind:this={popup}
-      pageTags={tags}
-      bind:list={$filteredCards}
-      boardId={boardId}
-      listId={listId}
-      swimlaneId={swimlaneId}
-    />
-    <h1 class="font-bold text-{color}">{title}</h1>
-    <div class="divider mb-3 mt-0"></div>
-    <ul bind:this={list} class="flex flex-col" data-id={listId}>
-      {#each $filteredCards as card (card.id)}
-        <Card
+    onDestroy(() => {
+      sortable.destroy();
+    });
+  });
+</script>
+
+<div class="w-full max-w-150 rounded-2xl bg-{color}-bg p-5 h-fit">
+  <ManageCardPopup
+    bind:this={popup}
+    swimlaneTags={swimlaneTags}
+    listId={listId}
+    swimlaneId={swimlaneId}
+  />
+  <h1 class="font-bold text-{color}">{title}</h1>
+  {#if maxWIP}
+    <p class="text-center text-gray-500">{$filteredCards.length}/{maxWIP}</p>
+  {/if}
+  <div class="divider mb-3 mt-0"></div>
+  <ul bind:this={list} class="flex flex-col" data-id={listId}>
+    {#each $filteredCards as card (card.id)}
+      <Card
         {popup}
-        id={card.id}
+        card={card}
         color={color}
-        title={card.title}
-        tags={card.tags.map((tag) => tags.find((t) => t.id === tag.id))}
-        description={card.description || undefined}
-        assignedUsers={card.assignedUsers}
-        dueDate={card.dueDate || undefined}
-        />
-      {/each}
-    </ul>
-    {#if $board.members.some(member => member.userId === me.id && member.role != BoardRole.Viewer)}
-    <button
-      class="btn btn-dash h-15 w-full nodrag border-{color} text-{color} hover:bg-transparent border-2 rounded-2xl text-2xl"
-      on:click={() => popup.show()}
-    >
-      <Plus />
-    </button>
-    {/if}
-  </div>
+      />
+    {/each}
+  </ul>
+  {#if $board.members.some(member => member.userId === me.id && member.role != BoardRole.Viewer) && $filteredCards.length < (maxWIP ?? Infinity)}
+  <button
+    class="btn btn-dash h-15 w-full nodrag border-{color} text-{color} hover:bg-transparent border-2 rounded-2xl text-2xl"
+    on:click={() => popup.show()}
+  >
+    <Plus />
+  </button>
+  {/if}
+</div>
   

@@ -86,7 +86,7 @@ public class ListController : ControllerBase
         (List newList, DateTime updatedAt) = await _listService.CreateAndFindListAsync(boardId,
             swimlaneId, userId, list, ifMatch.GetValueOrDefault(), cancellationToken);
         await _boardHubContext.Clients.Group(boardId.ToString()).ListCreated(
-            new ListResponse(newList), updatedAt, cancellationToken);
+            swimlaneId, new ListResponse(newList), updatedAt, cancellationToken);
         return Ok(new IdResponse(list.Id));
     }
 
@@ -113,7 +113,7 @@ public class ListController : ControllerBase
         (List newList, DateTime updatedAt) = await _listService.UpdateAndFindListAsync(boardId,
             swimlaneId, userId, list, ifMatch.GetValueOrDefault(), cancellationToken);
         await _boardHubContext.Clients.Group(boardId.ToString()).ListUpdated(
-            new ListResponse(newList), updatedAt, cancellationToken);
+            swimlaneId, new ListResponse(newList), updatedAt, cancellationToken);
         return Ok(new MessageResponse("Successfully updated list!"));
     }
 
