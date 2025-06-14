@@ -63,7 +63,10 @@
 
   onMount(() => {
     const sortable = Sortable.create(htmlList, {
-      group: "shared",
+      group: {
+        name: "shared",
+        put: $filteredCards.length < (list.maxWIP ?? Infinity),
+      },
       animation: 150,
       emptyInsertThreshold: 50,
       ghostClass: "ghost",
