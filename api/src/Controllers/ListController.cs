@@ -44,7 +44,7 @@ public class ListController : ControllerBase
         ObjectId userId = User.GetUserId();
         if (await _boardService.GetUserBoardRoleAsync(boardId, userId, null, cancellationToken) == null)
             throw new ForbiddenException("User is not a member of this board.");
-        List<List> swimlanes = await _listService.GetListBySwimlaneId(boardId, swimlaneId).ToListAsync(cancellationToken);
+        List<List> swimlanes = await _listService.GetListsBySwimlaneId(boardId, swimlaneId).ToListAsync(cancellationToken);
         return Ok(swimlanes.Select(x => new ListResponse(x)).ToList());
     }
 
@@ -60,7 +60,7 @@ public class ListController : ControllerBase
         ObjectId userId = User.GetUserId();
         if (await _boardService.GetUserBoardRoleAsync(boardId, userId, null, cancellationToken) == null)
             throw new ForbiddenException("User is not a member of this board.");
-        List list = await _listService.GetListBySwimlaneId(boardId, swimlaneId).FirstOrDefaultAsync(l => l.Id == listId, cancellationToken)
+        List list = await _listService.GetListsBySwimlaneId(boardId, swimlaneId).FirstOrDefaultAsync(l => l.Id == listId, cancellationToken)
             ?? throw new RecordDoesNotExist("List has not been found.");
         return Ok(new DetailedListResponse(list));
     }

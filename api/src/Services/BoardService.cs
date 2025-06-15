@@ -148,25 +148,24 @@ public class BoardService
         return await session.WithTransactionAsync(async (s, ct) =>
         {
             await UpdateBoardAsync(board, userId, s, ct);
-            return await GetBoardsByUserId(userId, s).SingleAsync(b => b.Id == board.Id, cancellationToken);
+            return await GetBoardsByUserId(userId, s).SingleAsync(b => b.Id == board.Id, ct);
         }, cancellationToken: cancellationToken);
     }
 
     public async Task DeleteBoardAsync(ObjectId id, ObjectId userId, DateTime updatedAt = default, CancellationToken cancellationToken = default)
     {
         using var session = await _mongoClient.StartSessionAsync(cancellationToken: cancellationToken);
-        session.StartTransaction();
-        try
+        await session.WithTransactionAsync(async (s, ctx) =>
         {
             var result = await _boardsCollection
-                .AsQueryable(session)
+                .AsQueryable(s)
                 .Where(x => x.Id == id)
                 .Select(x => new
                 {
                     Member = x.Members.FirstOrDefault(m => m.UserId == userId),
                     x.UpdatedAt
                 })
-                .FirstOrDefaultAsync(cancellationToken)
+                .FirstOrDefaultAsync(ctx)
                 ?? throw new RecordDoesNotExist("Board has not been found.");
             if (updatedAt != default && updatedAt != result.UpdatedAt)
                 throw new PreconditionFailedException("Board has been modified by another user since it was last read.");
@@ -175,16 +174,11 @@ public class BoardService
             var filter = Builders<Board>.Filter.Eq(b => b.Id, id);
             if (updatedAt != default)
                 filter &= Builders<Board>.Filter.Eq(b => b.UpdatedAt, updatedAt);
-            DeleteResult deleteResult = await _boardsCollection.DeleteOneAsync(session, filter, cancellationToken: cancellationToken);
+            DeleteResult deleteResult = await _boardsCollection.DeleteOneAsync(s, filter, cancellationToken: ctx);
             if (deleteResult.DeletedCount == 0 && updatedAt != default)
                 throw new PreconditionFailedException("Board has been modified by another user since it was last read.");
-            await _cardsCollection.DeleteManyAsync(session, x => x.BoardId == id, cancellationToken: cancellationToken);
-            await session.CommitTransactionAsync(cancellationToken);
-        }
-        catch (Exception)
-        {
-            await session.AbortTransactionAsync(cancellationToken);
-            throw;
-        }
+            await _cardsCollection.DeleteManyAsync(s, x => x.BoardId == id, cancellationToken: ctx);
+            return Task.CompletedTask;
+        }, cancellationToken: cancellationToken);
     }
 }

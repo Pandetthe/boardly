@@ -248,7 +248,7 @@ public class CardService
         }, cancellationToken: cancellationToken);
     }
 
-    public async Task UpdateCardAsync(Card card, ObjectId userId, IClientSessionHandle session , CancellationToken cancellationToken = default)
+    public async Task UpdateCardAsync(Card card, ObjectId userId, IClientSessionHandle session, CancellationToken cancellationToken = default)
     {
         if (LockedCards.TryGetValue(card.Id, out var lockedUserId) && lockedUserId != userId)
             throw new ForbiddenException("Card is locked by another user. Please try again later.");
@@ -383,7 +383,6 @@ public class CardService
                 throw new InvalidOperationException("An unexpected error occurred while moving card. Card has not been modified.");
             return now;
         }, cancellationToken: cancellationToken);
-
     }
 
     public async Task DeleteCardAsync(ObjectId cardId, ObjectId userId, DateTime updatedAt = default, CancellationToken cancellationToken = default)

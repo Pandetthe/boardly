@@ -19,7 +19,7 @@ public class ListService
         _mongoClient = mongoDbProvider.Client;
     }
 
-    public IQueryable<List> GetListBySwimlaneId(ObjectId boardId, ObjectId swimlaneId, IClientSessionHandle? session = null)
+    public IQueryable<List> GetListsBySwimlaneId(ObjectId boardId, ObjectId swimlaneId, IClientSessionHandle? session = null)
     {
         return (session == null 
             ? _boardsCollection.AsQueryable()
@@ -76,7 +76,7 @@ public class ListService
         return await session.WithTransactionAsync(async (s, ctx) =>
         {
             var newUpdatedAt = await CreateListAsync(boardId, swimlaneId, userId, list, s, updatedAt, ctx);
-            return (await GetListBySwimlaneId(boardId, swimlaneId, s).SingleAsync(s => s.Id == list.Id, ctx), newUpdatedAt);
+            return (await GetListsBySwimlaneId(boardId, swimlaneId, s).SingleAsync(s => s.Id == list.Id, ctx), newUpdatedAt);
         }, cancellationToken: cancellationToken);
     }
 
@@ -129,7 +129,7 @@ public class ListService
         return await session.WithTransactionAsync(async (s, ctx) =>
         {
             var newUpdatedAt = await UpdateListAsync(boardId, swimlaneId, userId, list, s, updatedAt, ctx);
-            return (await GetListBySwimlaneId(boardId, swimlaneId, s).SingleAsync(s => s.Id == list.Id, ctx), newUpdatedAt);
+            return (await GetListsBySwimlaneId(boardId, swimlaneId, s).SingleAsync(s => s.Id == list.Id, ctx), newUpdatedAt);
         }, cancellationToken: cancellationToken);
     }
 
