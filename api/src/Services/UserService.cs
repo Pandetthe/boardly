@@ -51,7 +51,7 @@ public class UserService
         return await _usersCollection.Find(u => u.Nickname == nickname, null).FirstOrDefaultAsync(cancellationToken);
     }
 
-    public async Task<List<User>> FindUserAsync(string? nickname, List<ObjectId> blacklistIds, CancellationToken cancellationToken = default)
+    public async Task<List<User>> FindUsersAsync(string? nickname, List<ObjectId> blacklistIds, CancellationToken cancellationToken = default)
     {
         var nicknameFilter = string.IsNullOrWhiteSpace(nickname)
             ? Builders<User>.Filter.Empty

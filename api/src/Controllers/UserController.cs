@@ -38,7 +38,7 @@ public class UserController : ControllerBase
     public async Task<IActionResult> GetAllUsersAsync([FromQuery] string? q, [FromQuery] List<ObjectId> b,  CancellationToken cancellationToken)
     {
         ObjectId userId = ObjectId.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
-        List<User> users = await _userService.FindUserAsync(q, b, cancellationToken);
+        List<User> users = await _userService.FindUsersAsync(q, b, cancellationToken);
         return Ok(users.Select(x => new UserResponse(x)));
     }
 
