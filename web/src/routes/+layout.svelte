@@ -8,11 +8,10 @@
 	globalError.subscribe(async (error) => {
 
 		if (error) {
-			console.log('Global error body:', error);
 			if (error.status == 412) {
 				err = error.detail;
 			} else {
-				err = error.message;
+				err = error.errors.Title[0] ?? error.message ?? error.title;
 			}
 			setTimeout(() => {
 					err = null;
