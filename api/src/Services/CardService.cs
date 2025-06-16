@@ -324,6 +324,8 @@ public class CardService
     public async Task<DateTime> MoveCardAsync(ObjectId cardId, ObjectId userId, ObjectId listId, 
         DateTime updatedAt = default, CancellationToken cancellationToken = default)
     {
+        if (LockedCards.TryGetValue(cardId, out var lockedUserId) && lockedUserId != userId)
+            throw new ForbiddenException("Card is locked by another user. Please try again later.");
         using var session = await _mongoClient.StartSessionAsync(cancellationToken: cancellationToken);
         return await session.WithTransactionAsync(async (s, ctx) =>
         {
