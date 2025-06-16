@@ -4,6 +4,7 @@
     import { Check, X } from "lucide-svelte";
     import type { DetailedSwimlane, DetailedSwimlaneRequest } from "$lib/types/api/swimlanes";
     import { invalidate } from "$app/navigation";
+    import { globalError } from "$lib/stores/ErrorStore";
     
     const { boardId } = $props<{ boardId: string }>();
 
@@ -33,37 +34,46 @@
         }
         currentSwimlane.lists = listsToAdd;
         listsToAdd = [];
-        await fetch(`/api/boards/${boardId}/swimlanes`, {
+        const res = await fetch(`/api/boards/${boardId}/swimlanes`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify(currentSwimlane)
         });
+        if (!res.ok) {
+            globalError.set(await res.json());
+        }
         visible = false;
     }
 
 
     export async function onDelete() {
-        await fetch(`/api/boards/${boardId}/swimlanes/${currentSwimlaneId}`, {
+        const res = await fetch(`/api/boards/${boardId}/swimlanes/${currentSwimlaneId}`, {
             method: 'DELETE',
             headers: {
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify(currentSwimlane)
         });
+        if (!res.ok) {
+            globalError.set(await res.json());
+        }
         visible = false;
     }
 
 
     export async function onEdit() {
-        await fetch(`/api/boards/${boardId}/swimlanes/${currentSwimlaneId}`, {
+        const res = await fetch(`/api/boards/${boardId}/swimlanes/${currentSwimlaneId}`, {
             method: 'PATCH',
             headers: {
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify(currentSwimlane)
         });
+        if (!res.ok) {
+            globalError.set(await res.json());
+        }
         visible = false;
         
         for (const list of listsToDelete) {
@@ -92,7 +102,7 @@
                 },
                 body: JSON.stringify(list)
             }).then(res => res.json());
-            currentSwimlane!.lists = [...currentSwimlane!.lists, { id: res.id, title: list.title, color: list.color, maxWIP: 0, createdAt: "", updatedAt: "" }];
+            currentSwimlane!.lists = [...currentSwimlane!.lists, { id: res.id, title: list.title, color: list.color, maxWIP: list.maxWIP, createdAt: "", updatedAt: "" }];
         }
         for (const tag of tagsToDelete) {
             await fetch(`/api/boards/${boardId}/swimlanes/${currentSwimlaneId}/tags/${tag.id}`, {
@@ -179,7 +189,8 @@
             {#each currentSwimlane!.lists as list}
                 <div class="bg-{list.color}-bg border-{list.color} text-{list.color} badge drop-shadow-xl drop-shadow-{list.color}-shadow w-full justify-between h-10">
                     <input type="text" class="bg-transparent" value={list.title} />
-                    <div>
+                    <div class="join">
+                        <input type="number" class="bg-transparent join-item" bind:value={list.maxWIP} min="1" max="100" step="1" placeholder="WIP"/>
                         <select class="w-fit join-item" bind:value={list.color}>
                             <option value="blue" class="bg-blue-bg text-blue hover:bg-blue hover:text-blue-bg">Blue</option>
                             <option value="green" class="bg-green-bg text-green hover:bg-green hover:text-green-bg">Green</option>
@@ -189,7 +200,7 @@
                             <option value="pink" class="bg-pink-bg text-pink hover:bg-pink hover:text-pink-bg">Pink</option>
                             <option value="teal" class="bg-teal-bg text-teal hover:bg-teal hover:text-teal-bg">Teal</option>
                         </select>
-                        <button onclick={() => { currentSwimlane!.lists = currentSwimlane!.lists.filter(l => l !== list); listsToDelete.push(list)}} class="text-{list.color}">
+                        <button onclick={() => { currentSwimlane!.lists = currentSwimlane!.lists.filter(l => l !== list); listsToDelete.push(list)}} class="text-{list.color} join-item">
                             <X class="w-6 h-6"/>
                         </button>
                     </div>
@@ -198,7 +209,10 @@
             {#each listsToAdd as list}
                 <div class="bg-{list.color}-bg border-{list.color} text-{list.color} badge drop-shadow-xl drop-shadow-{list.color}-shadow w-full justify-between h-10">
                     <input type="text" class="bg-transparent" value={list.title} />
+                    <input type="number" class="w-16 bg-transparent text-right" value={list.maxWIP} min="1" max="100" step="1" />
                     <div>
+                        <div class="join">
+                        <input type="number" class="bg-transparent join-item" bind:value={list.maxWIP} min="1" max="100" step="1" placeholder="WIP"/>
                         <select class="w-fit join-item" bind:value={list.color}>
                             <option value="blue" class="bg-blue-bg text-blue hover:bg-blue hover:text-blue-bg">Blue</option>
                             <option value="green" class="bg-green-bg text-green hover:bg-green hover:text-green-bg">Green</option>
@@ -208,14 +222,16 @@
                             <option value="pink" class="bg-pink-bg text-pink hover:bg-pink hover:text-pink-bg">Pink</option>
                             <option value="teal" class="bg-teal-bg text-teal hover:bg-teal hover:text-teal-bg">Teal</option>
                         </select>
-                        <button onclick={() => { listsToAdd = listsToAdd.filter(l => l != list) } } class="text-{list.color}">
+                        <button onclick={() => { listsToAdd = listsToAdd.filter(l => l != list) } } class="text-{list.color} join-item">
                             <X class="w-6 h-6"/>
                         </button>
+                        </div>
                     </div>
                 </div>
             {/each}
             <div class="join border-border border-1 bg-{listColorSelection}-bg text-{listColorSelection} w-full rounded-md">
                 <input type="text" class="input w-full join-item border-none bg-inherit focus:outline-none" placeholder="Enter the list name" bind:value={listName} />
+                <div class="join">
                 <select class="w-fit join-item" bind:value={listColorSelection}>
                     <option value="blue" class="bg-blue-bg text-blue hover:bg-blue hover:text-blue-bg">Blue</option>
                     <option value="green" class="bg-green-bg text-green hover:bg-green hover:text-green-bg">Green</option>
@@ -228,6 +244,7 @@
                 <button class="btn btn-primary join-item" onclick={addList} type="button" >
                     <Check />
                 </button>
+            </div>  
             </div>
         </div>
     </PopupAccordion>
@@ -238,7 +255,7 @@
             {#each currentSwimlane!.tags as tag}
                 <div class="bg-{tag.color}-bg border-{tag.color} text-{tag.color} badge drop-shadow-xl drop-shadow-{tag.color}-shadow w-full justify-between h-10">
                     <input type="text" class="bg-transparent" value={tag.title} />
-                    <div>
+                    <div class="join">
                         <select class="w-fit join-item" bind:value={tag.color}>
                             <option value="blue" class="bg-blue-bg text-blue hover:bg-blue hover:text-blue-bg">Blue</option>
                             <option value="green" class="bg-green-bg text-green hover:bg-green hover:text-green-bg">Green</option>
@@ -257,7 +274,7 @@
             {#each tagsToAdd as tag}
                 <div class="bg-{tag.color}-bg border-{tag.color} text-{tag.color} badge drop-shadow-xl drop-shadow-{tag.color}-shadow w-full justify-between h-10">
                     <input type="text" class="bg-transparent" value={tag.title} />
-                    <div>
+                    <div class="join">
                         <select class="join-item" bind:value={tag.color}>
                             <option value="blue" class="bg-blue-bg text-blue hover:bg-blue hover:text-blue-bg">Blue</option>
                             <option value="green" class="bg-green-bg text-green hover:bg-green hover:text-green-bg">Green</option>

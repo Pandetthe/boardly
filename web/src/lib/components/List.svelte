@@ -33,6 +33,7 @@
 
   const cardsToDelete: { id: string; item: HTMLElement }[] = [];
 
+  let sortable: Sortable;
   cardsContext.subscribe((cards) => {
     const remaining: typeof cardsToDelete = [];
 
@@ -62,17 +63,19 @@
   }
 
   onMount(() => {
-    const sortable = Sortable.create(htmlList, {
+    sortable = Sortable.create(htmlList, {
       group: {
         name: "shared",
-        put: $filteredCards.length < (list.maxWIP ?? Infinity),
+        put: () => $filteredCards.length < (list.maxWIP ?? Infinity),
       },
       animation: 150,
       emptyInsertThreshold: 50,
       ghostClass: "ghost",
       dragClass: "drag",
       sort: false,
-      onAdd: process,
+      onAdd: (evt) => {
+        process(evt);
+      },
       onEnd: (evt) => {
           if (evt.from.dataset.id !== evt.to.dataset.id && evt.item.dataset.id) 
             cardsToDelete.push({ id: evt.item.dataset.id, item: evt.item });
@@ -93,10 +96,13 @@
     listId={list.id}
     swimlaneId={swimlaneId}
   />
-  <h1 class="font-bold text-{list.color}">{list.title}</h1>
-  {#if list.maxWIP}
-    <p class="text-center text-gray-500">{$filteredCards.length}/{list.maxWIP}</p>
-  {/if}
+  <div class="flex justify-between">
+    <h1 class="font-bold text-{list.color}">{list.title}</h1>
+    {#if list.maxWIP}
+      <h1 class="font-bold text-{list.color}">{$filteredCards.length}/{list.maxWIP}</h1>
+    {/if}
+  </div>
+
   <div class="divider mb-3 mt-0"></div>
   <ul bind:this={htmlList} class="flex flex-col" data-id={list.id}>
     {#each $filteredCards as card (card.id)}

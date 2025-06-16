@@ -22,7 +22,8 @@
   const board = getContext<Writable<Board>>('board');
 </script>
 
-<li class="border-2 border-{color} bg-component rounded-xl mb-5 drop-shadow-2xl drop-shadow-{color}-shadow {card.assignedUsers.some(u => u.id == me.id) || $board.members.some(member => member.userId === me.id && member.role != BoardRole.Viewer)? '' : 'nodrag'}"
+<li class="border-2 border-{color} bg-component rounded-xl mb-5 drop-shadow-2xl drop-shadow-{color}-shadow 
+{card.lockedByUser != null || card.assignedUsers.some(u => u.id == me.id) || $board.members.some(member => member.userId === me.id && member.role != BoardRole.Viewer)? '' : 'nodrag'}"
     data-id={card.id} data-updatedAt={card.updatedAt.toISOString()}>
     {#if card.lockedByUser}
     <div class="flex gap-2 absolute top-0 left-0 z-50 rounded-xl w-full h-full bg-radial from-component-hover to-transparent justify-center items-center text-text text-xl">
