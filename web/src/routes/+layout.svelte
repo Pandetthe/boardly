@@ -3,7 +3,7 @@
 	import { globalError } from '$lib/stores/ErrorStore';
 	import { TriangleAlert } from 'lucide-svelte';
 
-	let err = $state<string | null>("hi");
+	let err = $state<string | null>(null);
 
 	globalError.subscribe(async (error) => {
 
@@ -16,7 +16,7 @@
 				}, 3000);
 			}
 		} else {
-			err = "hi";
+			err = null;
 		}
 	});
 
