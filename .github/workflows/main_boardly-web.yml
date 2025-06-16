@@ -1,18 +1,19 @@
+# Docs for the Azure Web Apps Deploy action: https://github.com/Azure/webapps-deploy
+# More GitHub Actions for Azure: https://github.com/Azure/actions
+
 name: Build and deploy Node.js app to Azure Web App - boardly-web
 
 on:
   push:
     branches:
       - main
-    paths:
-      - 'web/**'
   workflow_dispatch:
 
 jobs:
   build:
-    runs-on: windows-latest
+    runs-on: ubuntu-latest
     permissions:
-      contents: read
+      contents: read #This is required for actions/checkout
 
     steps:
       - uses: actions/checkout@v4
@@ -23,17 +24,19 @@ jobs:
           node-version: '22.x'
 
       - name: npm install, build, and test
-        working-directory: web
         run: |
           npm install
           npm run build --if-present
           npm run test --if-present
-      
+
+      - name: Zip artifact for deployment
+        run: zip release.zip ./* -r
+
       - name: Upload artifact for deployment job
         uses: actions/upload-artifact@v4
         with:
           name: node-app
-          path: web
+          path: release.zip
 
   deploy:
     runs-on: ubuntu-latest
@@ -42,26 +45,30 @@ jobs:
       name: 'Production'
       url: ${{ steps.deploy-to-webapp.outputs.webapp-url }}
     permissions:
-      id-token: write
-      contents: read
+      id-token: write #This is required for requesting the JWT
+      contents: read #This is required for actions/checkout
 
     steps:
       - name: Download artifact from build job
         uses: actions/download-artifact@v4
         with:
           name: node-app
+
+      - name: Unzip artifact for deployment
+        run: unzip release.zip
       
       - name: Login to Azure
         uses: azure/login@v2
         with:
-          client-id: ${{ secrets.AZUREAPPSERVICE_CLIENTID_EB3FC4D4C83F4445B04DB2866C313EA1 }}
-          tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_617A996882B746ACB17FA61F198F971B }}
-          subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_51B665AF92AB4D0188C7DB0B7F2451A6 }}
+          client-id: ${{ secrets.AZUREAPPSERVICE_CLIENTID_836790257F2741669A3A49D125023EAF }}
+          tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_92D2709828134BEE8C3C29348EFFE514 }}
+          subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_38FA24A4B7A246A994F5DCA2718C961B }}
 
       - name: 'Deploy to Azure Web App'
-        uses: azure/webapps-deploy@v3
         id: deploy-to-webapp
+        uses: azure/webapps-deploy@v3
         with:
           app-name: 'boardly-web'
           slot-name: 'Production'
           package: .
+          
