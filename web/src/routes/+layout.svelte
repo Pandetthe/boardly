@@ -11,10 +11,12 @@
 			console.log('Global error body:', error);
 			if (error.status == 412) {
 				err = error.detail;
-				setTimeout(() => {
-					err = null;
-				}, 3000);
+			} else {
+				err = error.message;
 			}
+			setTimeout(() => {
+					err = null;
+			}, 3000);
 		} else {
 			err = null;
 		}

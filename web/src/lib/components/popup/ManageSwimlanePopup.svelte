@@ -82,22 +82,28 @@
         visible = false;
         
         for (const list of listsToDelete) {
-            await fetch(`/api/boards/${boardId}/swimlanes/${currentSwimlaneId}/lists/${list.id}`, {
+            const res = await fetch(`/api/boards/${boardId}/swimlanes/${currentSwimlaneId}/lists/${list.id}`, {
                 method: 'DELETE',
                 headers: {
                     'Content-Type': 'application/json'
                 }
             });
+            if (!res.ok) {
+                globalError.set(await res.json());
+            }
             currentSwimlane!.lists = currentSwimlane!.lists.filter(l => l.id !== list.id);
         }
         for (const list of currentSwimlane!.lists) {
-            await fetch(`/api/boards/${boardId}/swimlanes/${currentSwimlaneId}/lists/${list.id}`, {
+            const res = await fetch(`/api/boards/${boardId}/swimlanes/${currentSwimlaneId}/lists/${list.id}`, {
                 method: 'PATCH',
                 headers: {
                     'Content-Type': 'application/json'
                 },
                 body: JSON.stringify(list)
             });
+            if (!res.ok) {
+                globalError.set(await res.json());
+            }
         }
         for (const list of listsToAdd) {
             const res = await fetch(`/api/boards/${boardId}/swimlanes/${currentSwimlaneId}/lists`, {
@@ -106,26 +112,36 @@
                     'Content-Type': 'application/json'
                 },
                 body: JSON.stringify(list)
-            }).then(res => res.json());
-            currentSwimlane!.lists = [...currentSwimlane!.lists, { id: res.id, title: list.title, color: list.color, maxWIP: list.maxWIP, createdAt: "", updatedAt: "" }];
+            })
+            const j = await res.json();
+            if (!res.ok) {
+                globalError.set(j);
+            }
+            currentSwimlane!.lists = [...currentSwimlane!.lists, { id: j.id, title: list.title, color: list.color, maxWIP: list.maxWIP, createdAt: "", updatedAt: "" }];
         }
         for (const tag of tagsToDelete) {
-            await fetch(`/api/boards/${boardId}/swimlanes/${currentSwimlaneId}/tags/${tag.id}`, {
+            const res = await fetch(`/api/boards/${boardId}/swimlanes/${currentSwimlaneId}/tags/${tag.id}`, {
                 method: 'DELETE',
                 headers: {
                     'Content-Type': 'application/json'
                 }
             });
+            if (!res.ok) {
+                globalError.set(j);
+            }
             currentSwimlane!.tags = currentSwimlane!.tags.filter(t => t.id !== tag.id);
         }
         for (const tag of currentSwimlane!.tags) {
-            await fetch(`/api/boards/${boardId}/swimlanes/${currentSwimlaneId}/tags/${tag.id}`, {
+            const res = await fetch(`/api/boards/${boardId}/swimlanes/${currentSwimlaneId}/tags/${tag.id}`, {
                 method: 'PATCH',
                 headers: {
                     'Content-Type': 'application/json'
                 },
                 body: JSON.stringify(tag)
             });
+            if (!res.ok) {
+                globalError.set(j);
+            }
             console.log(tag);
         }
         for (const tag of tagsToAdd) {
@@ -135,8 +151,13 @@
                     'Content-Type': 'application/json'
                 },
                 body: JSON.stringify(tag)
-            }).then(res => res.json());
-            currentSwimlane!.tags = [...currentSwimlane!.tags, { id: res.id, title: tag.title, color: tag.color }];
+            })
+            const resJson = await res.json();
+            if (!res.ok) {
+                globalError.set(resJson);
+            }
+            
+            currentSwimlane!.tags = [...currentSwimlane!.tags, { id: resJson.id, title: tag.title, color: tag.color }];
         }
         listsToAdd = [];
         tagsToAdd = [];
@@ -193,7 +214,7 @@
         <div class="flex flex-wrap gap-2">
             {#each currentSwimlane!.lists as list}
                 <div class="bg-{list.color}-bg border-{list.color} text-{list.color} badge drop-shadow-xl drop-shadow-{list.color}-shadow w-full justify-between h-10">
-                    <input type="text" class="bg-transparent" value={list.title} />
+                    <input type="text" class="bg-transparent" bind:value={list.title} />
                     <div class="join">
                         <input type="number" class="bg-transparent join-item" bind:value={list.maxWIP} min="1" max="100" step="1" placeholder="WIP"/>
                         <select class="w-fit join-item" bind:value={list.color}>
@@ -213,8 +234,7 @@
             {/each}
             {#each listsToAdd as list}
                 <div class="bg-{list.color}-bg border-{list.color} text-{list.color} badge drop-shadow-xl drop-shadow-{list.color}-shadow w-full justify-between h-10">
-                    <input type="text" class="bg-transparent" value={list.title} />
-                    <input type="number" class="w-16 bg-transparent text-right" value={list.maxWIP} min="1" max="100" step="1" />
+                    <input type="text" class="bg-transparent" bind:value={list.title} />
                     <div>
                         <div class="join">
                         <input type="number" class="bg-transparent join-item" bind:value={list.maxWIP} min="1" max="100" step="1" placeholder="WIP"/>
@@ -278,7 +298,7 @@
             {/each}
             {#each tagsToAdd as tag}
                 <div class="bg-{tag.color}-bg border-{tag.color} text-{tag.color} badge drop-shadow-xl drop-shadow-{tag.color}-shadow w-full justify-between h-10">
-                    <input type="text" class="bg-transparent" value={tag.title} />
+                    <input type="text" class="bg-transparent" bind:value={tag.title} />
                     <div class="join">
                         <select class="join-item" bind:value={tag.color}>
                             <option value="blue" class="bg-blue-bg text-blue hover:bg-blue hover:text-blue-bg">Blue</option>
