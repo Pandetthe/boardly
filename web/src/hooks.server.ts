@@ -1,5 +1,5 @@
 import type { Handle } from '@sveltejs/kit';
-import { env } from '$env/dynamic/private'
+import { env } from '$env/dynamic/public'
 import type { RefreshRequest, AuthResponse } from '$lib/types/api/auth';
 
 const PUBLIC_ROUTES: string[] = [];
@@ -14,7 +14,7 @@ export const handle: Handle = async ({ event, resolve }) => {
 	let refreshToken = event.cookies.get('refresh_token');
 	if (!accessToken && refreshToken) {
         try {
-            const res = await fetch(`${env.VITE_API_SERVER}/auth/refresh`, {
+            const res = await fetch(`${env.PUBLIC_API_SERVER}/auth/refresh`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ refreshToken: refreshToken } as RefreshRequest)

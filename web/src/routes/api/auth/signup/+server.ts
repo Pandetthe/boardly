@@ -1,9 +1,9 @@
 import type { AuthResponse, SignUpRequest } from '$lib/types/api/auth';
-import { env } from '$env/dynamic/private';
+import { env } from '$env/dynamic/public';
 
 export async function POST({ request, cookies }) {
   const { nickname, password } = await request.json();
-  const res = await fetch(new URL('/auth/signup', env.VITE_API_SERVER), {
+  const res = await fetch(new URL('/auth/signup', env.PUBLIC_API_SERVER), {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', },
     body: JSON.stringify({ nickname, password } as SignUpRequest),
