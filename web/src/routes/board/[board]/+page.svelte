@@ -11,11 +11,12 @@
 	import { writable } from 'svelte/store';
 	import { BoardRole } from '$lib/types/api/members';
 	import { parseCard, type Card, type CardResponse } from '$lib/types/api/cards';
-  import { env } from '$env/dynamic/public';
+  	import { env } from '$env/dynamic/public';
 	import type { SimplifiedUserResponse } from '$lib/types/api/users';
 	import type { DetailedSwimlaneResponse, SwimlaneResponse } from '$lib/types/api/swimlanes';
 	import type { ListResponse } from '$lib/types/api/lists';
-	import type { TagResponse } from '$lib/types/api/tags';
+	import type { Tag, TagResponse } from '$lib/types/api/tags';
+	import Sidebar from '$lib/components/Sidebar.svelte';
 
 	let { data }: PageProps = $props();
 
@@ -290,6 +291,7 @@
     <title>{$board.title}</title> 
 </svelte:head>
 
+<Sidebar me={data.user}/>
 <ManageSwimlanePopup bind:this={swimlanePopup} boardId={data.board.id}/>
 <div class="w-full overflow-y-auto">
 	<div class="tabs gap-3 p-3">

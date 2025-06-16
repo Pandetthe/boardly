@@ -7,6 +7,7 @@
 	import { BoardRole } from "$lib/types/api/members";
     import { setContext } from "svelte";
 	import { Plus } from "lucide-svelte";
+	import Sidebar from "$lib/components/Sidebar.svelte";
 
     let popup: ManageBoardPopup | undefined = $state(undefined);
 	let { data }: PageProps = $props();
@@ -27,7 +28,7 @@
 </svelte:head>
 
 <ManageBoardPopup bind:this={popup} />
-
+<Sidebar me={data.user}/>
 <div class="overflow-auto w-full">
     <div class="w-full p-5 grid grid-cols-[repeat(auto-fill,_minmax(400px,_1fr))] gap-5 h-fit">
         {#if data && data.boards && data.user}
@@ -38,7 +39,7 @@
     </div>
 </div>
 
-<div class="toast">
+<div class="toast z-40">
     <button class="btn btn-xl bg-blue-bg rounded-2xl aspect-square p-4 text-blue" onclick={() => popup?.show()}>
         <Plus class="w-12 h-12"/>
     </button>

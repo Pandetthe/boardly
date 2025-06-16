@@ -1,4 +1,5 @@
 <script lang="ts">
+	import Sidebar from '$lib/components/Sidebar.svelte';
     import type { PageProps } from './$types';
 
 	let { data }: PageProps = $props();
@@ -8,7 +9,7 @@
     <title>My profile</title> 
 </svelte:head>
 
-
+<Sidebar me={data.user}/>
 <div class="w-full p-5 gap-5 h-fit">
     <div class="bg-white rounded shadow p-4">
         <h2 class="text-xl text-black font-bold mb-2">{data.user.nickname}</h2>
