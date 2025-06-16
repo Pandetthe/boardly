@@ -262,7 +262,7 @@
                     <option value="pink" class="bg-pink-bg text-pink hover:bg-pink hover:text-pink-bg">Pink</option>
                     <option value="teal" class="bg-teal-bg text-teal hover:bg-teal hover:text-teal-bg">Teal</option>
                 </select>
-                <button class="btn btn-primary join-item" onclick={addList} type="button" >
+                <button class="btn btn-primary join-item" onclick={addList} type="button">
                     <Check />
                 </button>
             </div>  
@@ -275,7 +275,7 @@
             <div class="flex flex-wrap gap-2">
             {#each currentSwimlane!.tags as tag}
                 <div class="bg-{tag.color}-bg border-{tag.color} text-{tag.color} badge drop-shadow-xl drop-shadow-{tag.color}-shadow w-full justify-between h-10">
-                    <input type="text" class="bg-transparent" value={tag.title} />
+                    <input type="text" class="bg-transparent" bind:value={tag.title} />
                     <div class="join">
                         <select class="w-fit join-item" bind:value={tag.color}>
                             <option value="blue" class="bg-blue-bg text-blue hover:bg-blue hover:text-blue-bg">Blue</option>
@@ -286,7 +286,7 @@
                             <option value="pink" class="bg-pink-bg text-pink hover:bg-pink hover:text-pink-bg">Pink</option>
                             <option value="teal" class="bg-teal-bg text-teal hover:bg-teal hover:text-teal-bg">Teal</option>
                         </select>
-                        <button onclick={() => { currentSwimlane!.tags = currentSwimlane!.tags.filter(t => t !== tag); tagsToDelete.push(tag)}} class="text-{tag.color}">
+                        <button onclick={() => { currentSwimlane!.tags = currentSwimlane!.tags.filter(t => t !== tag); tagsToDelete.push(tag)}} class="text-{tag.color}" type="button">
                             <X class="w-6 h-6"/>
                         </button>
                     </div>
@@ -305,7 +305,7 @@
                             <option value="pink" class="bg-pink-bg text-pink hover:bg-pink hover:text-pink-bg">Pink</option>
                             <option value="teal" class="bg-teal-bg text-teal hover:bg-teal hover:text-teal-bg">Teal</option>
                         </select>
-                        <button onclick={() => { tagsToAdd.filter(t => t != tag) }} class="text-{tag.color}">
+                        <button onclick={() => { tagsToAdd = tagsToAdd.filter(t => t != tag) }} class="text-{tag.color}" type="button">
                             <X class="w-6 h-6"/>
                         </button>
                     </div>
@@ -323,7 +323,7 @@
                     <option value="pink" class="bg-pink-bg text-pink hover:bg-pink hover:text-pink-bg">Pink</option>
                     <option value="teal" class="bg-teal-bg text-teal hover:bg-teal hover:text-teal-bg">Teal</option>
                 </select>
-                <button class="btn btn-primary join-item" onclick={addTag}  type="button" >
+                <button class="btn btn-primary join-item" onclick={addTag} type="button">
                     <Check />
                 </button>
             </div>

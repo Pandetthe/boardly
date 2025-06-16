@@ -11,7 +11,10 @@
 			if (error.status == 412) {
 				err = error.detail;
 			} else {
-				err = error.errors.Title[0] ?? error.message ?? error.title;
+				err = error.message ?? error.title;
+				if (error.errors) {
+					err = error.errors.Title[0];
+				}
 			}
 			setTimeout(() => {
 					err = null;
