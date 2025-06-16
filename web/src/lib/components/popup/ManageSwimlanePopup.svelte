@@ -5,7 +5,6 @@
     import type { DetailedSwimlane, DetailedSwimlaneRequest } from "$lib/types/api/swimlanes";
     import { invalidate } from "$app/navigation";
     import { globalError } from "$lib/stores/ErrorStore";
-	import { getContext } from "svelte";
     
     const { boardId } = $props<{ boardId: string }>();
 
@@ -17,11 +16,9 @@
     let listsToDelete: { id: string, title: string, color: string }[] = $state([]);
     let tagsToAdd: { title: string, color: string }[] = $state([]);
     let tagsToDelete: { id: string, title: string, color: string }[] = $state([]);
-    const board = getContext('board');
-    let reservedUpdateAt;
+
 
     export function show(swimlane: DetailedSwimlane | null = null) {
-        reservedUpdateAt = board.updatedAt;
         isEditMode = swimlane !== null;
         visible = true;
         if (!isEditMode) {
@@ -71,7 +68,6 @@
         const res = await fetch(`/api/boards/${boardId}/swimlanes/${currentSwimlaneId}`, {
             method: 'PATCH',
             headers: {
-                'If-Match': reservedUpdateAt,
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify(currentSwimlane)
