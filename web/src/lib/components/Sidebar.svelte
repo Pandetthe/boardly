@@ -2,7 +2,7 @@
   import { goto } from '$app/navigation';
 	import { Home, LogOut } from 'lucide-svelte';
   import ProfileIcon from './ProfileIcon.svelte';
-  let me = { nickname: 'hi' };
+  export let me;
 </script>
 
 <div class="w-full h-20 lg:h-full lg:w-20 p-5 bg-background-secondary flex lg:flex-col justify-between items-center border-b-1 lg:border-r-1 border-r-border border-b-border">

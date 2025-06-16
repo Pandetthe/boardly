@@ -7,6 +7,7 @@
 	import { invalidate } from "$app/navigation";
 	import { getContext } from "svelte";
 	import type { User } from "$lib/types/api/users";
+	import { globalError } from "$lib/stores/ErrorStore";
 
   let visible: boolean = $state(false);
   let isEditMode: boolean = $state(false);
@@ -38,13 +39,16 @@
   }
 
   export async function onCreate() {
-    await fetch('/api/boards', {
+    const res = await fetch('/api/boards', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({ title: currentBoard.title, members: currentBoard.members.map(x => ({ userId: x.userId, role: x.role })) } as CreateBoardRequest)
     });
+    if (!res.ok) {
+      globalError.set(await res.json());
+    }
     await invalidate('api:boards');
     visible = false;
   }
@@ -52,13 +56,16 @@
 
   export async function onDelete() {
     const updatedAtStr = updatedAt!.toISOString();
-    await fetch(`/api/boards/${currentBoardId}`, {
+    const res = await fetch(`/api/boards/${currentBoardId}`, {
       method: 'DELETE',
       headers: {
         'Content-Type': 'application/json',
         'If-Match': updatedAtStr
       }
     });
+    if (!res.ok) {
+      globalError.set(await res.json());
+    }
     await invalidate('api:boards');
     visible = false;
   }
@@ -66,7 +73,7 @@
 
   export async function onEdit() {
     const updatedAtStr = updatedAt!.toISOString();
-    await fetch(`/api/boards/${currentBoardId}`, {
+    const res = await fetch(`/api/boards/${currentBoardId}`, {
       method: 'PATCH',
       headers: {
         'Content-Type': 'application/json',
@@ -74,6 +81,9 @@
       },
       body: JSON.stringify({ title: currentBoard.title, members: currentBoard.members.map(x => ({ userId: x.userId, role: x.role })) } as CreateBoardRequest)
     });
+    if (!res.ok) {
+      globalError.set(await res.json());
+    }
     await invalidate('api:boards');
     visible = false;
   }

@@ -15,6 +15,7 @@
 	import type { DetailedSwimlaneResponse, SwimlaneResponse } from '$lib/types/api/swimlanes';
 	import type { ListResponse } from '$lib/types/api/lists';
 	import type { Tag, TagResponse } from '$lib/types/api/tags';
+	import Sidebar from '$lib/components/Sidebar.svelte';
 
 	let { data }: PageProps = $props();
 
@@ -285,6 +286,7 @@
     <title>{$board.title}</title> 
 </svelte:head>
 
+<Sidebar me={data.user}/>
 <ManageSwimlanePopup bind:this={swimlanePopup} boardId={data.board.id}/>
 <div class="w-full overflow-y-auto">
 	<div class="tabs gap-3 p-3">

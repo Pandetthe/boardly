@@ -14,7 +14,7 @@
     {"bg-red-bg border-red": invalid},
     {"hover:border-border-hover hover:bg-component-hover": !invalid}
     ]}>
-    <input type="radio" name={name}/>
+    <input type="radio" name={name} />
     {#if ready}
       <Check class="absolute right-4 top-5 h-5 text-green"/>
     {/if}
