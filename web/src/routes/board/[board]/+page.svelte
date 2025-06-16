@@ -11,10 +11,11 @@
 	import { writable } from 'svelte/store';
 	import { BoardRole } from '$lib/types/api/members';
 	import { parseCard, type Card, type CardResponse } from '$lib/types/api/cards';
+  import { env } from '$env/dynamic/public';
 	import type { SimplifiedUserResponse } from '$lib/types/api/users';
 	import type { DetailedSwimlaneResponse, SwimlaneResponse } from '$lib/types/api/swimlanes';
 	import type { ListResponse } from '$lib/types/api/lists';
-	import type { Tag, TagResponse } from '$lib/types/api/tags';
+	import type { TagResponse } from '$lib/types/api/tags';
 
 	let { data }: PageProps = $props();
 
@@ -30,8 +31,12 @@
   let selectedSwimlaneId = $state(data.board.swimlanes[0]?.id);
 
 	async function start() {
+    const url = new URL(`/hubs/board?boardId=${data.board.id}`, env.PUBLIC_API_SERVER);
 		conn = new signalR.HubConnectionBuilder()
-			.withUrl(`/api/hubs/board?boardId=${data.board.id}`)
+			.withUrl(url.toString(), {
+        withCredentials: true,
+        accessTokenFactory: () => data.token
+      })
 			.withAutomaticReconnect()
 			.configureLogging(signalR.LogLevel.Information)
 			.build();

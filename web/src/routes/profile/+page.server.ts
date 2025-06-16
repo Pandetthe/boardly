@@ -1,11 +1,11 @@
 import type { PageServerLoad } from './$types';
-import { env } from '$env/dynamic/private'
+import { env } from '$env/dynamic/public'
 
 export const load = (async ({ cookies }) => {
     const accessToken = cookies.get('access_token');
     if (!accessToken)
         throw new Error('Unauthorized: No access token found');
-    const res = await fetch(`${env.VITE_API_SERVER}/users/me`, {
+    const res = await fetch(`${env.PUBLIC_API_SERVER}/users/me`, {
         method: 'GET',
         headers: {
                 'Content-Type': 'application/json',

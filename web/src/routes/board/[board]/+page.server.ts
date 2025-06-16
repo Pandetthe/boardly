@@ -1,6 +1,6 @@
 import { parseDetailedBoard, type DetailedBoard, type DetailedBoardReponse } from '$lib/types/api/boards';
 import type { PageServerLoad } from './$types';
-import { env } from '$env/dynamic/private';
+import { env } from '$env/dynamic/public';
 import { redirect } from '@sveltejs/kit';
 import { parseCard, type Card, type CardResponse } from '$lib/types/api/cards';
 import { parseUser, type User, type UserResponse } from '$lib/types/api/users';
@@ -11,7 +11,7 @@ export const load = (async ({ cookies, params, depends }) => {
     if (!accessToken)
         throw new Error('Unauthorized: No access token found');
     try {
-        const res = await fetch(new URL(`boards/${params.board}`, env.VITE_API_SERVER), {
+        const res = await fetch(new URL(`boards/${params.board}`, env.PUBLIC_API_SERVER), {
             method: 'GET',
             headers: {
                 'Content-Type': 'application/json',
@@ -19,7 +19,7 @@ export const load = (async ({ cookies, params, depends }) => {
             },
         });
 
-        const cards = await fetch(new URL(`boards/${params.board}/cards`, env.VITE_API_SERVER), {
+        const cards = await fetch(new URL(`boards/${params.board}/cards`, env.PUBLIC_API_SERVER), {
             method: 'GET',
             headers: {
                 'Content-Type': 'application/json',
@@ -27,7 +27,7 @@ export const load = (async ({ cookies, params, depends }) => {
             },
         });
 
-        const user = await fetch(new URL(`users/me`, env.VITE_API_SERVER), {
+        const user = await fetch(new URL(`users/me`, env.PUBLIC_API_SERVER), {
             method: 'GET',
             headers: {
                 'Content-Type': 'application/json',
@@ -41,7 +41,8 @@ export const load = (async ({ cookies, params, depends }) => {
             return {
                 board: parseDetailedBoard(rawBoard) satisfies DetailedBoard,
                 cards: rawCards.map(parseCard) satisfies Card[],
-                user: parseUser(rawUser) satisfies User
+                user: parseUser(rawUser) satisfies User,
+                token: accessToken
             };
         }
     } catch (error) {
