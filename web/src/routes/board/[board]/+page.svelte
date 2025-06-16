@@ -11,16 +11,12 @@
 	import { writable } from 'svelte/store';
 	import { BoardRole } from '$lib/types/api/members';
 	import { parseCard, type Card, type CardResponse } from '$lib/types/api/cards';
-  import { env } from '$env/dynamic/public';
+  	import { env } from '$env/dynamic/public';
 	import type { SimplifiedUserResponse } from '$lib/types/api/users';
 	import type { DetailedSwimlaneResponse, SwimlaneResponse } from '$lib/types/api/swimlanes';
 	import type { ListResponse } from '$lib/types/api/lists';
-<<<<<<< HEAD
 	import type { Tag, TagResponse } from '$lib/types/api/tags';
 	import Sidebar from '$lib/components/Sidebar.svelte';
-=======
-	import type { TagResponse } from '$lib/types/api/tags';
->>>>>>> a53bd1d3674139229c15de514298b5b8962c667d
 
 	let { data }: PageProps = $props();
 
